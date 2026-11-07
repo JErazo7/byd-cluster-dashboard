@@ -50,9 +50,22 @@
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
   var W = window.EVS_W || 1280, H = 480;
+  /* &fit=cover: preenche o quadro do painel de borda a borda (recorta) em vez de
+     desenhar 1920×720 centrado com franjas. É o que faz o painel parecer "inteiro". */
+  var COVER = /[#&]fit=cover/.test(location.hash);
   var svg = document.getElementById('s');
-  svg.setAttribute('width', W); svg.setAttribute('height', H);
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  if (COVER) {
+    document.documentElement.style.height = '100%';
+    document.body.style.height = '100%';
+    document.body.style.background = '#04070c';
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  } else {
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+  }
 
   /* ---------- idioma (mesmo "#lang=" das outras skins) ---------- */
   var LANG = /[#&]lang=(pt|es|en|zh)/.exec(location.hash);

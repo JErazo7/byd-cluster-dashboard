@@ -158,9 +158,10 @@ public class MainActivity extends Activity {
             }
         });
         web.setBackgroundColor(0);
-        /* 480 dp = 720 px nesta densidade: o painel é 1920×720, então a skin fica
-           centralizada no quadro espelhado em vez de colada no topo */
-        int h = Math.round(480 * getResources().getDisplayMetrics().density);
+        /* com cover a skin preenche o quadro todo (o painel recebe imagem de borda a borda) */
+        boolean cover = getSharedPreferences("lab", MODE_PRIVATE).getBoolean("cover", true);
+        int h = cover ? FrameLayout.LayoutParams.MATCH_PARENT
+                : Math.round(480 * getResources().getDisplayMetrics().density);
         FrameLayout.LayoutParams wlp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, h);
         wlp.gravity = android.view.Gravity.CENTER;
@@ -171,6 +172,12 @@ public class MainActivity extends Activity {
         web.loadUrl(urlFor(p.getString("skin", "shark"), true, false));
 
         startGps();
+
+        /* gancho de teste por adb: --ez proj true|false força a projeção */
+        if (getIntent() != null && getIntent().hasExtra("proj")) {
+            boolean want = getIntent().getBooleanExtra("proj", true);
+            getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("projection", want).apply();
+        }
 
         /* gancho de teste por adb: am start ... --ez cam true */
         if (getIntent() != null && getIntent().getBooleanExtra("cam", false)) {
@@ -224,6 +231,7 @@ public class MainActivity extends Activity {
         File ext = new File(getExternalFilesDir(null), rel);
         String base = ext.isFile() ? ("file://" + ext.getAbsolutePath()) : ("file:///android_asset/" + rel);
         StringBuilder sb = new StringBuilder(base).append("#lab=1&panel=1");
+        if (getSharedPreferences("lab", MODE_PRIVATE).getBoolean("cover", true)) sb.append("&fit=cover");
         if (full) sb.append("&full=1");
         if (light) sb.append("&light=1");
         sb.append("&h24=1&lang=pt");
