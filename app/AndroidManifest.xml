@@ -23,6 +23,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".MirrorActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|uiMode"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
         <service
             android:name=".NavWatch"
             android:exported="true"

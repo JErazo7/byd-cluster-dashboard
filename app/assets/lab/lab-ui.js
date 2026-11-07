@@ -101,6 +101,25 @@
       }
     }
 
+    if (window.Lab && window.Lab.appInfo) {
+      var waze = {};
+      try { waze = JSON.parse(window.Lab.appInfo('com.waze')); } catch (e) {}
+      root.appendChild(el('div', { style: 'margin:4px 0 0;font-size:11px;color:' + (waze.installed ? '#35e07a' : '#7f8c9b') },
+        waze.installed ? ('Waze ' + waze.version + ' · ' + (waze.installer || '?')) : 'Waze não instalado'));
+    }
+
+    if (window.Lab && window.Lab.mirrorStart) {
+      section('Espelhar');
+      var live = window.Lab.mirrorLive && window.Lab.mirrorLive();
+      var mb = el('button', { class: 'it', 'aria-pressed': live ? 'true' : 'false' },
+        live ? 'ESPELHO ATIVO' : 'ESPELHAR A CENTRAL (TEMPO REAL)');
+      mb.addEventListener('click', function (e) {
+        e.stopPropagation();
+        window.Lab.mirrorStart();
+      });
+      root.appendChild(mb);
+    }
+
     if (window.Lab && window.Lab.probe) {
       var diag = el('button', { class: 'it', style: 'margin-top:6px' }, 'DIAGNÓSTICO DO CARRO');
       var pre = el('pre', { style: 'display:none;white-space:pre-wrap;font-size:10px;color:#8fa3b8;' +

@@ -139,6 +139,15 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request == Mirror.REQUEST_CODE && result == RESULT_OK) {
+            Mirror.start(this, result, data);
+            startActivity(new Intent(this, MirrorActivity.class));
+        }
+    }
+
+    @Override
     public void onBackPressed() {
         if (web != null && web.canGoBack()) web.goBack();
         else super.onBackPressed();
@@ -242,6 +251,26 @@ public class MainActivity extends Activity {
             }
         }
 
+        /** captura de tela em tempo real (Waze, Maps, AA, CarPlay: o que estiver na tela) */
+        @JavascriptInterface
+        public void mirrorStart() {
+            ui.post(new Runnable() {
+                public void run() {
+                    Mirror.request(MainActivity.this);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public boolean mirrorLive() {
+            return Mirror.isRunning() && Mirror.frameAge() >= 0 && Mirror.frameAge() < 1500;
+        }
+
+        @JavascriptInterface
+        public void mirrorStop() {
+            Mirror.stop();
+        }
+
         /** abre um app instalado na central (waze, android auto, carplay da BYD) */
         @JavascriptInterface
         public boolean openApp(String pkg) {
@@ -254,6 +283,23 @@ public class MainActivity extends Activity {
             } catch (Throwable t) {
                 Log.w(TAG, "não abriu " + pkg, t);
                 return false;
+            }
+        }
+
+        /** versão e origem de um app instalado (para saber se o Waze é o oficial) */
+        @JavascriptInterface
+        public String appInfo(String pkg) {
+            try {
+                android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(pkg, 0);
+                String installer = "?";
+                try {
+                    installer = String.valueOf(getPackageManager().getInstallSourceInfo(pkg).getInstallingPackageName());
+                } catch (Throwable ignored) {
+                }
+                return "{\"installed\":true,\"version\":\"" + pi.versionName + "\",\"code\":" + pi.getLongVersionCode()
+                        + ",\"installer\":\"" + installer + "\"}";
+            } catch (Throwable t) {
+                return "{\"installed\":false}";
             }
         }
 
