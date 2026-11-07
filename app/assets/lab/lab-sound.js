@@ -73,6 +73,7 @@
     start: start,
     mute: function (m) { muted = !!m; if (master) master.gain.value = muted ? 0 : vol; try { localStorage.setItem('evs_mute', m ? '1' : '0'); } catch (e) {} },
     muted: function () { return muted; },
+    volume: function () { return vol; },
     setVolume: function (v) { vol = Math.max(0, Math.min(1, v)); if (master) master.gain.value = muted ? 0 : vol; },
     state: function () { return ctx ? ctx.state : 'off'; }
   };

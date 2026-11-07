@@ -21,6 +21,8 @@ El repo tiene dos partes:
 | Perfiles de motor editables en texto (`engine/profiles.js`) | ✅ |
 | Exportar WAV de cualquier perfil | ✅ |
 | Carga de skins desde el almacenamiento (sin recompilar) | ✅ |
+| Tarjeta de control dentro del panel (motor, skin, volumen) | ✅ |
+| Sonidos propios sin recompilar (`<almacenamiento>/sound/profiles.js`) | ✅ |
 | Lectura de datos reales del BYD (CAN/DiLink) | ⏳ pendiente |
 | Proyección al panel detrás del volante | ⏳ pendiente |
 | Cámaras, ADAS, mapa, Android Auto / CarPlay | ⏳ pendiente (AA/CarPlay requieren licencia de Google/Apple) |

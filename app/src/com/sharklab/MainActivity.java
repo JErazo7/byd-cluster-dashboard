@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
     /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
     private static final String[] INJECT = {
             "engine/profiles.js", "engine/synth.js", "engine/model.js",
-            "lab/lab-feed.js", "lab/lab-sound.js"
+            "lab/lab-feed.js", "lab/lab-sound.js", "lab/lab-ui.js"
     };
     private WebView web;
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -89,7 +89,12 @@ public class MainActivity extends Activity {
 
     /** lê cada script do APK e joga na página, na ordem */
     private void inject() {
+        evalAsset("engine/profiles.js");
+        /* sons editáveis sem recompilar: <armazenamento>/sound/profiles.js sobrepõe a lista */
+        File custom = new File(getExternalFilesDir(null), "sound/profiles.js");
+        if (custom.isFile()) evalFile(custom);
         for (String rel : INJECT) {
+            if ("engine/profiles.js".equals(rel)) continue;
             try {
                 InputStream in = getAssets().open(rel);
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -102,6 +107,31 @@ public class MainActivity extends Activity {
                 Log.w(TAG, "não injetou " + rel, e);
             }
         }
+    }
+
+    private void evalAsset(String rel) {
+        try {
+            evalStream(getAssets().open(rel), rel);
+        } catch (IOException e) {
+            Log.w(TAG, "não injetou " + rel, e);
+        }
+    }
+
+    private void evalFile(File f) {
+        try {
+            evalStream(new java.io.FileInputStream(f), f.getAbsolutePath());
+        } catch (IOException e) {
+            Log.w(TAG, "não injetou " + f, e);
+        }
+    }
+
+    private void evalStream(InputStream in, String name) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[8192];
+        int n;
+        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        in.close();
+        web.evaluateJavascript(out.toString("UTF-8"), null);
     }
 
     @Override
