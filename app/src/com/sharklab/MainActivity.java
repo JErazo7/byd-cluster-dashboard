@@ -142,8 +142,13 @@ public class MainActivity extends Activity {
             }
         });
         web.setBackgroundColor(0);
-        root.addView(web, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        /* 480 dp = 720 px nesta densidade: o painel é 1920×720, então a skin fica
+           centralizada no quadro espelhado em vez de colada no topo */
+        int h = Math.round(480 * getResources().getDisplayMetrics().density);
+        FrameLayout.LayoutParams wlp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, h);
+        wlp.gravity = android.view.Gravity.CENTER;
+        root.addView(web, wlp);
         setContentView(root);
 
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
