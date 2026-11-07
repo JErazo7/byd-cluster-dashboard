@@ -101,6 +101,15 @@
       }
     }
 
+    if (window.Lab && window.Lab.camOpen) {
+      section('Câmeras');
+      var ok = window.Lab.camAvailable ? window.Lab.camAvailable() : false;
+      var cb = el('button', { class: 'it', 'aria-pressed': ok ? 'true' : 'false' },
+        ok ? 'ABRIR CÂMERA DO CARRO' : 'CÂMERA: SEM SERVIÇO NESTA UNIDADE');
+      cb.addEventListener('click', function (e) { e.stopPropagation(); window.Lab.camOpen(); });
+      root.appendChild(cb);
+    }
+
     if (window.Lab && window.Lab.wheel) {
       section('Volante');
       var wk = {};
@@ -190,6 +199,36 @@
     build();
     root.hidden = !wasOpen;
   }
+
+  /* teclas do volante → ações: padrão de mídia/volume/setas do Android */
+  var lastKey = -1, lastCount = 0, skinsCache = [];
+  function wheelPoll() {
+    if (window.Lab && window.Lab.wheel) {
+      var w = {};
+      try { w = JSON.parse(window.Lab.wheel()); } catch (e) {}
+      if (w.count > lastCount) {
+        lastCount = w.count;
+        var k = w.key;
+        if (k === 87) window.EngineApp.select((window.EngineApp.index() + 1) % window.EngineApp.list().length);
+        else if (k === 88) window.EngineApp.select((window.EngineApp.index() + window.EngineApp.list().length - 1) % window.EngineApp.list().length);
+        else if (k === 85) window.EngineApp.mute(!window.EngineApp.muted());
+        else if (k === 24) window.EngineApp.setVolume(Math.min(1, window.EngineApp.volume() + 0.1));
+        else if (k === 25) window.EngineApp.setVolume(Math.max(0, window.EngineApp.volume() - 0.1));
+        else if ((k === 21 || k === 22) && window.Lab.skins) {
+          try { skinsCache = JSON.parse(window.Lab.skins()); } catch (e2) {}
+          if (skinsCache.length > 1) {
+            var cur = (/\/dash\/([a-z0-9_]+)\//.exec(location.pathname) || [])[1];
+            var i = skinsCache.indexOf(cur);
+            var n = (i + (k === 22 ? 1 : skinsCache.length - 1)) % skinsCache.length;
+            window.Lab.setSkin(skinsCache[n]);
+          }
+        }
+        refresh();
+      }
+    }
+    setTimeout(wheelPoll, 350);
+  }
+  wheelPoll();
 
   style();
   build();

@@ -24,6 +24,11 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".CamView"
+            android:configChanges="orientation|screenSize|smallestScreenSize|uiMode"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+        <activity
             android:name=".MirrorActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize|uiMode"
             android:exported="false"

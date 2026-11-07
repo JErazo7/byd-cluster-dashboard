@@ -253,6 +253,31 @@ public class MainActivity extends Activity {
             }
         }
 
+        /** abre o teste da câmera do carro (ré/panorâmica) */
+        @JavascriptInterface
+        public void camOpen() {
+            ui.post(new Runnable() {
+                public void run() {
+                    try {
+                        startActivity(new Intent(MainActivity.this, CamView.class));
+                    } catch (Throwable t) {
+                        Log.w(TAG, "não abriu a câmera", t);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public boolean camAvailable() {
+            return CameraService.available();
+        }
+
+        /** métodos reais do serviço de câmera desta unidade */
+        @JavascriptInterface
+        public String camDump() {
+            return CameraService.dump();
+        }
+
         /** última tecla do volante lida pelo serviço de acessibilidade */
         @JavascriptInterface
         public String wheel() {
