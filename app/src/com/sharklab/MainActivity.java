@@ -7,7 +7,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.TextureView;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebViewClient;
@@ -39,6 +41,9 @@ public class MainActivity extends Activity {
     };
     private WebView web;
     private BydBridge byd;
+    private TextureView camView;
+    private android.view.Surface camSurface;
+    private boolean camShown = false;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private float t = 0f;
 
@@ -49,6 +54,41 @@ public class MainActivity extends Activity {
         hideSystemUi();
 
         byd = new BydBridge(this);
+
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(0xFF04070C);
+
+        camView = new TextureView(this);
+        camView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+            @Override
+            public void onSurfaceTextureAvailable(android.graphics.SurfaceTexture st, int w, int h) {
+                camSurface = new android.view.Surface(st);
+                if (camShown) CameraService.openPreview(camSurface);
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(android.graphics.SurfaceTexture st, int w, int h) {
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(android.graphics.SurfaceTexture st) {
+                if (camSurface != null) {
+                    CameraService.closePreview(camSurface);
+                    try { camSurface.release(); } catch (Throwable ignored) {}
+                    camSurface = null;
+                }
+                return true;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(android.graphics.SurfaceTexture st) {
+            }
+        });
+        FrameLayout.LayoutParams camLp = new FrameLayout.LayoutParams(1, 1);
+        camLp.leftMargin = 0;
+        camLp.topMargin = 0;
+        root.addView(camView, camLp);
+        camView.setVisibility(View.GONE);
 
         web = new WebView(this);
         WebSettings s = web.getSettings();
@@ -65,7 +105,10 @@ public class MainActivity extends Activity {
                 if (url != null && url.startsWith("file:")) inject();
             }
         });
-        setContentView(web);
+        web.setBackgroundColor(0);
+        root.addView(web, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(root);
 
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
         web.loadUrl(urlFor(p.getString("skin", "shark"), p.getBoolean("full", false), p.getBoolean("light", false)));
@@ -84,8 +127,8 @@ public class MainActivity extends Activity {
         String rel = "dash/" + id + "/index.html";
         File ext = new File(getExternalFilesDir(null), rel);
         String base = ext.isFile() ? ("file://" + ext.getAbsolutePath()) : ("file:///android_asset/" + rel);
-        StringBuilder sb = new StringBuilder(base).append("#lab=1");
-        if (full) sb.append("&full=1&panel=1");
+        StringBuilder sb = new StringBuilder(base).append("#lab=1&panel=1");
+        if (full) sb.append("&full=1");
         if (light) sb.append("&light=1");
         sb.append("&h24=1&lang=pt");
         return sb.toString();
@@ -167,6 +210,7 @@ public class MainActivity extends Activity {
     public class Lab {
         private float speed = 0f;
         private boolean up = true;
+        private boolean lastReverse = false;
 
         /**
          * Estado para a skin. Se as APIs do BYD responderem, manda o carro de verdade e
@@ -196,6 +240,13 @@ public class MainActivity extends Activity {
             int odo = b[8] > -998 ? (int) Math.round(b[8]) : 12843;
             double v12 = b[9] > -998 ? b[9] : 13.8;
             boolean turn = b[10] > -998 ? b[10] > 0 : spd > 60;
+            /* ré: mostra a câmera atrás da skin, à direita */
+            boolean reverse = gear == -1 || gear == 0;
+            if (reverse != lastReverse) {
+                lastReverse = reverse;
+                if (reverse && CameraService.available()) camShape("{\"x\":640,\"y\":96,\"w\":600,\"h\":340}");
+                else camHide();
+            }
             int pu = b[11] > -998 ? (int) b[11] : 1;
             int spdU = b[12] > -998 ? (int) b[12] : 1;
             return "{\"pu\":" + pu + ",\"du\":1,\"su\":" + spdU + ",\"car\":\"v8\",\"phase\":\"on\",\"reverse\":" + (gear == -1)
@@ -251,6 +302,46 @@ public class MainActivity extends Activity {
             } catch (Throwable t) {
                 Log.w(TAG, "sem tela de acesso a notificações", t);
             }
+        }
+
+        /** controles da música: prev | play | next */
+        @JavascriptInterface
+        public void media(String cmd) {
+            MediaNow.control(getApplicationContext(), cmd);
+        }
+
+        /** posiciona a superfície da câmera atrás da skin */
+        @JavascriptInterface
+        public void camShape(String json) {
+            try {
+                org.json.JSONObject o = new org.json.JSONObject(json);
+                final int x = o.optInt("x"), y = o.optInt("y"), w = o.optInt("w"), h = o.optInt("h");
+                ui.post(new Runnable() {
+                    public void run() {
+                        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) camView.getLayoutParams();
+                        lp.width = Math.max(1, w);
+                        lp.height = Math.max(1, h);
+                        lp.leftMargin = x;
+                        lp.topMargin = y;
+                        camView.setLayoutParams(lp);
+                        camView.setVisibility(View.VISIBLE);
+                        camShown = true;
+                        if (camSurface != null) CameraService.openPreview(camSurface);
+                    }
+                });
+            } catch (Throwable ignored) {
+            }
+        }
+
+        @JavascriptInterface
+        public void camHide() {
+            ui.post(new Runnable() {
+                public void run() {
+                    camShown = false;
+                    camView.setVisibility(View.GONE);
+                    if (camSurface != null) CameraService.closePreview(camSurface);
+                }
+            });
         }
 
         /** abre o teste da câmera do carro (ré/panorâmica) */
@@ -380,7 +471,8 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String nowPlaying() {
-            return "{\"title\":\"SharkLab\",\"artist\":\"simulação\"}";
+            String real = MediaNow.snapshot(getApplicationContext());
+            return real == null ? "{}" : real;
         }
 
         @JavascriptInterface
