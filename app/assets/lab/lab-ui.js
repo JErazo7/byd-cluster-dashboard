@@ -132,6 +132,20 @@
         waze.installed ? ('Waze ' + waze.version + ' · ' + (waze.installer || '?')) : 'Waze não instalado'));
     }
 
+    if (window.Lab && window.Lab.clusterLaunch) {
+      section('Painel do motorista');
+      var info = '[]';
+      try { info = window.Lab.clusterInfo(); } catch (e) {}
+      root.appendChild(el('div', { style: 'font-size:11px;color:#7f8c9b;margin:0 0 6px' }, info));
+      var cb2 = el('button', { class: 'it' }, 'ENVIAR SKIN AO PAINEL');
+      cb2.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var r = window.Lab.clusterLaunch();
+        root.appendChild(el('div', { style: 'font-size:11px;color:#9fb0c2;margin:4px 0 0' }, r));
+      });
+      root.appendChild(cb2);
+    }
+
     if (window.Lab && window.Lab.mirrorStart) {
       section('Espelhar');
       var live = window.Lab.mirrorLive && window.Lab.mirrorLive();

@@ -39,7 +39,7 @@ if [ -d res ]; then
   RES="-R build/res.zip"
 fi
 "$BT/aapt2" link -o build/base.apk --manifest AndroidManifest.xml -I "$JAR" -A build/assets $RES --auto-add-overlay \
-  --min-sdk-version 26 --target-sdk-version 29 --version-code 1 --version-name 0.1
+  --min-sdk-version 26 --target-sdk-version 26 --version-code 1 --version-name 0.1
 
 echo "2/5 javac"
 javac -nowarn --release 8 -cp "$JAR" -d build/classes $(find src -name '*.java')

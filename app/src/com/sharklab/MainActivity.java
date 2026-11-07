@@ -2,11 +2,18 @@ package com.sharklab;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.app.ActivityOptions;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
+import android.view.Display;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -35,7 +42,7 @@ public class MainActivity extends Activity {
     private static final String[] BUILTIN = {"shark"};
 
     /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
-    private static final String[] INJECT = {
+    static final String[] INJECT = {
             "engine/profiles.js", "engine/synth.js", "engine/model.js",
             "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-sound.js", "lab/lab-ui.js"
     };
@@ -44,6 +51,11 @@ public class MainActivity extends Activity {
     private TextureView camView;
     private android.view.Surface camSurface;
     private boolean camShown = false;
+    private ClusterPresentation cluster;
+    private final Lab bridge = new Lab();
+    private volatile double gpsKmh = -1;
+    private LocationListener gpsListener;
+    private String clusterError = "";
     private final Handler ui = new Handler(Looper.getMainLooper());
     private float t = 0f;
 
@@ -54,6 +66,20 @@ public class MainActivity extends Activity {
         hideSystemUi();
 
         byd = new BydBridge(this);
+
+        /* diagnóstico no logcat: o que esta unidade responde (adb logcat -s SharkLab) */
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    Log.i(TAG, "probe=" + CarProbe.run(getApplicationContext()));
+                    Log.i(TAG, "bydAvailable=" + byd.available());
+                    Log.i(TAG, "bydGetters=" + byd.report());
+                    Log.i(TAG, "adas=" + byd.adasJson());
+                } catch (Throwable t) {
+                    Log.w(TAG, "probe falhou", t);
+                }
+            }
+        }).start();
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFF04070C);
@@ -97,8 +123,10 @@ public class MainActivity extends Activity {
         s.setAllowFileAccessFromFileURLs(true);
         s.setAllowUniversalAccessFromFileURLs(true);
         s.setDomStorageEnabled(true);
+        s.setUseWideViewPort(true);
+        s.setLoadWithOverviewMode(true);
         web.setBackgroundColor(0xFF000000);
-        web.addJavascriptInterface(new Lab(), "Lab");
+        web.addJavascriptInterface(bridge, "Lab");
         web.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
@@ -112,6 +140,11 @@ public class MainActivity extends Activity {
 
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
         web.loadUrl(urlFor(p.getString("skin", "shark"), p.getBoolean("full", false), p.getBoolean("light", false)));
+
+        startGps();
+
+        /* painel do motorista: uma Presentation no display virtual do carro */
+        if (p.getBoolean("cluster", true)) showCluster(p.getString("skin", "shark"));
     }
 
     private void hideSystemUi() {
@@ -181,6 +214,78 @@ public class MainActivity extends Activity {
         web.evaluateJavascript(out.toString("UTF-8"), null);
     }
 
+    /** velocidade do GPS (API pública): fonte real que não depende de permissão da BYD */
+    private void startGps() {
+        try {
+            final LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+            if (lm == null) return;
+            gpsListener = new LocationListener() {
+                @Override
+                public void onLocationChanged(Location loc) {
+                    if (loc != null && loc.hasSpeed()) gpsKmh = loc.getSpeed() * 3.6;
+                    else if (loc != null) gpsKmh = -1;
+                }
+
+                @Override
+                public void onStatusChanged(String p, int s, android.os.Bundle b) {
+                }
+
+                @Override
+                public void onProviderEnabled(String p) {
+                }
+
+                @Override
+                public void onProviderDisabled(String p) {
+                }
+            };
+            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, gpsListener);
+            Log.i(TAG, "GPS ligado para velocidade");
+        } catch (SecurityException se) {
+            Log.w(TAG, "sem permissão de localização");
+        } catch (Throwable t) {
+            Log.w(TAG, "GPS falhou", t);
+        }
+    }
+
+    /** abre (ou reabre) a skin no display do painel, se o sistema permitir */
+    private void showCluster(final String skin) {
+        try {
+            DisplayManager dm = (DisplayManager) getSystemService(DISPLAY_SERVICE);
+            Display target = null;
+            for (Display d : dm.getDisplays()) {
+                if (d.getDisplayId() == Display.DEFAULT_DISPLAY) continue;
+                android.util.DisplayMetrics m = new android.util.DisplayMetrics();
+                d.getRealMetrics(m);
+                if (m.widthPixels >= 800) target = d;
+            }
+            if (target == null) {
+                clusterError = "sem display secundário";
+                Log.w(TAG, clusterError);
+                return;
+            }
+            final Display d = target;
+            ui.post(new Runnable() {
+                public void run() {
+                    try {
+                        if (cluster != null) cluster.dismiss();
+                        cluster = new ClusterPresentation(MainActivity.this, d,
+                                urlFor(skin, true, false) + "&wide=" + d.getWidth(), bridge);
+                        cluster.show();
+                        clusterError = "";
+                        Log.i(TAG, "painel: presentation no display " + d.getDisplayId()
+                                + " (" + d.getWidth() + "x" + d.getHeight() + ")");
+                    } catch (Throwable t) {
+                        clusterError = t.getClass().getSimpleName() + ": " + t.getMessage();
+                        Log.w(TAG, "painel recusado no display " + d.getDisplayId(), t);
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            clusterError = t.toString();
+            Log.w(TAG, "painel falhou", t);
+        }
+    }
+
     @Override
     protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
@@ -220,6 +325,7 @@ public class MainActivity extends Activity {
         public String state() {
             double[] b = byd.snapshot();
             boolean car = b[0] > -998;                      /* velocidade respondeu */
+            if (!car && gpsKmh >= 0) { b[0] = gpsKmh; car = true; }
             double speedKmh = car ? b[0] : 0;
 
             /* simulação: sempre roda, e é o que sobra quando o carro não responde */
@@ -342,6 +448,95 @@ public class MainActivity extends Activity {
                     if (camSurface != null) CameraService.closePreview(camSurface);
                 }
             });
+        }
+
+        /**
+         * Leva a skin para o display do painel do motorista.
+         *
+         * O carro expõe esse painel como um display virtual do sistema (1920×720, dono
+         * com.xdja.containerservice). setLaunchDisplayId é API pública; se o sistema não
+         * autorizar, devolve o motivo em vez de falhar calado.
+         */
+        @JavascriptInterface
+        public String clusterShow() {
+            SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+            p.edit().putBoolean("cluster", true).apply();
+            showCluster(p.getString("skin", "shark"));
+            return "{\"ok\":" + (clusterError.isEmpty()) + ",\"why\":\"" + clusterError.replace("\"", "'") + "\"}";
+        }
+
+        @JavascriptInterface
+        public void clusterHide() {
+            getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("cluster", false).apply();
+            ui.post(new Runnable() {
+                public void run() {
+                    if (cluster != null) {
+                        cluster.dismiss();
+                        cluster = null;
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String clusterLaunch() {
+            final int id = clusterDisplayId();
+            if (id < 0) return "{\"ok\":false,\"why\":\"sem segundo display\"}";
+            ui.post(new Runnable() {
+                public void run() {
+                    try {
+                        ActivityOptions o = ActivityOptions.makeBasic();
+                        o.setLaunchDisplayId(id);
+                        Intent i = new Intent(MainActivity.this, MainActivity.class);
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                        startActivity(i, o.toBundle());
+                        Log.i(TAG, "skin enviada ao display " + id);
+                    } catch (Throwable t) {
+                        Log.w(TAG, "sistema recusou o display " + id, t);
+                    }
+                }
+            });
+            return "{\"ok\":true,\"display\":" + id + "}";
+        }
+
+        @JavascriptInterface
+        public String clusterInfo() {
+            try {
+                DisplayManager dm = (DisplayManager) getSystemService(DISPLAY_SERVICE);
+                StringBuilder sb = new StringBuilder("[");
+                boolean first = true;
+                for (Display d : dm.getDisplays()) {
+                    if (!first) sb.append(',');
+                    first = false;
+                    android.util.DisplayMetrics m = new android.util.DisplayMetrics();
+                    d.getRealMetrics(m);
+                    sb.append("{\"id\":").append(d.getDisplayId())
+                      .append(",\"w\":").append(m.widthPixels)
+                      .append(",\"h\":").append(m.heightPixels)
+                      .append(",\"name\":\"").append(String.valueOf(d.getName())).append("\"}");
+                }
+                return sb.append(']').toString();
+            } catch (Throwable t) {
+                return "[]";
+            }
+        }
+
+        /** id do display do painel, ou -1 */
+        private int clusterDisplayId() {
+            try {
+                DisplayManager dm = (DisplayManager) getSystemService(DISPLAY_SERVICE);
+                Display best = null;
+                for (Display d : dm.getDisplays()) {
+                    if (d.getDisplayId() == Display.DEFAULT_DISPLAY) continue;
+                    android.util.DisplayMetrics m = new android.util.DisplayMetrics();
+                    d.getRealMetrics(m);
+                    if (m.widthPixels < 800) continue;
+                    if (best == null || m.widthPixels * m.heightPixels > best.getWidth() * best.getHeight()) best = d;
+                }
+                return best == null ? -1 : best.getDisplayId();
+            } catch (Throwable t) {
+                return -1;
+            }
         }
 
         /** abre o teste da câmera do carro (ré/panorâmica) */
