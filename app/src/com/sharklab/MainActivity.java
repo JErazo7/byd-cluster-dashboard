@@ -144,9 +144,10 @@ public class MainActivity extends Activity {
         web.loadUrl(urlFor(p.getString("skin", "shark"), p.getBoolean("full", false), p.getBoolean("light", false)));
 
         startGps();
+        if (p.getBoolean("cluster_cast", true)) bridge.clusterCast(16);
 
         /* painel do motorista: uma Presentation no display virtual do carro */
-        if (p.getBoolean("cluster", true)) showCluster(p.getString("skin", "shark"));
+        if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "shark"));
     }
 
     private void hideSystemUi() {
@@ -412,6 +413,30 @@ public class MainActivity extends Activity {
                 startActivity(i);
             } catch (Throwable t) {
                 Log.w(TAG, "sem tela de acesso a notificações", t);
+            }
+        }
+
+        /**
+         * Painel do motorista: o cluster é outra instância do sistema (fission), não um display
+         * Android. O canal é o binder AutoContainer, tipo 1000:
+         *   16 = espelhar a IVI em tela cheia, 17 = metade, 18 = desligar.
+         */
+        @JavascriptInterface
+        public String clusterCast(int cmd) {
+            try {
+                Class<?> sm = Class.forName("android.os.ServiceManager");
+                Object binder = sm.getMethod("getService", String.class).invoke(null, "AutoContainer");
+                if (binder == null) return "{\"ok\":false,\"why\":\"sem AutoContainer\"}";
+                Class<?> stub = Class.forName("android.os.IAutoContainer$Stub");
+                Object svc = stub.getMethod("asInterface", android.os.IBinder.class)
+                        .invoke(null, binder);
+                svc.getClass().getMethod("sendInfo", int.class, int.class, String.class)
+                        .invoke(svc, 1000, cmd, "");
+                Log.i(TAG, "cluster cast cmd=" + cmd);
+                return "{\"ok\":true,\"cmd\":" + cmd + "}";
+            } catch (Throwable t) {
+                Log.w(TAG, "cluster cast falhou cmd=" + cmd, t);
+                return "{\"ok\":false,\"why\":\"" + String.valueOf(t).replace("\"", "'") + "\"}";
             }
         }
 

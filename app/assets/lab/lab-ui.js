@@ -70,7 +70,7 @@
       window.EngineApp.muted() ? 'MUDO' : 'SOM');
     mute.style.width = '86px';
     mute.style.margin = '0';
-    var vol = el('input', { type: 'range', min: '0', max: '100', value: '70' });
+    var vol = el('input', { type: 'range', min: '0', max: '150', value: '70' });
     vol.value = String(Math.round((window.EngineApp.volume ? window.EngineApp.volume() : 0.7) * 100));
     vol.addEventListener('input', function () { window.EngineApp.setVolume(this.value / 100); });
     mute.addEventListener('click', function () { window.EngineApp.mute(!window.EngineApp.muted()); refresh(); });
@@ -130,6 +130,22 @@
       try { waze = JSON.parse(window.Lab.appInfo('com.waze')); } catch (e) {}
       root.appendChild(el('div', { style: 'margin:4px 0 0;font-size:11px;color:' + (waze.installed ? '#35e07a' : '#7f8c9b') },
         waze.installed ? ('Waze ' + waze.version + ' · ' + (waze.installer || '?')) : 'Waze não instalado'));
+    }
+
+    if (window.Lab && window.Lab.clusterCast) {
+      section('Painel do motorista');
+      var rows = [['ESPELHAR NO PAINEL (CHEIO)', 16], ['METADE', 17], ['VOLTAR AO PAINEL BYD', 18]];
+      root.appendChild(el('div', { style: 'font-size:11px;color:#7f8c9b;margin:0 0 6px;line-height:1.35' },
+        'se o botão falhar, rode uma vez por adb:\nservice call AutoContainer 2 i32 1000 i32 16 s16 ""'));
+      rows.forEach(function (r) {
+        var b = el('button', { class: 'it' }, r[0]);
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var res = window.Lab.clusterCast(r[1]);
+          root.appendChild(el('div', { style: 'font-size:11px;color:#9fb0c2;margin:2px 0 6px' }, res));
+        });
+        root.appendChild(b);
+      });
     }
 
     if (window.Lab && window.Lab.clusterLaunch) {

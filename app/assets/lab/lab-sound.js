@@ -15,10 +15,12 @@
 
   var engines = window.ENGINES;
   var ctx = null, voice = null, master = null, idx = 0, vol = 0.7, muted = false;
+  var rpmSim = 700;   /* giro do rev livre: segue o pedal mesmo parado */
   var started = false;
 
   try { idx = Math.max(0, Math.min(engines.length - 1, parseInt(localStorage.getItem('evs_engine'), 10) || 0)); } catch (e) {}
   try { muted = localStorage.getItem('evs_mute') === '1'; } catch (e) {}
+  try { var v0 = parseFloat(localStorage.getItem('evs_vol')); if (v0 >= 0 && v0 <= 1.5) vol = v0; } catch (e) {}
 
   function ensure() {
     if (ctx) return true;
@@ -58,8 +60,15 @@
   setInterval(function () {
     if (!voice || !window.__labEv) return;
     var ev = window.__labEv;
-    var load = Math.min(1, Math.abs(ev.pw || 0) / 160);
-    voice.update({ rpm: ev.rpm, tps: (ev.tps || 0) / 100, load: load, speed: ev.speed, on: ev.on !== false });
+    var tps = (ev.tps || 0) / 100;
+    var load = Math.min(1, Math.max(tps, Math.abs(ev.pw || 0) / 160));
+    var eng = engines[idx] || {};
+    var idle = eng.idle || 700, lim = eng.limiter || 6800;
+    /* parado: o giro é o do pedal (rev livre). Andando: o do carro. */
+    var target = (ev.speed < 2) ? (idle + tps * (lim - idle)) : (ev.rpm || idle);
+    rpmSim += (target - rpmSim) * 0.45;          /* ~50 ms de atraso, não 300 */
+    if (rpmSim < idle * 0.9) rpmSim = idle * 0.9;
+    voice.update({ rpm: rpmSim, tps: tps, load: load, speed: ev.speed, on: ev.on !== false });
     /* queda brusca de potência com giro alto: estouro no escape */
     if (lastPw > 40 && ev.pw < 5 && ev.rpm > 2500) voice.pop(0.9);
     lastPw = ev.pw;
@@ -74,7 +83,11 @@
     mute: function (m) { muted = !!m; if (master) master.gain.value = muted ? 0 : vol; try { localStorage.setItem('evs_mute', m ? '1' : '0'); } catch (e) {} },
     muted: function () { return muted; },
     volume: function () { return vol; },
-    setVolume: function (v) { vol = Math.max(0, Math.min(1, v)); if (master) master.gain.value = muted ? 0 : vol; },
+    setVolume: function (v) {
+      vol = Math.max(0, Math.min(1.5, v));
+      if (master) master.gain.value = muted ? 0 : vol;
+      try { localStorage.setItem('evs_vol', String(vol)); } catch (e) {}
+    },
     state: function () { return ctx ? ctx.state : 'off'; }
   };
 })();

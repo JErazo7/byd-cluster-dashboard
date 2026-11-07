@@ -144,21 +144,21 @@
       var fire = rpm / 60 * (p.cylinders / 2);
       var t = clamp((rpm - p.idle) / (p.redline - p.idle), 0, 1);
 
-      oscA.frequency.setTargetAtTime(fire, now, 0.02);
+      oscA.frequency.setTargetAtTime(fire, now, 0.006);
       oscB.frequency.setTargetAtTime(fire * (1 + 0.006 + 0.004 * Math.sin(now * 3.7)), now, 0.03);
 
       var cut = lerp(p.cut[0], p.cut[1], Math.pow(t, 0.75)) * (0.55 + 0.45 * load);
-      lp.frequency.setTargetAtTime(clamp(cut, 60, 12000), now, 0.03);
+      lp.frequency.setTargetAtTime(clamp(cut, 60, 12000), now, 0.012);
 
       intakeBP.frequency.setTargetAtTime(clamp(fire * 7, 300, 6000), now, 0.03);
       var ig = lerp(p.intake[0], p.intake[1], Math.pow(t, 0.8)) * (0.25 + 0.75 * load);
-      intakeGain.gain.setTargetAtTime(on ? ig : 0, now, 0.05);
+      intakeGain.gain.setTargetAtTime(on ? ig : 0, now, 0.02);
 
       turboOsc.frequency.setTargetAtTime(1800 + 7200 * load, now, 0.05);
       turboGain.gain.setTargetAtTime(on ? p.turbo * load * 0.05 : 0, now, 0.05);
 
       var vol = on ? lerp(0.22, 1, Math.pow(t, 0.6)) * (0.45 + 0.55 * load) : 0;
-      out.gain.setTargetAtTime(vol, now, 0.04);
+      out.gain.setTargetAtTime(vol, now, 0.015);
     }
 
     /* estouro no escape: ruído com decaimento curto, filtrado grave */
