@@ -101,6 +101,21 @@
       }
     }
 
+    if (window.Lab && window.Lab.wheel) {
+      section('Volante');
+      var wk = {};
+      try { wk = JSON.parse(window.Lab.wheel()); } catch (e) {}
+      var NAMES = { 87: 'PRÓXIMA', 88: 'ANTERIOR', 85: 'PLAY/PAUSE', 24: 'VOLUME +', 25: 'VOLUME −',
+        19: 'CIMA', 20: 'BAIXO', 21: 'ESQUERDA', 22: 'DIREITA', 66: 'OK', 4: 'VOLTAR' };
+      root.appendChild(el('div', { style: 'font-size:12px;color:#9fb0c2;margin:0 0 6px' },
+        wk.key >= 0 ? ('última: ' + (NAMES[wk.key] || wk.key) + ' · ' + Math.round((wk.age || 0) / 1000) + 's') : 'nenhuma tecla ainda'));
+      var wacc = window.Lab.wheelAccess ? window.Lab.wheelAccess() : false;
+      var wb = el('button', { class: 'it', 'aria-pressed': wacc ? 'true' : 'false' },
+        wacc ? 'VOLANTE: ATIVO' : 'ATIVAR LEITURA DO VOLANTE');
+      wb.addEventListener('click', function (e) { e.stopPropagation(); window.Lab.wheelSettings(); });
+      root.appendChild(wb);
+    }
+
     if (window.Lab && window.Lab.appInfo) {
       var waze = {};
       try { waze = JSON.parse(window.Lab.appInfo('com.waze')); } catch (e) {}
@@ -134,6 +149,24 @@
       });
       root.appendChild(diag);
       root.appendChild(pre);
+    }
+
+    if (window.EvLog) {
+      section('Diário de bordo');
+      var su = window.EvLog.summary();
+      var line = (su.cur && su.cur.km > 0.1 ? 'nesta viagem ' + su.cur.km.toFixed(1) + ' km · ' : '') +
+        'total ' + su.total.km + ' km · ' + su.total.kwh + ' kWh · R$ ' + su.total.cost.toFixed(2) +
+        (su.total.cons ? ' · ' + su.total.cons + ' kWh/100km' : '');
+      root.appendChild(el('div', { style: 'font-size:12px;color:#9fb0c2;margin:0 0 6px' }, line));
+      var pr = el('input', { type: 'range', min: '20', max: '200', value: String(Math.round(window.EvLog.price() * 100)) });
+      pr.addEventListener('input', function () { window.EvLog.setPrice(this.value / 100); });
+      var prow = el('div', { class: 'row' });
+      prow.appendChild(pr);
+      prow.appendChild(el('span', { style: 'font-size:11px;color:#5f7183' }, 'R$/kWh'));
+      root.appendChild(prow);
+      var fb = el('button', { class: 'it', style: 'margin-top:6px' }, 'FECHAR VIAGEM');
+      fb.addEventListener('click', function (e) { e.stopPropagation(); window.EvLog.endTrip(); refresh(); });
+      root.appendChild(fb);
     }
 
     root.appendChild(el('div', { style: 'margin-top:10px;font-size:11px;color:#5f7183' },

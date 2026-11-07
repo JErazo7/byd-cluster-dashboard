@@ -10,7 +10,7 @@
   if (window.__labFeed || !window.Lab) return;
   window.__labFeed = true;
 
-  var B = window.Lab, cars = {}, t = 0, media = null, nav = null, pos = null;
+  var B = window.Lab, cars = {}, t = 0, media = null, nav = null, pos = null, lastTs = 0;
   try { JSON.parse(B.cars()).forEach(function (c) { cars[c.id] = c; }); } catch (e) {}
 
   /* unidades do painel (a central da BYD manda 1 = métrico, 2 = imperial) */
@@ -25,6 +25,9 @@
   var SEL = { 0: 'N', 1: 'R', 2: 'D', 3: 'P', 4: 'N' };
 
   function tick() {
+    var nowTs = Date.now();
+    var dt = lastTs ? (nowTs - lastTs) / 1000 : 0.05;
+    lastTs = nowTs;
     var s;
     try { s = JSON.parse(B.state()); } catch (e) { return requestAnimationFrame(tick); }
     var c = cars[s.car] || { redline: 7000, turbo: false, name: '' };
@@ -87,6 +90,7 @@
     if (pos) ev.pos = pos;
     if (nav) ev.nav = nav;
     t++;
+    if (window.EvLog) ev.log = window.EvLog.update(ev, dt) ? window.EvLog.summary() : ev.log;
     window.__labEv = ev;
     if (window.BrasaDriveUpdate) window.BrasaDriveUpdate(ev);
     requestAnimationFrame(tick);
