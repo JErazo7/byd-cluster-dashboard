@@ -168,19 +168,20 @@
 
   /* --- música: capa + título + controles --- */
   var gMedia = el('g', {}, gBottom);
-  var mediaBg = el('rect', { x: W / 2 - 156, y: H - 54, width: 312, height: 48, rx: 11, class: 'cardBg' }, gMedia);
+  var MX = 20, MY = H - 128;                 /* canto inferior esquerdo: o centro-baixo é da BYD */
+  var mediaBg = el('rect', { x: MX, y: MY, width: 300, height: 50, rx: 11, class: 'cardBg' }, gMedia);
   mediaBg.setAttribute('opacity', 0);
-  var artImg = el('image', { x: W / 2 - 148, y: H - 50, width: 40, height: 40, opacity: 0 }, gMedia);
-  var mediaTitle = txt(W / 2 - 100, H - 32, '', 15, 'num', 'start', gMedia);
-  var mediaArtist = txt(W / 2 - 100, H - 14, '', 11, 'dim', 'start', gMedia);
+  var artImg = el('image', { x: MX + 8, y: MY + 5, width: 40, height: 40, opacity: 0 }, gMedia);
+  var mediaTitle = txt(MX + 56, MY + 23, '', 15, 'num', 'start', gMedia);
+  var mediaArtist = txt(MX + 56, MY + 41, '', 11, 'dim', 'start', gMedia);
   var ctlPrev = el('path', { d: 'M-8 -5L-1 0L-8 5ZM-1 -5L6 0L-1 5Z', fill: '#8fa3b8' }, gMedia);
-  ctlPrev.setAttribute('transform', 'translate(' + (W / 2 + 104) + ',' + (H - 30) + ')');
+  ctlPrev.setAttribute('transform', 'translate(' + (MX + 210) + ',' + (MY + 25) + ')');
   var ctlPlay = el('path', { d: 'M-3 -6L7 0L-3 6Z', fill: '#38cfff' }, gMedia);
-  ctlPlay.setAttribute('transform', 'translate(' + (W / 2 + 126) + ',' + (H - 30) + ')');
+  ctlPlay.setAttribute('transform', 'translate(' + (MX + 240) + ',' + (MY + 25) + ')');
   var ctlNext = el('path', { d: 'M-6 -5L1 0L-6 5ZM1 -5L8 0L1 5Z', fill: '#8fa3b8' }, gMedia);
-  ctlNext.setAttribute('transform', 'translate(' + (W / 2 + 148) + ',' + (H - 30) + ')');
+  ctlNext.setAttribute('transform', 'translate(' + (MX + 270) + ',' + (MY + 25) + ')');
 
-  var odoT = txt(40, H - 22, '', 19, 'dim', 'start', gBottom);
+  var odoT = txt(20, H - 16, '', 17, 'dim', 'start', gBottom);
   var tempT = txt(W - 40, H - 22, '', 19, 'dim', 'end', gBottom);
 
   /* setas desenhadas (não são caracteres: a central não tem a fonte) */
@@ -194,9 +195,29 @@
   turnL.setAttribute('d', arrow(-1));
   turnR.setAttribute('d', arrow(1));
 
+  /* faixa reservada às luzes da BYD (x 427–853, y 0–54 em 1280): fundo escuro para os
+     ícones nativos não parecerem colados sobre a skin ou sobre a câmera */
+  var SAFE = W / 1280;
+  var safeBg = el('rect', {
+    x: Math.round(427 * SAFE), y: 0, width: Math.round(426 * SAFE), height: Math.round(54 * SAFE),
+    rx: 10, fill: '#05070a', opacity: PANEL ? 0.9 : 0
+  }, gTop);
+  if (/[#&]safe=1/.test(location.hash)) {
+    el('rect', {
+      x: Math.round(427 * SAFE), y: 0, width: Math.round(426 * SAFE), height: Math.round(54 * SAFE),
+      fill: 'none', stroke: '#ffb020', 'stroke-width': 2, 'stroke-dasharray': '6 6'
+    }, gTop);
+  }
+
   /* no painel inteiro a BYD desenha as luzes de falha numa faixa no alto do meio
      (x 427–853, y 0–54 em 1280×480): o relógio sai da faixa */
-  if (PANEL) { clockT.setAttribute('y', 100); navT.setAttribute('y', 130); warnT.setAttribute('y', 158); }
+  if (PANEL) {
+    clockT.setAttribute('y', 100);
+    navT.setAttribute('y', 130);
+    warnT.setAttribute('y', 158);
+  }
+  /* gancho para o app saber até onde pode desenhar imagem/vídeo sem brigar com a BYD */
+  window.EvsSafeTop = Math.round(54 * (W / 1280));
 
   /* ---------- dados ---------- */
   var last = null;
@@ -355,10 +376,10 @@
   var minimal = false;
   window.EvsTap = function (x, y) {
     /* controles da música: três alvos na faixa de baixo */
-    if (y > H - 80 && Math.abs(y - (H - 34)) < 34) {
-      if (Math.abs(x - (W / 2 + 108)) < 14) { tapMedia('prev'); return; }
-      if (Math.abs(x - (W / 2 + 128)) < 14) { tapMedia('play'); return; }
-      if (Math.abs(x - (W / 2 + 148)) < 14) { tapMedia('next'); return; }
+    if (Math.abs(y - (MY + 25)) < 26) {
+      if (Math.abs(x - (MX + 210)) < 16) { tapMedia('prev'); return; }
+      if (Math.abs(x - (MX + 240)) < 16) { tapMedia('play'); return; }
+      if (Math.abs(x - (MX + 270)) < 16) { tapMedia('next'); return; }
     }
     if (Math.abs(x - W / 2) > W * 0.2) return;
     minimal = !minimal;
