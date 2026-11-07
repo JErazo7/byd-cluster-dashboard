@@ -65,6 +65,8 @@ public class MainActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         hideSystemUi();
 
+        HiddenApi.allowAll();
+        Log.i(TAG, "hiddenApi=" + HiddenApi.result());
         byd = new BydBridge(this);
 
         /* diagnóstico no logcat: o que esta unidade responde (adb logcat -s SharkLab) */
@@ -335,7 +337,10 @@ public class MainActivity extends Activity {
             t += 0.05f;
             double simSpd = speed;
             int spd = car ? (int) Math.round(speedKmh) : (int) Math.round(simSpd);
-            int gear = b[1] > -998 ? (int) b[1] : Math.max(1, Math.min(6, (int) (spd / 22) + 1));
+            int bydGear = b[1] > -998 ? (int) b[1] : -1;     /* 0 N, 1 R, 2 D, 3 P, 4 N */
+            int gsel = bydGear >= 0 ? bydGear : 2;
+            int gear = bydGear >= 0 ? Math.max(1, Math.min(6, spd / 22 + 1))
+                                    : Math.max(1, Math.min(6, (int) (spd / 22) + 1));
             int rpm = car ? rpmFor(spd, gear) : 900 + (int) (spd * 42);
             int pw = b[2] > -998 ? (int) Math.round(b[2]) : Math.round(spd * 0.9f - (up ? 0 : 25));
             int soc = b[3] > -998 ? (int) Math.round(b[3]) : Math.max(0, 82 - (int) (spd / 8));
@@ -347,7 +352,7 @@ public class MainActivity extends Activity {
             double v12 = b[9] > -998 ? b[9] : 13.8;
             boolean turn = b[10] > -998 ? b[10] > 0 : spd > 60;
             /* ré: mostra a câmera atrás da skin, à direita */
-            boolean reverse = gear == -1 || gear == 0;
+            boolean reverse = gsel == 1;
             if (reverse != lastReverse) {
                 lastReverse = reverse;
                 if (reverse && CameraService.available()) camShape("{\"x\":640,\"y\":96,\"w\":600,\"h\":340}");
@@ -355,10 +360,10 @@ public class MainActivity extends Activity {
             }
             int pu = b[11] > -998 ? (int) b[11] : 1;
             int spdU = b[12] > -998 ? (int) b[12] : 1;
-            return "{\"pu\":" + pu + ",\"du\":1,\"su\":" + spdU + ",\"car\":\"v8\",\"phase\":\"on\",\"reverse\":" + (gear == -1)
+            return "{\"pu\":" + pu + ",\"du\":1,\"su\":" + spdU + ",\"car\":\"v8\",\"phase\":\"on\",\"reverse\":" + (gsel == 1)
                     + ",\"speed\":" + spd
                     + ",\"gear\":" + Math.max(1, Math.min(6, gear))
-                    + ",\"gsel\":2,\"boost\":0.3,\"load\":" + (ped / 100.0)
+                    + ",\"gsel\":" + gsel + ",\"boost\":0.3,\"load\":" + (ped / 100.0)
                     + ",\"rpm\":" + rpm
                     + ",\"ped\":" + ped
                     + ",\"soc\":" + soc

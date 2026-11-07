@@ -59,9 +59,10 @@ public final class BydBridge {
             {P + "speed.BYDAutoSpeedDevice", "getOutCarTemperature"}
     };
     private static final String[][] ODO = {
+            {P + "statistic.BYDAutoStatisticDevice", "getEVMileageValue"},
+            {P + "statistic.BYDAutoStatisticDevice", "getHEVMileageValue"},
             {P + "setting.BYDAutoSettingDevice", "getTotalMileageValue"},
-            {P + "instrument.BYDAutoInstrumentDevice", "getTotalMileageValue"},
-            {P + "ac.BYDAutoAcDevice", "getTotalMileageValue"}
+            {P + "instrument.BYDAutoInstrumentDevice", "getTotalMileageValue"}
     };
     private static final String[][] V12 = {
             {P + "ota.BYDAutoOtaDevice", "getBatteryPowerVoltage"}
@@ -91,7 +92,7 @@ public final class BydBridge {
     private final Map<String, Boolean> probed = new HashMap<String, Boolean>();
 
     public BydBridge(Context ctx) {
-        this.ctx = ctx.getApplicationContext();
+        this.ctx = new BydPermissionContext(ctx.getApplicationContext());
     }
 
     /* ---------- reflexão ---------- */
