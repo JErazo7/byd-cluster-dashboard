@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SharkLab · ajustes</title>
+<style>
+  :root { --bg:#070b11; --panel:#0f1720; --line:#1d2937; --fg:#e6eef6; --dim:#7f8c9b; --acc:#38cfff; --good:#35e07a; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, sans-serif; padding: 18px 20px 30px; }
+  h1 { font-size: 15px; margin: 0 0 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+  h2 { font-size: 12px; margin: 18px 0 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .card b { display: block; font-size: 22px; }
+  .card small { color: var(--dim); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  button { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 10px;
+           padding: 12px 14px; font-size: 15px; text-align: left; cursor: pointer; width: 100%; }
+  button[aria-pressed=true] { border-color: var(--acc); color: var(--acc); }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+  input[type=range] { flex: 1; accent-color: var(--acc); }
+  .hint { color: var(--dim); font-size: 12px; margin-top: 8px; }
+  pre { background: #0b131c; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 11px;
+        color: #8fa3b8; overflow: auto; max-height: 140px; }
+</style>
+</head>
+<body>
+<h1>SharkLab · ajustes da central</h1>
+
+<div class="grid">
+  <div class="card"><small>velocidade</small><b id="vSpeed">--</b></div>
+  <div class="card"><small>bateria</small><b id="vSoc">--</b></div>
+  <div class="card"><small>autonomia</small><b id="vRange">--</b></div>
+  <div class="card"><small>marcha</small><b id="vGear">--</b></div>
+</div>
+
+<h2>Painel do motorista</h2>
+<button id="proj" aria-pressed="false">PROJETAR SKIN NO PAINEL</button>
+<div class="hint" id="projInfo">—</div>
+
+<h2>Painel</h2>
+<div class="grid" id="skins"></div>
+
+<h2>Som do motor</h2>
+<div class="grid" id="engines"></div>
+<div class="row"><input id="vol" type="range" min="0" max="150" value="70"><span class="hint" id="volV">70%</span></div>
+<div class="row"><button id="mute" style="width:auto">SOM / MUDO</button></div>
+
+<pre id="log" hidden></pre>
+
+<script src="../engine/profiles.js"></script>
+<script src="../engine/synth.js"></script>
+<script src="../engine/model.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var L = window.Lab || {};
+
+  /* ---------- dados ---------- */
+  function poll() {
+    if (window.__labEv) {
+      var e = window.__labEv;
+      $('vSpeed').textContent = Math.round(e.speed) + ' km/h';
+      $('vSoc').textContent = e.soc >= 0 ? Math.round(e.soc) + ' %' : '--';
+      $('vRange').textContent = e.range > -999 ? Math.round(e.range) + ' km' : '--';
+      $('vGear').textContent = e.sel || '--';
+    }
+    setTimeout(poll, 400);
+  }
+  poll();
+
+  /* ---------- projeção do painel ---------- */
+  function refreshProj() {
+    var on = false, info = L.projState ? L.projState() : '';
+    try { on = JSON.parse(info).running; } catch (e) {}
+    $('proj').setAttribute('aria-pressed', on ? 'true' : 'false');
+    $('proj').textContent = on ? 'PAINEL PROJETANDO (toque para parar)' : 'PROJETAR SKIN NO PAINEL';
+    $('projInfo').textContent = info || '—';
+  }
+  $('proj').addEventListener('click', function () {
+    var on = this.getAttribute('aria-pressed') === 'true';
+    var r = on ? (L.projStop && L.projStop()) : (L.projStart && L.projStart());
+    if (r) { $('log').hidden = false; $('log').textContent = String(r); }
+    setTimeout(refreshProj, 500);
+  });
+
+  /* ---------- skins ---------- */
+  var cur = (/\/dash\/([a-z0-9_]+)\//.exec(location.pathname) || [])[1];
+  (function () {
+    var list = [];
+    try { list = JSON.parse(L.skins ? L.skins() : '[]'); } catch (e) {}
+    var box = $('skins');
+    if (!list.length) { box.innerHTML = '<div class="hint">nenhum painel encontrado</div>'; return; }
+    list.forEach(function (id) {
+      var b = document.createElement('button');
+      b.textContent = id;
+      b.setAttribute('aria-pressed', id === cur ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        if (L.setSkin) L.setSkin(id);
+        setTimeout(refreshProj, 800);
+      });
+      box.appendChild(b);
+    });
+  })();
+
+  /* ---------- motores e volume ---------- */
+  var E = window.EngineApp || null;
+  (function () {
+    var box = $('engines');
+    var list = E ? E.list() : (window.ENGINES || []).map(function (e) { return { id: e.id, name: e.name }; });
+    list.forEach(function (e, i) {
+      var b = document.createElement('button');
+      b.textContent = e.name;
+      b.setAttribute('aria-pressed', E && E.index() === i ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        if (E) { E.start && E.start(); E.select(i); }
+        [].forEach.call(box.children, function (c, j) { c.setAttribute('aria-pressed', j === i ? 'true' : 'false'); });
+      });
+      box.appendChild(b);
+    });
+  })();
+  if (E) {
+    $('vol').value = String(Math.round((E.volume ? E.volume() : 0.7) * 100));
+    $('volV').textContent = $('vol').value + '%';
+    $('vol').addEventListener('input', function () {
+      E.setVolume(this.value / 100);
+      $('volV').textContent = this.value + '%';
+    });
+    $('mute').textContent = E.muted() ? 'MUDO (toque para ligar)' : 'SOM (toque para mudar)';
+    $('mute').addEventListener('click', function () {
+      E.mute(!E.muted());
+      this.textContent = E.muted() ? 'MUDO (toque para ligar)' : 'SOM (toque para mudar)';
+    });
+  }
+
+  refreshProj();
+  setInterval(refreshProj, 2000);
+})();
+</script>
+</body>
+</html>

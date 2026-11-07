@@ -44,7 +44,13 @@ public class MainActivity extends Activity {
     /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
     static final String[] INJECT = {
             "engine/profiles.js", "engine/synth.js", "engine/model.js",
-            "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-sound.js", "lab/lab-ui.js"
+            "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-sound.js"
+    };
+
+    /** o painel não toca som (evita áudio duplicado): ele só desenha */
+    static final String[] INJECT_PANEL = {
+            "engine/profiles.js", "engine/synth.js", "engine/model.js",
+            "lab/lab-feed.js"
     };
     private WebView web;
     private BydBridge byd;
@@ -141,10 +147,22 @@ public class MainActivity extends Activity {
         setContentView(root);
 
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        web.loadUrl(urlFor(p.getString("skin", "shark"), p.getBoolean("full", false), p.getBoolean("light", false)));
+        web.loadUrl(urlFor(p.getString("skin", "shark"), true, false));
 
         startGps();
-        if (p.getBoolean("cluster_cast", true)) bridge.clusterCast(16);
+        if (!p.getBoolean("projection", false)) bridge.clusterCast(16);
+
+        /* skin no painel do motorista, pela projeção (quando habilitada) */
+        if (p.getBoolean("projection", false)) {
+            ClusterProjection.start(this, bridge, urlFor(p.getString("skin", "shark"), true, false));
+            ui.postDelayed(new Runnable() {
+                public void run() {
+                    if (ClusterProjection.running()) return;      /* projeção ok */
+                    Log.i(TAG, "sem projeção, usando espelho da IVI no painel");
+                    bridge.clusterCast(16);
+                }
+            }, 1500);
+        }
 
         /* painel do motorista: uma Presentation no display virtual do carro */
         if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "shark"));
@@ -438,6 +456,28 @@ public class MainActivity extends Activity {
                 Log.w(TAG, "cluster cast falhou cmd=" + cmd, t);
                 return "{\"ok\":false,\"why\":\"" + String.valueOf(t).replace("\"", "'") + "\"}";
             }
+        }
+
+        /** liga/desliga a projeção da skin no painel do motorista */
+        @JavascriptInterface
+        public String projStart() {
+            SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+            p.edit().putBoolean("projection", true).apply();
+            ClusterProjection.start(MainActivity.this, this, urlFor(p.getString("skin", "shark"), true, false));
+            return projState();
+        }
+
+        @JavascriptInterface
+        public String projStop() {
+            getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("projection", false).apply();
+            ClusterProjection.stop();
+            return projState();
+        }
+
+        @JavascriptInterface
+        public String projState() {
+            return "{\"running\":" + ClusterProjection.running()
+                    + ",\"error\":\"" + ClusterProjection.error().replace("\"", "'") + "\"}";
         }
 
         /** controles da música: prev | play | next */
