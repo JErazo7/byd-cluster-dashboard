@@ -74,13 +74,25 @@ public class Daemon {
         if (ctx != null) return ctx;
         try {
             Class<?> at = Class.forName("android.app.ActivityThread");
-            Method cur = at.getDeclaredMethod("currentActivityThread");
-            cur.setAccessible(true);
-            Object thread = cur.invoke(null);
+            Object thread = null;
+            try {
+                Method cur = at.getDeclaredMethod("currentActivityThread");
+                cur.setAccessible(true);
+                thread = cur.invoke(null);
+            } catch (Throwable ignored) {
+            }
+            if (thread == null) {
+                /* no app_process não existe ActivityThread: cria o principal do sistema */
+                Method sm = at.getDeclaredMethod("systemMain");
+                sm.setAccessible(true);
+                thread = sm.invoke(null);
+            }
             Method get = at.getDeclaredMethod("getSystemContext");
             get.setAccessible(true);
             ctx = get.invoke(thread);
+            lastErr = "ctx=" + (ctx == null ? "null" : ctx.getClass().getName());
         } catch (Throwable t) {
+            lastErr = "ctxFalhou: " + t;
             ctx = null;
         }
         return ctx;
