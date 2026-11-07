@@ -76,6 +76,14 @@ public final class BydBridge {
             {P + "instrument.BYDAutoInstrumentDevice", "getSpeedUnit"}
     };
 
+    /* ADAS: só estados e distâncias do radar da BYD — nada de câmera nem modelo */
+    private static final String[][] BSD = {{P + "adas.BYDAutoADASDevice", "getBSDState"}};
+    private static final String[][] LKS = {{P + "adas.BYDAutoADASDevice", "getLKSMode"}};
+    private static final String[][] TJA = {{P + "adas.BYDAutoADASDevice", "getTJAState"}};
+    private static final String[][] ACC = {{P + "adas.BYDAutoADASDevice", "get2in1AccTimeDistance"}};
+    private static final String[][] LINE = {{P + "adas.BYDAutoADASDevice", "getLineValue"}};
+    private static final String[][] RADAR = {{P + "radar.BYDAutoRadarDevice", "getAllRadarDistance"}};
+
     private static final double NONE = -999;
 
     private final Context ctx;
@@ -140,7 +148,8 @@ public final class BydBridge {
     /** o que respondeu nesta central (para o diagnóstico) */
     public String report() {
         StringBuilder sb = new StringBuilder("{");
-        String[][] all = concat(SPEED, GEAR, POWER, SOC, RANGE, PEDAL, BRAKE, OUT_TEMP, ODO, V12, TURN);
+        String[][] all = concat(SPEED, GEAR, POWER, SOC, RANGE, PEDAL, BRAKE, OUT_TEMP, ODO, V12, TURN,
+                BSD, LKS, TJA, ACC, LINE, RADAR);
         for (String[] c : all) {
             String key = c[0].substring(c[0].lastIndexOf('.') + 1) + "." + c[1];
             if (probed.containsKey(key)) continue;
@@ -159,6 +168,48 @@ public final class BydBridge {
         int i = 0;
         for (String[][] p : parts) for (String[] c : p) out[i++] = c;
         return out;
+    }
+
+    /** int[] de um getter (distâncias do radar); null quando não existe */
+    private int[] ints(String cls, String method) {
+        Object d = device(cls);
+        if (d == null) return null;
+        try {
+            Method m = d.getClass().getMethod(method);
+            m.setAccessible(true);
+            Object v = m.invoke(d);
+            if (v instanceof int[]) return (int[]) v;
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /** ADAS disponível nesta central, em JSON (o que não existir sai null) */
+    public String adasJson() {
+        StringBuilder sb = new StringBuilder("{");
+        sb.append("\"bsd\":").append(v(BSD));
+        sb.append(",\"lks\":").append(v(LKS));
+        sb.append(",\"tja\":").append(v(TJA));
+        sb.append(",\"acc\":").append(v(ACC));
+        sb.append(",\"line\":").append(v(LINE));
+        int[] radar = ints(RADAR[0][0], RADAR[0][1]);
+        sb.append(",\"radar\":");
+        if (radar == null) {
+            sb.append("null");
+        } else {
+            sb.append('[');
+            for (int i = 0; i < radar.length; i++) {
+                if (i > 0) sb.append(',');
+                sb.append(radar[i]);
+            }
+            sb.append(']');
+        }
+        return sb.append('}').toString();
+    }
+
+    private String v(String[][] c) {
+        double d = first(c);
+        return d <= NONE ? "null" : String.valueOf(Math.round(d));
     }
 
     /* ---------- leitura ---------- */

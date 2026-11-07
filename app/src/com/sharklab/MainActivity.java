@@ -35,7 +35,7 @@ public class MainActivity extends Activity {
     /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
     private static final String[] INJECT = {
             "engine/profiles.js", "engine/synth.js", "engine/model.js",
-            "lab/lab-feed.js", "lab/lab-sound.js", "lab/lab-ui.js"
+            "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-sound.js", "lab/lab-ui.js"
     };
     private WebView web;
     private BydBridge byd;
@@ -210,7 +210,9 @@ public class MainActivity extends Activity {
                     + ",\"pw\":" + pw
                     + ",\"odo\":" + odo + ",\"range\":" + range
                     + ",\"tout\":" + temp + ",\"btemp\":30,\"dmode\":2,\"drive\":\"ECO\",\"ready\":1,\"regen\":0"
-                    + ",\"v12\":" + v12 + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"adas\":{},\"tyre\":null"
+                    + ",\"v12\":" + v12
+                    + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"tyre\":null"
+                    + ",\"adas\":" + byd.adasJson()
                     + ",\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":{\"km\":12.4}}";
         }
 
@@ -248,6 +250,28 @@ public class MainActivity extends Activity {
                 startActivity(i);
             } catch (Throwable t) {
                 Log.w(TAG, "sem tela de acesso a notificações", t);
+            }
+        }
+
+        /** última tecla do volante lida pelo serviço de acessibilidade */
+        @JavascriptInterface
+        public String wheel() {
+            return WheelKeys.snapshot();
+        }
+
+        @JavascriptInterface
+        public boolean wheelAccess() {
+            return WheelKeys.isEnabled(getApplicationContext());
+        }
+
+        @JavascriptInterface
+        public void wheelSettings() {
+            try {
+                Intent i = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+            } catch (Throwable t) {
+                Log.w(TAG, "sem tela de acessibilidade", t);
             }
         }
 

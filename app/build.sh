@@ -33,7 +33,12 @@ mkdir -p build/assets/engine
 if [ -d ../engine ]; then cp ../engine/*.js build/assets/engine/; else die "sem ../engine"; fi
 
 echo "1/5 recursos + manifesto"
-"$BT/aapt2" link -o build/base.apk --manifest AndroidManifest.xml -I "$JAR" -A build/assets \
+RES=""
+if [ -d res ]; then
+  "$BT/aapt2" compile --dir res -o build/res.zip
+  RES="-R build/res.zip"
+fi
+"$BT/aapt2" link -o build/base.apk --manifest AndroidManifest.xml -I "$JAR" -A build/assets $RES --auto-add-overlay \
   --min-sdk-version 26 --target-sdk-version 29 --version-code 1 --version-name 0.1
 
 echo "2/5 javac"
