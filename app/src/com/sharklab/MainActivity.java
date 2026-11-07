@@ -1,6 +1,7 @@
 package com.sharklab;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
@@ -217,6 +218,64 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String source() {
             return byd.available() ? "car" : "sim";
+        }
+
+        /** última manobra do Waze/Maps lida da notificação */
+        @JavascriptInterface
+        public String nav() {
+            return NavWatch.snapshot();
+        }
+
+        @JavascriptInterface
+        public boolean navAccess() {
+            return NavWatch.isEnabled(getApplicationContext());
+        }
+
+        @JavascriptInterface
+        public void navSettings() {
+            try {
+                Intent i = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+            } catch (Throwable t) {
+                Log.w(TAG, "sem tela de acesso a notificações", t);
+            }
+        }
+
+        /** abre um app instalado na central (waze, android auto, carplay da BYD) */
+        @JavascriptInterface
+        public boolean openApp(String pkg) {
+            try {
+                Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+                if (i == null) return false;
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return true;
+            } catch (Throwable t) {
+                Log.w(TAG, "não abriu " + pkg, t);
+                return false;
+            }
+        }
+
+        @JavascriptInterface
+        public String apps() {
+            String[] cand = {"com.waze", "com.google.android.apps.maps",
+                    "com.byd.androidauto", "com.byd.carplay.ui", "com.byd.mediacenter", "com.byd.carsettings"};
+            StringBuilder sb = new StringBuilder("[");
+            boolean first = true;
+            for (String c : cand) {
+                boolean ok;
+                try {
+                    ok = getPackageManager().getLaunchIntentForPackage(c) != null;
+                } catch (Throwable t) {
+                    ok = false;
+                }
+                if (!ok) continue;
+                if (!first) sb.append(',');
+                first = false;
+                sb.append('"').append(c).append('"');
+            }
+            return sb.append(']').toString();
         }
 
         @JavascriptInterface

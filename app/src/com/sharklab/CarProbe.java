@@ -35,6 +35,15 @@ public class CarProbe {
             "byd.android.hardware.BYDAutoManager"
     };
 
+    private static final String[] CAMERA_CLASSES = {
+            "android.hardware.IBYDCameraService",
+            "android.hardware.bydauto.panorama.BYDAutoPanoramaDevice",
+            "android.hardware.bydauto.camera.BYDAutoCameraDevice",
+            "android.hardware.bydauto.avm.BYDAutoAVMDevice",
+            "com.byd.camera.BYDCameraManager",
+            "android.hardware.bydauto.BYDAutoFeatureIds"
+    };
+
     private static final String[] SETTINGS_KEYS = {
             "byd_vehicle_speed", "byd_speed", "vehicle_speed", "car_speed",
             "byd_gear", "byd_soc", "byd_battery", "byd_range",
@@ -96,6 +105,25 @@ public class CarProbe {
             out.put("displays", displays);
         } catch (Throwable t) {
             put(out, "displaysError", t);
+        }
+
+        try {
+            JSONObject cam = new JSONObject();
+            for (String name : CAMERA_CLASSES) {
+                try {
+                    Class<?> c = Class.forName(name);
+                    JSONArray ms = new JSONArray();
+                    for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+                        String n = m.getName();
+                        if (n.startsWith("get") || n.startsWith("set") || n.startsWith("register")) ms.put(n);
+                    }
+                    cam.put(name, ms);
+                } catch (Throwable ignored) {
+                }
+            }
+            out.put("cameraApi", cam);
+        } catch (Throwable t) {
+            put(out, "cameraApiError", t);
         }
 
         try {

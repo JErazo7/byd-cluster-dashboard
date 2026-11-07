@@ -78,6 +78,29 @@
     row.appendChild(mute);
     root.appendChild(row);
 
+    if (window.Lab && window.Lab.apps) {
+      var apps = [];
+      try { apps = JSON.parse(window.Lab.apps()); } catch (e) {}
+      if (apps.length) {
+        section('Apps da central');
+        var NAMES = { 'com.waze': 'WAZE', 'com.google.android.apps.maps': 'GOOGLE MAPS',
+          'com.byd.androidauto': 'ANDROID AUTO', 'com.byd.carplay.ui': 'CARPLAY',
+          'com.byd.mediacenter': 'MÍDIA BYD', 'com.byd.carsettings': 'AJUSTES BYD' };
+        apps.forEach(function (pkg) {
+          var b = el('button', { class: 'it' }, NAMES[pkg] || pkg);
+          b.addEventListener('click', function (e) { e.stopPropagation(); window.Lab.openApp(pkg); });
+          root.appendChild(b);
+        });
+      }
+      if (window.Lab.navSettings) {
+        var acc = window.Lab.navAccess ? window.Lab.navAccess() : false;
+        var nb = el('button', { class: 'it', 'aria-pressed': acc ? 'true' : 'false' },
+          acc ? 'NOTIFICAÇÕES: LIDAS' : 'LIBERAR NOTIFICAÇÕES (WAZE)');
+        nb.addEventListener('click', function (e) { e.stopPropagation(); window.Lab.navSettings(); });
+        root.appendChild(nb);
+      }
+    }
+
     if (window.Lab && window.Lab.probe) {
       var diag = el('button', { class: 'it', style: 'margin-top:6px' }, 'DIAGNÓSTICO DO CARRO');
       var pre = el('pre', { style: 'display:none;white-space:pre-wrap;font-size:10px;color:#8fa3b8;' +

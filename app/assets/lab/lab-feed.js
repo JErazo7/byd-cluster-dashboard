@@ -10,7 +10,7 @@
   if (window.__labFeed || !window.Lab) return;
   window.__labFeed = true;
 
-  var B = window.Lab, cars = {}, prev = '', t = 0;
+  var B = window.Lab, cars = {}, t = 0, media = null, nav = null, pos = null;
   try { JSON.parse(B.cars()).forEach(function (c) { cars[c.id] = c; }); } catch (e) {}
 
   /* unidades do painel (a central da BYD manda 1 = métrico, 2 = imperial) */
@@ -66,15 +66,26 @@
       ext: s.ext || null,
       trip: s.trip || null
     };
-    /* música e posição mudam devagar: uma vez por segundo */
+    /* música, posição e navegação mudam devagar: lidas uma vez por segundo e
+       reanexadas em TODO quadro (sem isso a manobra some no quadro seguinte) */
     if (t % 20 === 0) {
       try {
         var m = JSON.parse(B.nowPlaying());
-        if (m && m.title) ev.media = m;
-        var p = JSON.parse(B.position());
-        if (p && p.lat) ev.pos = p;
+        media = (m && m.title) ? m : null;
       } catch (e2) {}
+      try {
+        var p = JSON.parse(B.position());
+        pos = (p && p.lat) ? p : null;
+      } catch (e3) {}
+      try {
+        /* instrução do Waze/Maps lida da notificação (lab/NavWatch.java) */
+        var nv = B.nav ? JSON.parse(B.nav()) : null;
+        nav = (nv && nv.title) ? { on: true, src: nv.src, title: nv.title, text: nv.text, age: nv.age } : null;
+      } catch (e4) {}
     }
+    if (media) ev.media = media;
+    if (pos) ev.pos = pos;
+    if (nav) ev.nav = nav;
     t++;
     window.__labEv = ev;
     if (window.BrasaDriveUpdate) window.BrasaDriveUpdate(ev);

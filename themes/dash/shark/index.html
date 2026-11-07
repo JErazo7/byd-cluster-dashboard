@@ -141,7 +141,8 @@
   /* topo: setas, avisos, relógio */
   var turnL = el('path', { d: '', fill: '#35e07a' }, gTop);
   var turnR = el('path', { d: '', fill: '#35e07a' }, gTop);
-  var warnT = txt(W / 2, 74, '', 18, 'warm');
+  var navT = txt(W / 2, 72, '', 18, 'accent');
+  var warnT = txt(W / 2, 100, '', 18, 'warm');
   var clockT = txt(W / 2, 40, '', 24, 'dim');
   var mediaT = txt(W / 2, H - 22, '', 17, 'dim');
 
@@ -162,7 +163,7 @@
 
   /* no painel inteiro a BYD desenha as luzes de falha numa faixa no alto do meio
      (x 427–853, y 0–54 em 1280×480): o relógio sai da faixa */
-  if (PANEL) { clockT.setAttribute('y', 96); warnT.setAttribute('y', 126); }
+  if (PANEL) { clockT.setAttribute('y', 100); navT.setAttribute('y', 130); warnT.setAttribute('y', 158); }
 
   /* ---------- dados ---------- */
   var last = null;
@@ -209,6 +210,15 @@
     /* setas (o app já manda o pisca) */
     turnL.setAttribute('opacity', d.turnLeft ? 1 : 0.12);
     turnR.setAttribute('opacity', d.turnRight ? 1 : 0.12);
+
+    /* manobra do Waze/Maps (a app manda ev.nav quando há rota) */
+    if (d.nav && (d.nav.title || d.nav.text)) {
+      var s1 = (d.nav.title || '') + (d.nav.text ? '  ·  ' + d.nav.text : '');
+      if (s1.length > 60) s1 = s1.slice(0, 59) + '…';
+      navT.textContent = s1;
+    } else {
+      navT.textContent = '';
+    }
 
     /* avisos */
     var n = d.warn ? d.warn.length : 0;
