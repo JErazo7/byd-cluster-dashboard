@@ -1,0 +1,8 @@
+{
+  "name": "Shark Mapa",
+  "desc": {
+    "pt": "Mapa próprio em tela cheia: tiles do OpenStreetMap, rota com manobra, distância e hora de chegada (OSRM), velocidade, bateria e relógio. Sem app de navegação de terceiros.",
+    "es": "Mapa propio a pantalla completa: tiles de OpenStreetMap, ruta con maniobra, distancia y hora de llegada (OSRM), velocidad, batería y reloj. Sin app de navegación de terceros.",
+    "en": "Own full-screen map: OpenStreetMap tiles, route with maneuver, distance and arrival time (OSRM), speed, battery and clock. No third-party navigation app."
+  }
+}

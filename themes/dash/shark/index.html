@@ -35,6 +35,12 @@
   html.light .dim { fill: #5b6a78; }
   html.light .accent { fill: #0079b8; }
   .hit { fill: transparent; }
+  .cardBg { fill: #0b131c; fill-opacity: .78; }
+  html.light .cardBg { fill: #ffffff; fill-opacity: .85; }
+  .bar { fill: #1a2733; }
+  html.light .bar { fill: #d8e1ea; }
+  .barOn { fill: #38cfff; }
+  .barHot { fill: #ffb020; }
 </style>
 </head>
 <body>
@@ -144,9 +150,36 @@
   var navT = txt(W / 2, 72, '', 18, 'accent');
   var warnT = txt(W / 2, 100, '', 18, 'warm');
   var clockT = txt(W / 2, 40, '', 24, 'dim');
-  var mediaT = txt(W / 2, H - 22, '', 17, 'dim');
 
   /* rodapé: odômetro, viagem, temperatura */
+  /* --- ADAS: carro visto de cima com 4 distâncias do radar --- */
+  var gAdas = el('g', { opacity: 0 }, gTop);
+  el('rect', { x: 18, y: 62, width: 132, height: 116, rx: 12, class: 'cardBg' }, gAdas);
+  el('rect', { x: 74, y: 96, width: 20, height: 44, rx: 5, fill: '#233240' }, gAdas);
+  var radarBars = [];
+  for (var bi = 0; bi < 4; bi++) {
+    /* 0 frente-esq, 1 frente-dir, 2 trás-esq, 3 trás-dir */
+    var bx = bi === 0 || bi === 2 ? 34 : 108;
+    var by = bi < 2 ? 78 : 132;
+    radarBars.push(el('rect', { x: bx, y: by, width: 12, height: 26, rx: 4, class: 'bar' }, gAdas));
+  }
+  var bsdT = txt(84, 152, '', 11, 'dim', 'middle', gAdas);
+  var lksT = txt(84, 168, '', 11, 'dim', 'middle', gAdas);
+
+  /* --- música: capa + título + controles --- */
+  var gMedia = el('g', {}, gBottom);
+  var mediaBg = el('rect', { x: W / 2 - 156, y: H - 54, width: 312, height: 48, rx: 11, class: 'cardBg' }, gMedia);
+  mediaBg.setAttribute('opacity', 0);
+  var artImg = el('image', { x: W / 2 - 148, y: H - 50, width: 40, height: 40, opacity: 0 }, gMedia);
+  var mediaTitle = txt(W / 2 - 100, H - 32, '', 15, 'num', 'start', gMedia);
+  var mediaArtist = txt(W / 2 - 100, H - 14, '', 11, 'dim', 'start', gMedia);
+  var ctlPrev = el('path', { d: 'M-8 -5L-1 0L-8 5ZM-1 -5L6 0L-1 5Z', fill: '#8fa3b8' }, gMedia);
+  ctlPrev.setAttribute('transform', 'translate(' + (W / 2 + 104) + ',' + (H - 30) + ')');
+  var ctlPlay = el('path', { d: 'M-3 -6L7 0L-3 6Z', fill: '#38cfff' }, gMedia);
+  ctlPlay.setAttribute('transform', 'translate(' + (W / 2 + 126) + ',' + (H - 30) + ')');
+  var ctlNext = el('path', { d: 'M-6 -5L1 0L-6 5ZM1 -5L8 0L1 5Z', fill: '#8fa3b8' }, gMedia);
+  ctlNext.setAttribute('transform', 'translate(' + (W / 2 + 148) + ',' + (H - 30) + ')');
+
   var odoT = txt(40, H - 22, '', 19, 'dim', 'start', gBottom);
   var tempT = txt(W - 40, H - 22, '', 19, 'dim', 'end', gBottom);
 
@@ -220,6 +253,49 @@
       navT.textContent = '';
     }
 
+    /* --- ADAS (quando o carro informa) --- */
+    var ad = d.adas || null;
+    var hasAdas = !!(ad && (ad.radar || ad.bsd || ad.lks));
+    gAdas.setAttribute('opacity', hasAdas ? 1 : 0);
+    if (hasAdas) {
+      var radar = ad.radar || [];
+      for (var k2 = 0; k2 < 4; k2++) {
+        var raw = radar[k2];
+        var m = null;
+        if (raw != null && raw > 0) {
+          /* unidades variam por unidade: mm, cm ou m */
+          m = raw > 2000 ? raw / 1000 : raw > 200 ? raw / 100 : raw;
+        }
+        var bar = radarBars[k2];
+        var frac = m == null ? 0 : Math.max(0.08, Math.min(1, 1 - m / 4));
+        bar.setAttribute('height', Math.round(4 + 30 * frac));
+        bar.setAttribute('y', (k2 < 2 ? 100 : 106) - Math.round(30 * frac));
+        bar.setAttribute('class', m == null ? 'bar' : (m < 1 ? 'barHot' : 'barOn'));
+      }
+      bsdT.textContent = ad.bsd ? 'PONTO CEGO' : '';
+      bsdT.setAttribute('class', ad.bsd ? 'warm' : 'dim');
+      lksT.textContent = ad.lks ? 'FAIXA' : '';
+      lksT.setAttribute('class', ad.lks ? 'good' : 'dim');
+    }
+
+    /* --- música: capa, título e controles --- */
+    var md = d.media || null;
+    if (md && md.title) {
+      mediaBg.setAttribute('opacity', 1);
+      artImg.setAttribute('opacity', md.art ? 1 : 0);
+      if (md.art) artImg.setAttribute('href', md.art);
+      mediaTitle.textContent = md.title.length > 20 ? md.title.slice(0, 19) + '…' : md.title;
+      mediaArtist.textContent = (md.artist || '').slice(0, 24);
+      /* tocando: duas barras; parado: triângulo */
+      ctlPlay.setAttribute('d', md.playing === false ? 'M-3 -6L7 0L-3 6Z' : 'M-4 -6H-1V6H-4ZM1 -6H4V6H1Z');
+      ctlPlay.setAttribute('fill', md.playing === false ? '#38cfff' : '#8fa3b8');
+    } else {
+      mediaBg.setAttribute('opacity', 0);
+      artImg.setAttribute('opacity', 0);
+      mediaTitle.textContent = '';
+      mediaArtist.textContent = '';
+    }
+
     /* avisos */
     var n = d.warn ? d.warn.length : 0;
     warnT.textContent = n ? (n === 1 ? T.warn : T.warn + ' ×' + n) : '';
@@ -257,21 +333,12 @@
     }, 20000);
   }
 
-  /* música: uma linha discreta embaixo, se o app mandar */
-  function drawMedia(m) {
-    if (!m || !m.title) { mediaT.textContent = ''; return; }
-    var s = (m.title || '') + (m.artist ? ' · ' + m.artist : '');
-    if (s.length > 72) s = s.slice(0, 71) + '…';
-    mediaT.textContent = s;
-  }
-
   /* ---------- contrato do app ---------- */
   var ev = null;
   window.BrasaDriveUpdate = function (d) {
     if (!d) return;
     ev = d;
     draw(d);
-    if (d.media) drawMedia(d.media);
   };
 
   /* zonas do menu do volante: os lados trocam o mostrador e a leitura */
@@ -280,13 +347,22 @@
     r: { k: 'info', n: LANG === 'es' ? 'Autonomía' : LANG === 'en' ? 'Range' : 'Autonomia' }
   };
 
+  function tapMedia(cmd) {
+    if (window.Lab && window.Lab.media) window.Lab.media(cmd);
+  }
+
   /* toque no meio: alterna entre o essencial e a leitura completa */
   var minimal = false;
-  window.EvsTap = function (x) {
+  window.EvsTap = function (x, y) {
+    /* controles da música: três alvos na faixa de baixo */
+    if (y > H - 80 && Math.abs(y - (H - 34)) < 34) {
+      if (Math.abs(x - (W / 2 + 108)) < 14) { tapMedia('prev'); return; }
+      if (Math.abs(x - (W / 2 + 128)) < 14) { tapMedia('play'); return; }
+      if (Math.abs(x - (W / 2 + 148)) < 14) { tapMedia('next'); return; }
+    }
     if (Math.abs(x - W / 2) > W * 0.2) return;
     minimal = !minimal;
     gBottom.setAttribute('opacity', minimal ? 0.25 : 1);
-    mediaT.setAttribute('opacity', minimal ? 0 : 1);
   };
 
   /* primeira pintura (antes do primeiro quadro do app) */
