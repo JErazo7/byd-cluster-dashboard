@@ -1,0 +1,186 @@
+package com.sharklab;
+
+import android.content.Context;
+
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * BydBridge — leitura do carro pelas APIs do próprio DiLink (android.hardware.bydauto.*).
+ *
+ * Implementação própria, por reflexão: as classes existem no sistema da central, não no APK,
+ * então nada é linkado em tempo de compilação. Cada valor tenta uma lista de candidatos
+ * (classe + método) e devolve o primeiro que responder — modelos diferentes (Seal, Shark, Song)
+ * expõem o mesmo dado em classes diferentes, e sem a central certa todo acesso é tentativa.
+ *
+ * Nada aqui copia código de terceiros: são chamadas às APIs do veículo, como qualquer app da
+ * central faria; o padrão de acesso (getInstance(Context) → getters numéricos) é o mesmo da
+ * plataforma e foi verificado no comportamento observável do sistema.
+ */
+public final class BydBridge {
+
+    private static final String P = "android.hardware.bydauto.";
+
+    /* valores numéricos: candidatos na ordem em que devem ser tentados */
+    private static final String[][] SPEED = {
+            {P + "speed.BYDAutoSpeedDevice", "getCurrentSpeed"},
+            {P + "bodywork.BYDAutoBodyworkDevice", "getCurrentSpeed"},
+            {P + "ac.BYDAutoAcDevice", "getCurrentSpeed"}
+    };
+    private static final String[][] SPEED_GW = {
+            {P + "speed.BYDAutoSpeedDevice", "getSpeedFromGateway"}
+    };
+    private static final String[][] GEAR = {
+            {P + "gearbox.BYDAutoGearboxDevice", "getCurrentGear"},
+            {P + "speed.BYDAutoSpeedDevice", "getCurrentGear"}
+    };
+    private static final String[][] POWER = {
+            {P + "engine.BYDAutoEngineDevice", "getEnginePower"}
+    };
+    private static final String[][] SOC = {
+            {P + "statistic.BYDAutoStatisticDevice", "getElecPercentageValue"},
+            {P + "gearbox.BYDAutoGearboxDevice", "getElecPercentageValue"}
+    };
+    private static final String[][] RANGE = {
+            {P + "setting.BYDAutoSettingDevice", "getElecDrivingRangeValue"},
+            {P + "statistic.BYDAutoStatisticDevice", "getElecDrivingRangeValue"}
+    };
+    private static final String[][] PEDAL = {
+            {P + "speed.BYDAutoSpeedDevice", "getAccelerateDeepness"},
+            {P + "speed.BYDAutoSpeedDevice", "getFuelAccelerateDeepness"}
+    };
+    private static final String[][] BRAKE = {
+            {P + "speed.BYDAutoSpeedDevice", "getBrakeDeepness"}
+    };
+    private static final String[][] OUT_TEMP = {
+            {P + "setting.BYDAutoSettingDevice", "getOutCarTemperature"},
+            {P + "statistic.BYDAutoStatisticDevice", "getOutCarTemperature"},
+            {P + "speed.BYDAutoSpeedDevice", "getOutCarTemperature"}
+    };
+    private static final String[][] ODO = {
+            {P + "setting.BYDAutoSettingDevice", "getTotalMileageValue"},
+            {P + "instrument.BYDAutoInstrumentDevice", "getTotalMileageValue"},
+            {P + "ac.BYDAutoAcDevice", "getTotalMileageValue"}
+    };
+    private static final String[][] V12 = {
+            {P + "ota.BYDAutoOtaDevice", "getBatteryPowerVoltage"}
+    };
+    private static final String[][] TURN = {
+            {P + "light.BYDAutoLightDevice", "getTurnLightFlashState"}
+    };
+    private static final String[][] PWR_UNIT = {
+            {P + "instrument.BYDAutoInstrumentDevice", "getPowerUnit"}
+    };
+    private static final String[][] SPD_UNIT = {
+            {P + "instrument.BYDAutoInstrumentDevice", "getSpeedUnit"}
+    };
+
+    private static final double NONE = -999;
+
+    private final Context ctx;
+    private final Map<String, Object> devices = new HashMap<String, Object>();
+    private final Map<String, Boolean> probed = new HashMap<String, Boolean>();
+
+    public BydBridge(Context ctx) {
+        this.ctx = ctx.getApplicationContext();
+    }
+
+    /* ---------- reflexão ---------- */
+
+    /** getInstance(Context) e, se não existir, getInstance() — cacheado por classe */
+    private Object device(String cls) {
+        if (devices.containsKey(cls)) return devices.get(cls);
+        Object d = null;
+        try {
+            Class<?> c = Class.forName(cls);
+            try {
+                Method m = c.getDeclaredMethod("getInstance", Context.class);
+                m.setAccessible(true);
+                d = m.invoke(null, ctx);
+            } catch (NoSuchMethodException e) {
+                Method m = c.getDeclaredMethod("getInstance");
+                m.setAccessible(true);
+                d = m.invoke(null);
+            }
+        } catch (Throwable ignored) {
+        }
+        devices.put(cls, d);
+        return d;
+    }
+
+    private Double num(String cls, String method) {
+        Object d = device(cls);
+        if (d == null) return null;
+        try {
+            Method m = d.getClass().getMethod(method);
+            m.setAccessible(true);
+            Object v = m.invoke(d);
+            if (v instanceof Number) return ((Number) v).doubleValue();
+            if (v instanceof Boolean) return ((Boolean) v) ? 1.0 : 0.0;
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    private double first(String[][] candidates) {
+        for (String[] c : candidates) {
+            Double v = num(c[0], c[1]);
+            if (v != null && v > NONE) return v;
+        }
+        return NONE;
+    }
+
+    public boolean available() {
+        return device(P + "speed.BYDAutoSpeedDevice") != null
+                || device(P + "instrument.BYDAutoInstrumentDevice") != null
+                || device(P + "energy.BYDAutoEnergyDevice") != null;
+    }
+
+    /** o que respondeu nesta central (para o diagnóstico) */
+    public String report() {
+        StringBuilder sb = new StringBuilder("{");
+        String[][] all = concat(SPEED, GEAR, POWER, SOC, RANGE, PEDAL, BRAKE, OUT_TEMP, ODO, V12, TURN);
+        for (String[] c : all) {
+            String key = c[0].substring(c[0].lastIndexOf('.') + 1) + "." + c[1];
+            if (probed.containsKey(key)) continue;
+            Double v = num(c[0], c[1]);
+            probed.put(key, v != null);
+            sb.append('"').append(key).append("\":").append(v == null ? "null" : String.valueOf(v)).append(',');
+        }
+        if (sb.charAt(sb.length() - 1) == ',') sb.setLength(sb.length() - 1);
+        return sb.append('}').toString();
+    }
+
+    private static String[][] concat(String[][]... parts) {
+        int n = 0;
+        for (String[][] p : parts) n += p.length;
+        String[][] out = new String[n][];
+        int i = 0;
+        for (String[][] p : parts) for (String[] c : p) out[i++] = c;
+        return out;
+    }
+
+    /* ---------- leitura ---------- */
+
+    /** snapshot cru; -999 = sem leitura */
+    public double[] snapshot() {
+        double speed = first(SPEED);
+        if (speed <= NONE) speed = first(SPEED_GW);
+        return new double[]{
+                speed,                                  /* 0 km/h */
+                first(GEAR),                            /* 1 marcha */
+                first(POWER),                           /* 2 kW */
+                first(SOC),                             /* 3 % */
+                first(RANGE),                           /* 4 km */
+                first(PEDAL),                           /* 5 % pedal */
+                first(BRAKE),                           /* 6 % freio */
+                first(OUT_TEMP),                        /* 7 °C */
+                first(ODO),                             /* 8 km */
+                first(V12),                             /* 9 V */
+                first(TURN),                            /* 10 pisca */
+                first(PWR_UNIT),                        /* 11 1 kW / 2 hp */
+                first(SPD_UNIT)                         /* 12 1 km/h / 2 mph */
+        };
+    }
+}

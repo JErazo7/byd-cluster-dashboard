@@ -37,6 +37,7 @@ public class MainActivity extends Activity {
             "lab/lab-feed.js", "lab/lab-sound.js", "lab/lab-ui.js"
     };
     private WebView web;
+    private BydBridge byd;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private float t = 0f;
 
@@ -45,6 +46,8 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         hideSystemUi();
+
+        byd = new BydBridge(this);
 
         web = new WebView(this);
         WebSettings s = web.getSettings();
@@ -155,29 +158,65 @@ public class MainActivity extends Activity {
         private float speed = 0f;
         private boolean up = true;
 
-        /** ~20 Hz: sobe e desce a velocidade para a skin mostrar o movimento */
+        /**
+         * Estado para a skin. Se as APIs do BYD responderem, manda o carro de verdade e
+         * completa com a simulação só o que faltar; senão, simula tudo (~20 Hz).
+         */
         @JavascriptInterface
         public String state() {
+            double[] b = byd.snapshot();
+            boolean car = b[0] > -998;                      /* velocidade respondeu */
+            double speedKmh = car ? b[0] : 0;
+
+            /* simulação: sempre roda, e é o que sobra quando o carro não responde */
             speed += up ? 1.6f : -1.6f;
             if (speed > 120) { speed = 120; up = false; }
             if (speed < 0) { speed = 0; up = true; }
             t += 0.05f;
-            int rpm = 900 + (int) (speed * 42);
-            int pw = Math.round(speed * 0.9f - (up ? 0 : 25));
-            return "{\"pu\":1,\"du\":1,\"su\":1,\"car\":\"v8\",\"phase\":\"on\",\"reverse\":false"
-                    + ",\"speed\":" + Math.round(speed)
-                    + ",\"gear\":" + Math.max(1, Math.min(6, (int) (speed / 22) + 1))
-                    + ",\"gsel\":2,\"boost\":0.3,\"load\":0.35"
+            double simSpd = speed;
+            int spd = car ? (int) Math.round(speedKmh) : (int) Math.round(simSpd);
+            int gear = b[1] > -998 ? (int) b[1] : Math.max(1, Math.min(6, (int) (spd / 22) + 1));
+            int rpm = car ? rpmFor(spd, gear) : 900 + (int) (spd * 42);
+            int pw = b[2] > -998 ? (int) Math.round(b[2]) : Math.round(spd * 0.9f - (up ? 0 : 25));
+            int soc = b[3] > -998 ? (int) Math.round(b[3]) : Math.max(0, 82 - (int) (spd / 8));
+            int range = b[4] > -998 ? (int) Math.round(b[4]) : Math.max(0, 412 - (int) (spd / 6));
+            int ped = b[5] > -998 ? (int) Math.round(b[5]) : Math.round(Math.min(100, spd / 1.2f));
+            int brk = b[6] > -998 ? (int) Math.round(b[6]) : (up ? 0 : 40);
+            int temp = b[7] > -998 ? (int) Math.round(b[7]) : 24;
+            int odo = b[8] > -998 ? (int) Math.round(b[8]) : 12843;
+            double v12 = b[9] > -998 ? b[9] : 13.8;
+            boolean turn = b[10] > -998 ? b[10] > 0 : spd > 60;
+            int pu = b[11] > -998 ? (int) b[11] : 1;
+            int spdU = b[12] > -998 ? (int) b[12] : 1;
+            return "{\"pu\":" + pu + ",\"du\":1,\"su\":" + spdU + ",\"car\":\"v8\",\"phase\":\"on\",\"reverse\":" + (gear == -1)
+                    + ",\"speed\":" + spd
+                    + ",\"gear\":" + Math.max(1, Math.min(6, gear))
+                    + ",\"gsel\":2,\"boost\":0.3,\"load\":" + (ped / 100.0)
                     + ",\"rpm\":" + rpm
-                    + ",\"ped\":" + Math.round(Math.min(100, speed / 1.2f))
-                    + ",\"soc\":" + Math.max(0, 82 - (int) (speed / 8))
-                    + ",\"brk\":" + (up ? 0 : 40)
-                    + ",\"turnL\":false,\"turnR\":" + (speed > 60)
+                    + ",\"ped\":" + ped
+                    + ",\"soc\":" + soc
+                    + ",\"brk\":" + brk
+                    + ",\"turnL\":false,\"turnR\":" + turn
                     + ",\"pw\":" + pw
-                    + ",\"odo\":12843,\"range\":" + Math.max(0, 412 - (int) (speed / 6))
-                    + ",\"tout\":24,\"btemp\":30,\"dmode\":2,\"drive\":\"ECO\",\"ready\":1,\"regen\":0"
-                    + ",\"v12\":13.8,\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"adas\":{},\"tyre\":null"
+                    + ",\"odo\":" + odo + ",\"range\":" + range
+                    + ",\"tout\":" + temp + ",\"btemp\":30,\"dmode\":2,\"drive\":\"ECO\",\"ready\":1,\"regen\":0"
+                    + ",\"v12\":" + v12 + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"adas\":{},\"tyre\":null"
                     + ",\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":{\"km\":12.4}}";
+        }
+
+        /** giro estimado a partir da velocidade e da marcha (as APIs do BYD não dão rpm) */
+        private int rpmFor(int kmh, int gearIdx) {
+            double[] ratios = {3.9, 2.4, 1.6, 1.2, 0.95, 0.78};
+            int g = Math.max(1, Math.min(6, gearIdx));
+            double mps = kmh / 3.6;
+            double rpm = mps / 2.35 * ratios[g - 1] * 3.55 * 60;
+            return (int) Math.max(700, Math.min(6500, rpm));
+        }
+
+        /** "car" quando as APIs do BYD respondem, "sim" quando é tudo simulação */
+        @JavascriptInterface
+        public String source() {
+            return byd.available() ? "car" : "sim";
         }
 
         @JavascriptInterface
@@ -233,7 +272,15 @@ public class MainActivity extends Activity {
         /** o que este carro deixa ler (roda no veículo, não no PC) */
         @JavascriptInterface
         public String probe() {
-            return CarProbe.run(getApplicationContext());
+            String base = CarProbe.run(getApplicationContext());
+            try {
+                org.json.JSONObject o = new org.json.JSONObject(base);
+                o.put("bydAvailable", byd.available());
+                o.put("bydGetters", new org.json.JSONObject(byd.report()));
+                return o.toString();
+            } catch (Throwable t) {
+                return base;
+            }
         }
 
         @JavascriptInterface
