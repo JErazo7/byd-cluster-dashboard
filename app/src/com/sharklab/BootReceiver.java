@@ -19,6 +19,8 @@ public class BootReceiver extends BroadcastReceiver {
         if (!Intent.ACTION_BOOT_COMPLETED.equals(a)
                 && !"android.intent.action.QUICKBOOT_POWERON".equals(a)
                 && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)) return;
+        /* o painel é um canal único: subir sozinho roubaria o de outro app */
+        if (!ctx.getSharedPreferences("lab", Context.MODE_PRIVATE).getBoolean("autostart", false)) return;
         try {
             Intent i = new Intent(ctx, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

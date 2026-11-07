@@ -101,6 +101,20 @@
       }
     }
 
+    if (window.Lab && window.Lab.camShape) {
+      section('Câmera');
+      var camOn = false;
+      var cb0 = el('button', { class: 'it' }, 'CÂMERA EM TELA CHEIA');
+      cb0.addEventListener('click', function (e) {
+        e.stopPropagation();
+        camOn = !camOn;
+        if (camOn) window.Lab.camShape('{"x":0,"y":90,"w":1920,"h":900}');
+        else window.Lab.camHide();
+        cb0.setAttribute('aria-pressed', camOn ? 'true' : 'false');
+      });
+      root.appendChild(cb0);
+    }
+
     if (window.Lab && window.Lab.camOpen) {
       section('Câmeras');
       var ok = window.Lab.camAvailable ? window.Lab.camAvailable() : false;
@@ -132,8 +146,28 @@
         waze.installed ? ('Waze ' + waze.version + ' · ' + (waze.installer || '?')) : 'Waze não instalado'));
     }
 
-    if (window.Lab && window.Lab.clusterCast) {
+    if (window.Lab && window.Lab.clusterToggle) {
       section('Painel do motorista');
+      var on = window.Lab.clusterOn ? window.Lab.clusterOn() : true;
+      var tb = el('button', { class: 'it', 'aria-pressed': on ? 'true' : 'false', style: 'text-align:center;font-weight:600' },
+        on ? 'TEMA ATIVO NO PAINEL — toque para desligar' : 'PAINEL ORIGINAL DA BYD — toque para ligar o tema');
+      tb.addEventListener('click', function (e) {
+        e.stopPropagation();
+        window.Lab.clusterToggle();
+        refresh();
+      });
+      root.appendChild(tb);
+      if (window.Lab.autostartGet) {
+        var asOn = window.Lab.autostartGet();
+        var ab = el('button', { class: 'it', 'aria-pressed': asOn ? 'true' : 'false', style: 'margin-top:6px' },
+          asOn ? 'ARRANCA SOZINHO — toque para desligar' : 'NÃO ARRANCA SOZINHO — toque para ligar');
+        ab.addEventListener('click', function (e) { e.stopPropagation(); window.Lab.autostartSet(!asOn); refresh(); });
+        root.appendChild(ab);
+      }
+    }
+
+    if (window.Lab && window.Lab.clusterCast) {
+      section('Avançado');
       var rows = [['ESPELHAR NO PAINEL (CHEIO)', 16], ['METADE', 17], ['VOLTAR AO PAINEL BYD', 18]];
       root.appendChild(el('div', { style: 'font-size:11px;color:#7f8c9b;margin:0 0 6px;line-height:1.35' },
         'se o botão falhar, rode uma vez por adb:\nservice call AutoContainer 2 i32 1000 i32 16 s16 ""'));

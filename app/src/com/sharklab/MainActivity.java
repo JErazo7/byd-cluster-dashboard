@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
     static final String[] INJECT = {
             "engine/profiles.js", "engine/synth.js", "engine/model.js",
-            "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-sound.js"
+            "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-sound.js", "lab/lab-ui.js"
     };
 
     /** o painel não toca som (evita áudio duplicado): ele só desenha */
@@ -56,6 +56,7 @@ public class MainActivity extends Activity {
     private BydBridge byd;
     private TextureView camView;
     private android.view.Surface camSurface;
+    private android.graphics.SurfaceTexture camTexture;
     private boolean camShown = false;
     private ClusterPresentation cluster;
     private final Lab bridge = new Lab();
@@ -83,6 +84,16 @@ public class MainActivity extends Activity {
                     Log.i(TAG, "bydAvailable=" + byd.available());
                     Log.i(TAG, "bydGetters=" + byd.report());
                     Log.i(TAG, "adas=" + byd.adasJson());
+                    StringBuilder dump = new StringBuilder();
+                    dump.append("{\"bydAvailable\":").append(byd.available())
+                        .append(",\"bydGetters\":").append(byd.report())
+                        .append(",\"adas\":").append(byd.adasJson())
+                        .append(",\"cam\":").append(bridge.camProbe()).append('}');
+                    java.io.File f = new java.io.File(getExternalFilesDir(null), "probe.json");
+                    java.io.FileOutputStream out = new java.io.FileOutputStream(f);
+                    out.write(dump.toString().getBytes("UTF-8"));
+                    out.close();
+                    Log.i(TAG, "probe.json escrito");
                 } catch (Throwable t) {
                     Log.w(TAG, "probe falhou", t);
                 }
@@ -97,7 +108,11 @@ public class MainActivity extends Activity {
             @Override
             public void onSurfaceTextureAvailable(android.graphics.SurfaceTexture st, int w, int h) {
                 camSurface = new android.view.Surface(st);
-                if (camShown) CameraService.openPreview(camSurface);
+                camTexture = st;
+                if (camShown) {
+                    boolean ok = BydCamera.attach(MainActivity.this, st, 0);
+                    Log.i(TAG, "câmera: attach=" + ok + " erro=" + BydCamera.error());
+                }
             }
 
             @Override
@@ -107,7 +122,8 @@ public class MainActivity extends Activity {
             @Override
             public boolean onSurfaceTextureDestroyed(android.graphics.SurfaceTexture st) {
                 if (camSurface != null) {
-                    CameraService.closePreview(camSurface);
+                    BydCamera.detach(MainActivity.this, st, 0);
+                    BydCamera.close();
                     try { camSurface.release(); } catch (Throwable ignored) {}
                     camSurface = null;
                 }
@@ -155,7 +171,28 @@ public class MainActivity extends Activity {
         web.loadUrl(urlFor(p.getString("skin", "shark"), true, false));
 
         startGps();
-        if (!p.getBoolean("projection", false)) bridge.clusterCast(16);
+
+        /* gancho de teste por adb: am start ... --ez cam true */
+        if (getIntent() != null && getIntent().getBooleanExtra("cam", false)) {
+            bridge.camShape("{\"x\":0,\"y\":90,\"w\":1920,\"h\":900}");
+        }
+
+        /* gancho de teste por adb: am broadcast -a com.sharklab.CAM -p com.xdja.clusterdemo */
+        android.content.IntentFilter camFilter = new android.content.IntentFilter();
+        camFilter.addAction("com.sharklab.CAM");
+        camFilter.addAction("com.sharklab.CAMOFF");
+        registerReceiver(new android.content.BroadcastReceiver() {
+            @Override
+            public void onReceive(android.content.Context c, Intent i) {
+                if (i == null) return;
+                if ("com.sharklab.CAM".equals(i.getAction())) {
+                    bridge.camShape("{\"x\":0,\"y\":90,\"w\":1920,\"h\":900}");
+                } else {
+                    bridge.camHide();
+                }
+            }
+        }, camFilter);
+        if (!p.getBoolean("projection", false) && p.getBoolean("cluster_cast", true)) bridge.clusterCast(16);
 
         /* skin no painel do motorista, pela projeção (quando habilitada) */
         if (p.getBoolean("projection", false)) {
@@ -313,6 +350,26 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+        if (p.getBoolean("cluster_cast", true) && !p.getBoolean("projection", false)) {
+            bridge.clusterCast(16);
+            Log.i(TAG, "painel: tomado no onResume");
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+        if (p.getBoolean("cluster_cast", true) && p.getBoolean("release_on_pause", true)) {
+            bridge.clusterCast(18);
+            Log.i(TAG, "painel: liberado no onPause");
+        }
+        super.onPause();
+    }
+
+    @Override
     protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
         if (request == Mirror.REQUEST_CODE && result == RESULT_OK) {
@@ -379,7 +436,7 @@ public class MainActivity extends Activity {
             boolean reverse = gsel == 1;
             if (reverse != lastReverse) {
                 lastReverse = reverse;
-                if (reverse && CameraService.available()) camShape("{\"x\":640,\"y\":96,\"w\":600,\"h\":340}");
+                if (reverse) camShape("{\"x\":660,\"y\":190,\"w\":600,\"h\":340}");
                 else camHide();
             }
             int pu = b[11] > -998 ? (int) b[11] : 1;
@@ -439,6 +496,32 @@ public class MainActivity extends Activity {
             }
         }
 
+        @JavascriptInterface
+        public boolean autostartGet() {
+            return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("autostart", false);
+        }
+
+        @JavascriptInterface
+        public void autostartSet(boolean on) {
+            getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("autostart", on).apply();
+        }
+
+        /** liga/desliga o tema no painel (persistente) */
+        @JavascriptInterface
+        public String clusterToggle() {
+            SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+            boolean on = !p.getBoolean("cluster_cast", true);
+            p.edit().putBoolean("cluster_cast", on).apply();
+            clusterCast(on ? 16 : 18);
+            Log.i(TAG, "tema no painel: " + (on ? "ligado" : "desligado"));
+            return "{\"on\":" + on + "}";
+        }
+
+        @JavascriptInterface
+        public boolean clusterOn() {
+            return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("cluster_cast", true);
+        }
+
         /**
          * Painel do motorista: o cluster é outra instância do sistema (fission), não um display
          * Android. O canal é o binder AutoContainer, tipo 1000:
@@ -458,9 +541,66 @@ public class MainActivity extends Activity {
                 Log.i(TAG, "cluster cast cmd=" + cmd);
                 return "{\"ok\":true,\"cmd\":" + cmd + "}";
             } catch (Throwable t) {
-                Log.w(TAG, "cluster cast falhou cmd=" + cmd, t);
-                return "{\"ok\":false,\"why\":\"" + String.valueOf(t).replace("\"", "'") + "\"}";
+                Throwable c = t;
+                while (c.getCause() != null && c != c.getCause()) c = c.getCause();
+                Log.w(TAG, "cluster cast falhou cmd=" + cmd + " causa=" + c);
+                return "{\"ok\":false,\"why\":\"" + String.valueOf(c).replace("\"", "'") + "\"}";
             }
+        }
+
+        /**
+         * Câmera do carro pelo jar da BYD: carrega bmmcamera.jar num DexClassLoader e
+         * lista os métodos de AVMCamera + a interface de callback, para implementar contra
+         * o que existe de verdade nesta unidade.
+         */
+        @JavascriptInterface
+        public String camProbe() {
+            StringBuilder sb = new StringBuilder("{");
+            try {
+                java.io.File jar = new java.io.File("/system/framework/bmmcamera.jar");
+                sb.append("\"jarExists\":").append(jar.isFile()).append(',');
+                try {
+                    BydCamera.loader(getApplicationContext());
+                    sb.append("\"jniLoaded\":true,");
+                } catch (Throwable t) {
+                    sb.append("\"jniLoaded\":false,\"jniError\":\"").append(String.valueOf(t).replace("\"", "'")).append("\",");
+                }
+                Class<?> avm = BydCamera.avmClass(getApplicationContext());
+                sb.append("\"methods\":[");
+                boolean first = true;
+                for (java.lang.reflect.Method m : avm.getDeclaredMethods()) {
+                    if (java.lang.reflect.Modifier.isPublic(m.getModifiers())) {
+                        if (!first) sb.append(',');
+                        first = false;
+                        sb.append("\"").append(m.getReturnType().getSimpleName()).append(' ').append(m.getName()).append('(');
+                        Class<?>[] ps = m.getParameterTypes();
+                        for (int i = 0; i < ps.length; i++) {
+                            if (i > 0) sb.append(',');
+                            sb.append(ps[i].getSimpleName());
+                        }
+                        sb.append(")\"");
+                    }
+                }
+                sb.append("],\"ifaces\":[");
+                boolean f2 = true;
+                for (Class<?> c : avm.getDeclaredClasses()) {
+                    if (!f2) sb.append(',');
+                    f2 = false;
+                    sb.append("\"").append(c.getSimpleName()).append('(');
+                    if (c.isInterface()) {
+                        java.lang.reflect.Method[] ims = c.getDeclaredMethods();
+                        for (int i = 0; i < ims.length; i++) {
+                            if (i > 0) sb.append(';');
+                            sb.append(ims[i].getName()).append('/').append(ims[i].getParameterTypes().length);
+                        }
+                    }
+                    sb.append(")\"");
+                }
+                sb.append("]}");
+            } catch (Throwable t) {
+                return "{\"error\":\"" + String.valueOf(t).replace("\"", "'") + "\"}";
+            }
+            return sb.toString();
         }
 
         /** liga/desliga a projeção da skin no painel do motorista */
@@ -507,7 +647,17 @@ public class MainActivity extends Activity {
                         camView.setLayoutParams(lp);
                         camView.setVisibility(View.VISIBLE);
                         camShown = true;
-                        if (camSurface != null) CameraService.openPreview(camSurface);
+                        if (camTexture != null) {
+                            boolean ok2 = BydCamera.attach(MainActivity.this, camTexture, 0);
+                            try {
+                                java.io.File f = new java.io.File(getExternalFilesDir(null), "camlog.json");
+                                java.io.FileOutputStream o = new java.io.FileOutputStream(f);
+                                o.write(("{\"attach\":" + ok2 + ",\"erro\":\"" + BydCamera.error().replace("\"", "'") + "\"}")
+                                        .getBytes("UTF-8"));
+                                o.close();
+                            } catch (Throwable ignored) {
+                            }
+                        }
                     }
                 });
             } catch (Throwable ignored) {
@@ -520,7 +670,7 @@ public class MainActivity extends Activity {
                 public void run() {
                     camShown = false;
                     camView.setVisibility(View.GONE);
-                    if (camSurface != null) CameraService.closePreview(camSurface);
+                    if (camTexture != null) BydCamera.detach(MainActivity.this, camTexture, 0);
                 }
             });
         }
