@@ -1,0 +1,10 @@
+# binários e chaves de assinatura (nunca versionar)
+*.apk
+*.idsig
+*.keystore
+apk-in/
+out/
+build/
+demos/
+*.wav
+.DS_Store

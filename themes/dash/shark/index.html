@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<script>
+  /* largura do painel: o app abre a skin com "#...&wide=<px>" quando a janela é maior que 1280 */
+  (function () {
+    var m = /[#&]wide=(\d+)/.exec(location.hash);
+    var w = m && +m[1] > 1280 ? +m[1] : 1280;
+    document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=' + w);
+    window.EVS_W = w;
+  })();
+  if (/[#&]light=1/.test(location.hash)) document.documentElement.className += ' light';
+  if (/[#&](panel|full)=1/.test(location.hash)) document.documentElement.className += ' panel';
+  if (/[#&]full=1/.test(location.hash)) document.documentElement.className += ' full';
+</script>
+<title>Shark</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 480px; overflow: hidden; background: #04070c; }
+  html.light, html.light body { background: #f2f5f8; }
+  html.panel, html.panel body { background: transparent; }
+  svg { display: block; font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  text { fill: #e6eef6; }
+  .dim { fill: #7d8b99; }
+  .accent { fill: #38cfff; }
+  .warm { fill: #ffb020; }
+  .good { fill: #35e07a; }
+  .bad { fill: #ff4b3e; }
+  .track { fill: none; stroke: #14202c; stroke-width: 12; stroke-linecap: round; }
+  .fill { fill: none; stroke-width: 12; stroke-linecap: round; }
+  .thin { fill: none; stroke: #14202c; stroke-width: 4; stroke-linecap: round; }
+  html.light .track, html.light .thin { stroke: #d5dee7; }
+  html.light text { fill: #0d151d; }
+  html.light .dim { fill: #5b6a78; }
+  html.light .accent { fill: #0079b8; }
+  .hit { fill: transparent; }
+</style>
+</head>
+<body>
+<svg id="s" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+(function () {
+  'use strict';
+  var NS = 'http://www.w3.org/2000/svg';
+  var W = window.EVS_W || 1280, H = 480;
+  var svg = document.getElementById('s');
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+  /* ---------- idioma (mesmo "#lang=" das outras skins) ---------- */
+  var LANG = /[#&]lang=(pt|es|en|zh)/.exec(location.hash);
+  LANG = LANG ? LANG[1] : 'pt';
+  var DICT = {
+    pt: { kmh: 'km/h', power: 'POTÊNCIA', bat: 'BATERIA', range: 'AUTONOMIA', odo: 'TOTAL', trip: 'VIAGEM', ready: 'READY', warn: 'AVISO' },
+    es: { kmh: 'km/h', power: 'POTENCIA', bat: 'BATERÍA', range: 'AUTONOMÍA', odo: 'TOTAL', trip: 'VIAJE', ready: 'READY', warn: 'AVISO' },
+    en: { kmh: 'mph', power: 'POWER', bat: 'BATTERY', range: 'RANGE', odo: 'ODO', trip: 'TRIP', ready: 'READY', warn: 'ALERT' },
+    zh: { kmh: 'km/h', power: '功率', bat: '电池', range: '续航', odo: '总里程', trip: '行程', ready: '就绪', warn: '警告' }
+  };
+  var T = DICT[LANG] || DICT.pt;
+  var H24 = /[#&]h24=1/.test(location.hash);
+
+  /* unidades do painel da BYD: 1 = métrico, 2 = imperial (o app manda km, km/h e kW) */
+  function pow(kw) { return window.EvsPU === 2 ? kw * 1.341 : kw; }
+  function powU() { return window.EvsPU === 2 ? (LANG === 'zh' ? 'hp' : 'hp') : 'kW'; }
+  function spd(kmh) { return window.EvsSU === 2 ? kmh / 1.609344 : kmh; }
+  function dist(km) { return window.EvsDU === 2 ? km / 1.609344 : km; }
+
+  /* ---------- utilidades de desenho ---------- */
+  function el(tag, attrs, parent) {
+    var n = document.createElementNS(NS, tag), k;
+    for (k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(n);
+    return n;
+  }
+  function txt(x, y, str, size, cls, anchor, parent) {
+    var t = el('text', {
+      x: x, y: y, 'font-size': size, 'text-anchor': anchor || 'middle',
+      'font-weight': cls === 'num' ? 500 : 400, class: cls || ''
+    }, parent);
+    t.textContent = str;
+    return t;
+  }
+  /* arco de a0 a a1 (graus, 0 = leste, sentido horário), a partir de (cx, cy) */
+  function arc(cx, cy, r, a0, a1) {
+    var p0 = pt(cx, cy, r, a0), p1 = pt(cx, cy, r, a1), big = Math.abs(a1 - a0) > 180 ? 1 : 0;
+    if (Math.abs(a1 - a0) < 0.01) return 'M' + cx + ' ' + cy;
+    return 'M' + p0[0] + ' ' + p0[1] + 'A' + r + ' ' + r + ' 0 ' + big + ' 1 ' + p1[0] + ' ' + p1[1];
+  }
+  function pt(cx, cy, r, a) {
+    var rad = a * Math.PI / 180;
+    return [Math.round((cx + r * Math.cos(rad)) * 100) / 100, Math.round((cy + r * Math.sin(rad)) * 100) / 100];
+  }
+  function fmt(v, d) {
+    if (v === null || v === undefined || v === -999) return '--';
+    return d ? v.toFixed(d).replace('.', ',') : String(Math.round(v));
+  }
+  function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+
+  /* ---------- layout ---------- */
+  var PANEL = /[#&](panel|full)=1/.test(location.hash);
+  var LX = 232, RX = W - 232, CY = 248, R = 116;   /* centros dos dois mostradores */
+  var A0 = 150, SWEEP = 240;                        /* arco: 150° → 390° */
+
+  var gLeft = el('g'), gMid = el('g'), gRight = el('g'), gBottom = el('g'), gTop = el('g');
+
+  /* mostradores: trilha + preenchimento */
+  function gauge(parent, cx, cy) {
+    el('path', { d: arc(cx, cy, R, A0, A0 + SWEEP), class: 'track' }, parent);
+    el('path', { d: arc(cx, cy, R, A0, A0 + 0.01), class: 'fill', stroke: '#38cfff' }, parent);
+    return parent.lastChild;
+  }
+  var fillL = gauge(gLeft, LX, CY);
+  var fillR = gauge(gRight, RX, CY);
+
+  var lblL = txt(LX, CY - 58, '', 19, 'dim');
+  var numL = txt(LX, CY + 22, '', 58, 'num');
+  var unitL = txt(LX, CY + 62, '', 20, 'dim');
+
+  var lblR = txt(RX, CY - 58, T.bat, 19, 'dim');
+  var numR = txt(RX, CY + 22, '', 58, 'num');
+  var unitR = txt(RX, CY + 62, '', 20, 'dim');
+
+  /* centro: velocidade, seletor, READY, modo */
+  var spdNum = txt(W / 2, 290, '0', 128, 'num');
+  spdNum.setAttribute('font-weight', 500);
+  var spdUnit = txt(W / 2, 330, T.kmh, 22, 'dim');
+  var selG = el('g', {}, gMid);
+  var SEL = ['P', 'R', 'N', 'D'], selT = [], i;
+  for (i = 0; i < 4; i++) selT.push(txt(W / 2 - 54 + i * 36, 372, SEL[i], 26, 'dim', 'middle', selG));
+  var readyT = txt(W / 2, 410, T.ready, 17, 'good');
+  readyT.setAttribute('letter-spacing', '3');
+  var modeT = txt(W / 2, 170, '', 20, 'accent');
+
+  /* pedal (barra fina embaixo do numero) */
+  var PEDAL_Y = 436;
+  el('path', { d: 'M' + (W / 2 - 130) + ' ' + PEDAL_Y + 'L' + (W / 2 + 130) + ' ' + PEDAL_Y, class: 'thin' }, gMid);
+  var pedalBar = el('path', { d: '', class: 'fill', stroke: '#38cfff' }, gMid);
+  pedalBar.setAttribute('stroke-width', 4);
+
+  /* topo: setas, avisos, relógio */
+  var turnL = el('path', { d: '', fill: '#35e07a' }, gTop);
+  var turnR = el('path', { d: '', fill: '#35e07a' }, gTop);
+  var warnT = txt(W / 2, 74, '', 18, 'warm');
+  var clockT = txt(W / 2, 40, '', 24, 'dim');
+  var mediaT = txt(W / 2, H - 22, '', 17, 'dim');
+
+  /* rodapé: odômetro, viagem, temperatura */
+  var odoT = txt(40, H - 22, '', 19, 'dim', 'start', gBottom);
+  var tempT = txt(W - 40, H - 22, '', 19, 'dim', 'end', gBottom);
+
+  /* setas desenhadas (não são caracteres: a central não tem a fonte) */
+  function arrow(side) {
+    var cx = side < 0 ? 46 : W - 46, cy = 40, s = 13;
+    return 'M' + (cx + side * s) + ' ' + cy + 'L' + (cx - side * s * 0.35) + ' ' + (cy - s) +
+           'L' + (cx - side * s * 0.35) + ' ' + (cy - s * 0.3) + 'L' + (cx - side * s) + ' ' + (cy - s * 0.3) +
+           'L' + (cx - side * s) + ' ' + (cy + s * 0.3) + 'L' + (cx - side * s * 0.35) + ' ' + (cy + s * 0.3) +
+           'L' + (cx - side * s * 0.35) + ' ' + (cy + s) + 'Z';
+  }
+  turnL.setAttribute('d', arrow(-1));
+  turnR.setAttribute('d', arrow(1));
+
+  /* no painel inteiro a BYD desenha as luzes de falha numa faixa no alto do meio
+     (x 427–853, y 0–54 em 1280×480): o relógio sai da faixa */
+  if (PANEL) { clockT.setAttribute('y', 96); warnT.setAttribute('y', 126); }
+
+  /* ---------- dados ---------- */
+  var last = null;
+  function setFill(path, cx, cy, frac, color) {
+    var f = clamp01(frac);
+    path.setAttribute('d', f <= 0.001 ? 'M' + cx + ' ' + cy : arc(cx, cy, R, A0, A0 + SWEEP * f));
+    path.setAttribute('stroke', color);
+  }
+
+  function draw(d) {
+    last = d;
+    /* velocidade */
+    spdNum.textContent = fmt(spd(d.speed));
+    spdUnit.textContent = T.kmh;
+
+    /* seletor */
+    for (var j = 0; j < 4; j++) {
+      var on = d.sel === SEL[j];
+      selT[j].setAttribute('class', on ? 'accent' : 'dim');
+      selT[j].setAttribute('font-weight', on ? 500 : 400);
+    }
+
+    /* READY e modo de condução */
+    readyT.setAttribute('opacity', d.on ? 1 : 0.25);
+    modeT.textContent = d.drive || '';
+
+    /* potência / regeneração à esquerda */
+    var pw = d.pw;
+    var kw = (pw === -999 || pw === null) ? 0 : pow(pw);
+    var maxKw = 200;
+    lblL.textContent = T.power;
+    numL.textContent = fmt(Math.abs(kw));
+    unitL.textContent = powU() + (kw < 0 ? '  REGEN' : '');
+    setFill(fillL, LX, CY, Math.abs(kw) / maxKw, kw < -1 ? '#35e07a' : '#38cfff');
+    unitL.setAttribute('class', kw < -1 ? 'good' : 'dim');
+
+    /* bateria / autonomia à direita */
+    var soc = d.soc;
+    var hasSoc = soc !== null && soc !== undefined && soc >= 0 && soc <= 100;
+    numR.textContent = hasSoc ? Math.round(soc) + '%' : '--';
+    unitR.textContent = d.range === -999 ? '' : (fmt(dist(d.range)) + ' ' + (window.EvsDU === 2 ? 'mi' : 'km'));
+    setFill(fillR, RX, CY, hasSoc ? soc / 100 : 0, soc <= 20 ? '#ffb020' : '#38cfff');
+
+    /* setas (o app já manda o pisca) */
+    turnL.setAttribute('opacity', d.turnLeft ? 1 : 0.12);
+    turnR.setAttribute('opacity', d.turnRight ? 1 : 0.12);
+
+    /* avisos */
+    var n = d.warn ? d.warn.length : 0;
+    warnT.textContent = n ? (n === 1 ? T.warn : T.warn + ' ×' + n) : '';
+
+    /* pedal */
+    var tps = Math.max(0, Math.min(100, d.tps || 0));
+    var x0 = W / 2 - 130, w = 260 * tps / 100;
+    pedalBar.setAttribute('d', w <= 0.5 ? 'M' + x0 + ' ' + PEDAL_Y : 'M' + x0 + ' ' + PEDAL_Y + 'L' + (x0 + w) + ' ' + PEDAL_Y);
+
+    /* rodapé */
+    var u = window.EvsDU === 2 ? 'mi' : 'km';
+    var odoStr = d.odo === -999 ? '' : T.odo + ' ' + fmt(dist(d.odo)) + ' ' + u;
+    var tripKm = d.trip && typeof d.trip.km === 'number' ? d.trip.km : null;
+    odoT.textContent = odoStr + (tripKm === null ? '' : '   ·   ' + T.trip + ' ' + fmt(dist(tripKm), 1) + ' ' + u);
+    var temp = d.tout === -999 ? null : d.tout;
+    tempT.textContent = temp === null ? '' : fmt(temp) + '°C';
+
+    /* relógio (do próprio painel: o app manda h24 no endereço) */
+    var now = new Date();
+    var hh = now.getHours(), mm = now.getMinutes();
+    if (!H24) { hh = hh % 12; if (!hh) hh = 12; }
+    clockT.textContent = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+    setIntervalGuard();
+  }
+
+  /* o relógio não anda sozinho: um tique por segundo só para ele */
+  var clockTimer = 0;
+  function setIntervalGuard() {
+    if (clockTimer) return;
+    clockTimer = setInterval(function () {
+      if (!last) return;
+      var now = new Date(), hh = now.getHours(), mm = now.getMinutes();
+      if (!H24) { hh = hh % 12; if (!hh) hh = 12; }
+      clockT.textContent = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+    }, 20000);
+  }
+
+  /* música: uma linha discreta embaixo, se o app mandar */
+  function drawMedia(m) {
+    if (!m || !m.title) { mediaT.textContent = ''; return; }
+    var s = (m.title || '') + (m.artist ? ' · ' + m.artist : '');
+    if (s.length > 72) s = s.slice(0, 71) + '…';
+    mediaT.textContent = s;
+  }
+
+  /* ---------- contrato do app ---------- */
+  var ev = null;
+  window.BrasaDriveUpdate = function (d) {
+    if (!d) return;
+    ev = d;
+    draw(d);
+    if (d.media) drawMedia(d.media);
+  };
+
+  /* zonas do menu do volante: os lados trocam o mostrador e a leitura */
+  window.EvsZones = {
+    l: { k: 'dial', n: LANG === 'es' ? 'Reloj' : LANG === 'en' ? 'Dial' : 'Mostrador' },
+    r: { k: 'info', n: LANG === 'es' ? 'Autonomía' : LANG === 'en' ? 'Range' : 'Autonomia' }
+  };
+
+  /* toque no meio: alterna entre o essencial e a leitura completa */
+  var minimal = false;
+  window.EvsTap = function (x) {
+    if (Math.abs(x - W / 2) > W * 0.2) return;
+    minimal = !minimal;
+    gBottom.setAttribute('opacity', minimal ? 0.25 : 1);
+    mediaT.setAttribute('opacity', minimal ? 0 : 1);
+  };
+
+  /* primeira pintura (antes do primeiro quadro do app) */
+  draw({ speed: 0, rpm: 0, sel: 'P', on: false, pw: 0, soc: -1, range: -999, odo: -999, tps: 0,
+         turnLeft: 0, turnRight: 0, warn: [], tout: -999, drive: '', ready: -1 });
+})();
+</script>
+</body>
+</html>

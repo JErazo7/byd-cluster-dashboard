@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SharkLab · sons do motor</title>
+<style>
+  :root { --bg:#070b11; --panel:#0f1720; --line:#1d2937; --fg:#e6eef6; --dim:#7f8c9b; --acc:#38cfff; --good:#35e07a; --warm:#ffb020; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, sans-serif; padding: 14px; }
+  h1 { font-size: 17px; margin: 0 0 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--dim); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .chip { padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); cursor: pointer; font-size: 15px; }
+  .chip[aria-pressed=true] { border-color: var(--acc); color: var(--acc); }
+  .pedal { position: relative; height: 74px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); overflow: hidden;
+           user-select: none; touch-action: none; cursor: pointer; }
+  .pedal .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #145c78, var(--acc)); }
+  .pedal span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; letter-spacing: .06em; }
+  .gauge { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .box b { display: block; font-size: 26px; font-weight: 600; }
+  .box small { color: var(--dim); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  button.act { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); font-size: 15px; cursor: pointer; }
+  button.act[aria-pressed=true] { border-color: var(--good); color: var(--good); }
+  input[type=range] { width: 160px; accent-color: var(--acc); }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 12px; overflow: auto; max-height: 220px; }
+  .hint { color: var(--dim); font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Sons do motor · toque e acelere</h1>
+<div class="row" id="chips"></div>
+<div class="pedal" id="pedal"><div class="fill" id="pfill"></div><span id="plabel">SEGURE PARA ACELERAR</span></div>
+<div class="gauge">
+  <div class="box"><small>giro</small><b id="vRpm">0</b></div>
+  <div class="box"><small>velocidade</small><b id="vSpd">0</b></div>
+  <div class="box"><small>marcha</small><b id="vGear">1</b></div>
+  <div class="box"><small>explosões/s</small><b id="vFire">0</b></div>
+</div>
+<div class="row">
+  <button class="act" id="auto" aria-pressed="false">AUTO</button>
+  <button class="act" id="mute" aria-pressed="false">SOM</button>
+  <label class="hint">volume <input id="vol" type="range" min="0" max="100" value="70"></label>
+  <button class="act" id="wav">BAIXAR WAV</button>
+  <button class="act" id="check">VERIFICAR</button>
+</div>
+<div class="row"><span class="hint">teclado: <b>↑/espaço</b> acelera · <b>←/→</b> troca o motor</span></div>
+<pre id="log" hidden></pre>
+
+<script src="../engine/profiles.js"></script>
+<script src="../engine/synth.js"></script>
+<script src="../engine/model.js"></script>
+<script src="../engine/render.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var engines = window.ENGINES || [];
+  var cur = 0, ctx = null, voice = null, model = null, master = null;
+  var pedal = 0, auto = false, autoT = 0, muted = false, vol = 0.7, timer = 0;
+
+  function engine() { return engines[cur]; }
+
+  function buildChips() {
+    var wrap = $('chips');
+    wrap.innerHTML = '';
+    engines.forEach(function (e, i) {
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = e.name;
+      b.setAttribute('aria-pressed', i === cur);
+      b.addEventListener('click', function () { select(i); });
+      wrap.appendChild(b);
+    });
+  }
+
+  function ensureAudio() {
+    if (ctx) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC({ latencyHint: 'interactive' });
+    master = ctx.createGain();
+    master.gain.value = muted ? 0 : vol;
+    master.connect(ctx.destination);
+  }
+
+  function select(i) {
+    cur = i;
+    buildChips();
+    ensureAudio();
+    if (voice) voice.dispose();
+    voice = window.EngineSynth.create(ctx, engine());
+    voice.output.connect(master);
+    model = window.EngineModel.create(engine());
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+
+  /* laço de 20 Hz: modelo → síntese */
+  function loop() {
+    if (!voice) return;
+    var st = model.step(0.05, { tps: pedal, brake: auto ? 0 : (pedal < 0.05 ? 0.05 : 0) });
+    if (st.pops) { voice.pop(0.9); st.pops = 0; }
+    voice.update({ rpm: st.rpm, tps: st.tps, load: st.load, speed: st.speed, on: true });
+    $('vRpm').textContent = Math.round(st.rpm);
+    $('vSpd').textContent = Math.round(st.speed);
+    $('vGear').textContent = st.gear;
+    $('vFire').textContent = (st.rpm / 60 * (engine().cylinders / 2)).toFixed(0);
+  }
+
+  /* ---------- pedal ---------- */
+  function setPedal(v) {
+    pedal = Math.max(0, Math.min(1, v));
+    $('pfill').style.width = (pedal * 100) + '%';
+    $('plabel').textContent = pedal > 0.02 ? Math.round(pedal * 100) + '%' : 'SEGURE PARA ACELERAR';
+  }
+  var pd = false;
+  $('pedal').addEventListener('pointerdown', function (e) { pd = true; ensureAudio(); select(cur); this.setPointerCapture(e.pointerId); setPedal(0.85); });
+  $('pedal').addEventListener('pointerup', function () { pd = false; setPedal(0); });
+  $('pedal').addEventListener('pointercancel', function () { pd = false; setPedal(0); });
+  addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowUp' || e.key === ' ') { e.preventDefault(); ensureAudio(); select(cur); setPedal(0.85); }
+    if (e.key === 'ArrowLeft') select((cur + engines.length - 1) % engines.length);
+    if (e.key === 'ArrowRight') select((cur + 1) % engines.length);
+  });
+  addEventListener('keyup', function (e) { if (e.key === 'ArrowUp' || e.key === ' ') setPedal(0); });
+
+  $('auto').addEventListener('click', function () {
+    auto = !auto;
+    this.setAttribute('aria-pressed', auto);
+    ensureAudio(); select(cur);
+    if (auto) setPedal(0.9); else setPedal(0);
+  });
+  $('mute').addEventListener('click', function () {
+    muted = !muted;
+    this.setAttribute('aria-pressed', !muted);
+    this.textContent = muted ? 'MUDO' : 'SOM';
+    if (master) master.gain.value = muted ? 0 : vol;
+  });
+  $('vol').addEventListener('input', function () { vol = this.value / 100; if (master) master.gain.value = muted ? 0 : vol; });
+
+  $('wav').addEventListener('click', function () {
+    var e = engine();
+    $('log').hidden = false;
+    $('log').textContent = 'renderizando ' + e.name + '...';
+    window.EngineRender.render(e, 6, function (t) {
+      /* 0-1,5 s acelerando; 1,5-3 s pé no fundo; 3-4 s tira o pé (estouros); 4-6 s freia */
+      if (t < 1.5) return { tps: 0.35 + t * 0.4 };
+      if (t < 3) return { tps: 1 };
+      if (t < 4.2) return { tps: 0 };
+      return { tps: 0, brake: 0.6 };
+    }).then(function (buf) {
+      var bytes = window.EngineRender.wav(buf);
+      var blob = new Blob([bytes], { type: 'audio/wav' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'motor-' + e.id + '.wav';
+      a.click();
+      $('log').textContent += '  ok (' + Math.round(bytes.length / 1024) + ' KB)\n' + JSON.stringify(window.EngineRender.analyze(buf, e));
+    });
+  });
+
+  /* verificação por número: giro fixo de 3000 rpm e a fundamental medida deve dar
+     rpm/60 × cilindros/2 (3000 rpm em 8 cilindros = 200 Hz), ±3% */
+  window.EngineCheck = {
+    all: function () {
+      var out = [];
+      return engines.reduce(function (p, e) {
+        return p.then(function () {
+          return window.EngineRender.renderFixed(e, 3000, 2).then(function (buf) {
+            var want = 3000 / 60 * (e.cylinders / 2);
+            var a = window.EngineRender.analyze(buf, { redline: 3000, cylinders: e.cylinders });
+            out.push({
+              id: e.id,
+              wantHz: want,
+              gotHz: a.freq,
+              errorPct: +((a.freq - want) / want * 100).toFixed(1),
+              rms: a.rms,
+              peak: a.peak,
+              ok: Math.abs(a.freq - want) / want < 0.03 && a.rms > 0.02 && a.peak < 1
+            });
+          });
+        });
+      }, Promise.resolve()).then(function () { return out; });
+    }
+  };
+  $('check').addEventListener('click', function () {
+    $('log').hidden = false;
+    $('log').textContent = 'verificando...';
+    window.EngineCheck.all().then(function (r) { $('log').textContent = JSON.stringify(r, null, 1); });
+  });
+
+  buildChips();
+  setInterval(loop, 50);
+  /* AUTO: pedal em onda lenta, para ouvir todos os regimes */
+  setInterval(function () {
+    if (!auto) return;
+    autoT += 0.05;
+    setPedal(0.5 + 0.5 * Math.sin(autoT * 0.7));
+  }, 50);
+})();
+</script>
+</body>
+</html>
