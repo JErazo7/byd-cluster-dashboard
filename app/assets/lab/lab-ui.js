@@ -78,6 +78,22 @@
     row.appendChild(mute);
     root.appendChild(row);
 
+    if (window.Lab && window.Lab.probe) {
+      var diag = el('button', { class: 'it', style: 'margin-top:6px' }, 'DIAGNÓSTICO DO CARRO');
+      var pre = el('pre', { style: 'display:none;white-space:pre-wrap;font-size:10px;color:#8fa3b8;' +
+        'max-height:180px;overflow:auto;margin:6px 0 0' });
+      diag.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var txt;
+        try { txt = JSON.stringify(JSON.parse(window.Lab.probe()), null, 1); }
+        catch (err) { txt = 'erro: ' + err; }
+        pre.textContent = txt;
+        pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
+      });
+      root.appendChild(diag);
+      root.appendChild(pre);
+    }
+
     root.appendChild(el('div', { style: 'margin-top:10px;font-size:11px;color:#5f7183' },
       'engine/profiles.js — edite e reabra o app'));
     root.hidden = true;

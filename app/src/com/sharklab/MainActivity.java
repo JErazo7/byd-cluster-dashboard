@@ -230,6 +230,12 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** o que este carro deixa ler (roda no veículo, não no PC) */
+        @JavascriptInterface
+        public String probe() {
+            return CarProbe.run(getApplicationContext());
+        }
+
         @JavascriptInterface
         public void log(String s) {
             Log.i(TAG, s);
