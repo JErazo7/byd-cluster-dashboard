@@ -38,7 +38,10 @@ if [ -d res ]; then
   "$BT/aapt2" compile --dir res -o build/res.zip
   RES="-R build/res.zip"
 fi
-"$BT/aapt2" link -o build/base.apk --manifest AndroidManifest.xml -I "$JAR" -A build/assets $RES --auto-add-overlay \
+PKG_FLAG=""
+if [ -n "${PKG:-}" ]; then PKG_FLAG="--rename-manifest-package $PKG"; fi
+
+"$BT/aapt2" link -o build/base.apk --manifest AndroidManifest.xml -I "$JAR" -A build/assets $RES --auto-add-overlay $PKG_FLAG \
   --min-sdk-version 26 --target-sdk-version 26 --version-code 1 --version-name 0.1
 
 echo "2/5 javac"
@@ -65,8 +68,8 @@ if [ ! -f "$KS" ]; then
 fi
 mkdir -p out
 "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$PASS" --key-pass "pass:$PASS" \
-  --out out/sharklab.apk build/app-aligned.apk
-"$BT/apksigner" verify out/sharklab.apk >/dev/null
+  --out "${OUT:-out/sharklab.apk}" build/app-aligned.apk
+"$BT/apksigner" verify "${OUT:-out/sharklab.apk}" >/dev/null
 
-"$BT/aapt2" dump badging out/sharklab.apk | head -2
-echo "APK: out/sharklab.apk"
+"$BT/aapt2" dump badging "${OUT:-out/sharklab.apk}" | head -2
+echo "APK: ${OUT:-out/sharklab.apk}"
