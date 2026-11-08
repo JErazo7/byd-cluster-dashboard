@@ -13,9 +13,9 @@
 </script>
 <title>Shark</title>
 <style>
-  html, body { margin: 0; padding: 0; height: 480px; overflow: hidden; background: #04070c; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a1017; }
   html.light, html.light body { background: #f2f5f8; }
-  html.panel, html.panel body { background: transparent; }
+  html.panel, html.panel body { background: #0a1017; }
   svg { display: block; font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; }
   text { fill: #e6eef6; }
   .dim { fill: #7d8b99; }
@@ -55,7 +55,8 @@
      independe de dpr e de meta viewport, e nunca recorta */
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   function fitSkin() {
-    var k = Math.min((window.innerWidth || W) / W, (window.innerHeight || H) / H);
+    /* 'max' = preenche o quadro todo (sem faixas); 'min' = cabe inteiro */
+    var k = Math.max((window.innerWidth || W) / W, (window.innerHeight || H) / H);
     if (!(k > 0)) k = 1;
     document.body.style.position = 'absolute';
     document.body.style.left = '50%';
@@ -128,7 +129,7 @@
 
   /* ---------- layout ---------- */
   var PANEL = /[#&](panel|full)=1/.test(location.hash);
-  var LX = 232, RX = W - 232, CY = 248, R = 116;   /* centros dos dois mostradores */
+  var LX = 262, RX = W - 262, CY = 250, R = 108;   /* centros dos dois mostradores */
   var A0 = 150, SWEEP = 240;                        /* arco: 150° → 390° */
 
   var gLeft = el('g'), gMid = el('g'), gRight = el('g'), gBottom = el('g'), gTop = el('g');

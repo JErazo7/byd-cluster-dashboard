@@ -7,6 +7,7 @@
  */
 (function () {
   'use strict';
+  if (window.Lab && window.Lab.log) window.Lab.log('inj: lab-feed: injetado');
   if (window.__labFeed || !window.Lab) return;
   window.__labFeed = true;
 

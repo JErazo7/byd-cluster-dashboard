@@ -6,6 +6,7 @@
  */
 (function () {
   'use strict';
+  if (window.Lab && window.Lab.log) window.Lab.log('inj: lab-ui: injetado');
   if (window.__labUi || !window.EngineApp) return;
   window.__labUi = true;
 

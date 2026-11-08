@@ -100,6 +100,8 @@ public final class EngineAudio {
                     .build();
             track.play();
             running = true;
+            android.util.Log.i("SharkLab", "EngineAudio: AudioTrack " + SR + "Hz state=" + track.getState()
+                    + " playState=" + track.getPlayState());
             thread = new Thread(new Runnable() {
                 public void run() {
                     renderLoop();
@@ -108,6 +110,7 @@ public final class EngineAudio {
             thread.setPriority(Thread.MAX_PRIORITY);
             thread.start();
         } catch (Throwable t) {
+            android.util.Log.w("SharkLab", "EngineAudio.start falhou: " + t);
             stop();
         }
     }

@@ -9,6 +9,10 @@
  */
 (function () {
   'use strict';
+  if (window.Lab && window.Lab.log) {
+    window.Lab.log('lab-sound: engines=' + (window.ENGINES ? window.ENGINES.length : -1) +
+      ' lab=' + !!window.Lab + ' engineStart=' + !!(window.Lab && window.Lab.engineStart));
+  }
   if (window.__labSound || !window.ENGINES || !window.Lab || !window.Lab.engineStart) return;
   window.__labSound = true;
 
