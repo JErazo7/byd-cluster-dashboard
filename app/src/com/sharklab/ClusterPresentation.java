@@ -38,8 +38,7 @@ public class ClusterPresentation extends Presentation {
     /** injeta no painel o mesmo conjunto de scripts do painel central (sem o som, para não duplicar áudio) */
     private void inject() {
         if (web == null) return;
-        for (String rel : MainActivity.INJECT) {
-            if (rel.endsWith("lab-sound.js") || rel.endsWith("lab-ui.js")) continue;
+        for (String rel : MainActivity.INJECT_PANEL) {
             try {
                 java.io.InputStream in = getContext().getAssets().open(rel);
                 java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
