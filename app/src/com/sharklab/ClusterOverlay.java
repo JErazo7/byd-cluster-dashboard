@@ -106,17 +106,16 @@ public final class ClusterOverlay {
                 }
             });
 
+            /* As mesmas flags do EvSound: só FLAG_LAYOUT_NO_LIMITS. Com
+               NOT_FOCUSABLE/NOT_TOUCHABLE/FULLSCREEN/LAYOUT_IN_SCREEN o container desenha a
+               barra nativa da BYD (P/ECO, bateria, autonomia, ODO) por cima da skin; com esta
+               combinação, o painel fica só com a skin. */
             WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                     W, H,
                     Build.VERSION.SDK_INT >= 26
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                            | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-                            | WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                     PixelFormat.TRANSLUCENT);
             lp.gravity = Gravity.TOP | Gravity.START;
             lp.x = 0;

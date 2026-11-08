@@ -78,3 +78,14 @@ Verificação do painel físico sem olhar o carro:
 ```bash
 adb shell fission_screencap -d 0 > panel.raw   # cabeçalho 8 bytes + RGBA 1920×720
 ```
+
+## Flags da janela que esconde a barra nativa (medido)
+
+A overlay no display 1 precisa das MESMAS flags do EvSound: `FLAG_LAYOUT_NO_LIMITS` e mais
+nada. Com `FLAG_NOT_FOCUSABLE | FLAG_NOT_TOUCHABLE | FLAG_FULLSCREEN | FLAG_LAYOUT_IN_SCREEN`
+o container compõe a barra nativa da BYD (P/ECO, bateria, autonomia, ODO, ADAS) por cima da
+skin. Só com `FLAG_LAYOUT_NO_LIMITS` a tela cheia fica limpa.
+
+Medição (16:54–16:57): com as flags antigas, `cmd 18` e `cmd 16` não mudavam a barra; com
+`FLAG_LAYOUT_NO_LIMITS`, `cmd 18` devolve a barra e `cmd 16` a remove, com o EvSound ativo
+ou parado. O cmd 35 não altera nada nesse estado.
