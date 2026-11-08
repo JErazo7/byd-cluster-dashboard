@@ -542,6 +542,7 @@ public class MainActivity extends Activity {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
         if (p.getBoolean("cluster_cast", true) && !p.getBoolean("projection", false)) {
             bridge.clusterCast(16);
+            ClusterOverlay.bringToFront();
             Log.i(TAG, "painel: tomado no onResume");
         }
     }
@@ -695,7 +696,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public boolean autostartGet() {
-            return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("autostart", false);
+            return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("autostart", true);
         }
 
         @JavascriptInterface

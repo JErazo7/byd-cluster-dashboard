@@ -18,9 +18,12 @@ public class BootReceiver extends BroadcastReceiver {
         String a = intent.getAction();
         if (!Intent.ACTION_BOOT_COMPLETED.equals(a)
                 && !"android.intent.action.QUICKBOOT_POWERON".equals(a)
+                && !"android.intent.action.HTC_QUICKBOOT_BOOT_COMPLETED".equals(a)
+                && !Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(a)
+                && !Intent.ACTION_USER_UNLOCKED.equals(a)
                 && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)) return;
-        /* o painel é um canal único: subir sozinho roubaria o de outro app */
-        if (!ctx.getSharedPreferences("lab", Context.MODE_PRIVATE).getBoolean("autostart", false)) return;
+        /* a skin sobe junto com o carro por padrão; o usuário pode desligar em Ajustes */
+        if (!ctx.getSharedPreferences("lab", Context.MODE_PRIVATE).getBoolean("autostart", true)) return;
         try {
             Intent i = new Intent(ctx, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

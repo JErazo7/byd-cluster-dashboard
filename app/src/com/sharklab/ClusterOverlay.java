@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -31,6 +33,9 @@ public final class ClusterOverlay {
 
     private static WebView web;
     private static WindowManager wm;
+    private static WindowManager.LayoutParams lastLp;
+    private static Handler ui;
+    private static Runnable watch;
     private static String error = "";
 
     private ClusterOverlay() {
@@ -127,7 +132,9 @@ public final class ClusterOverlay {
             lp.setTitle(WINDOW_TITLE);      /* o título é o que o container procura */
             web.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
 
+            lastLp = lp;
             wm.addView(web, lp);
+            startWatch();
             if (url != null) {
                 /* tamanho real do painel: a skin se escala sozinha para preencher */
                 String u = url.indexOf('#') >= 0 ? url : url + "#";
@@ -145,6 +152,45 @@ public final class ClusterOverlay {
         }
     }
 
+    /**
+     * Sobe a nossa janela para o topo da pilha.
+     *
+     * As overlays do mesmo tipo são empilhadas por ordem de criação: quando o app do EvSound
+     * sobe depois do nosso (no boot, por exemplo) ele fica por cima e o painel mostra a skin
+     * dele. Remover e re-adicionar a MESMA view coloca a nossa em cima sem recarregar a página.
+     */
+    public static synchronized void bringToFront() {
+        if (web == null || wm == null || lastLp == null) return;
+        try {
+            if (web.getParent() != null) wm.removeView(web);
+            wm.addView(web, lastLp);
+            Log.i(TAG, "painel: reempilhado por cima");
+        } catch (Throwable t) {
+            Log.w(TAG, "painel: reempilhar falhou (" + t + ")");
+            try { wm.addView(web, lastLp); } catch (Throwable ignored) {}
+        }
+    }
+
+    /** reempilha de tempo em tempo: o outro app pode subir a qualquer momento */
+    private static void startWatch() {
+        if (ui == null) ui = new Handler(Looper.getMainLooper());
+        if (watch != null) {
+            ui.removeCallbacks(watch);
+        }
+        watch = new Runnable() {
+            public void run() {
+                bringToFront();
+                if (ui != null) ui.postDelayed(this, 20000);
+            }
+        };
+        ui.postDelayed(watch, 20000);
+    }
+
+    private static void stopWatch() {
+        if (ui != null && watch != null) ui.removeCallbacks(watch);
+        watch = null;
+    }
+
     /** executa JS na skin do painel (arranque, recarregar tema) */
     public static synchronized void javaScript(final String js) {
         try {
@@ -158,6 +204,8 @@ public final class ClusterOverlay {
     }
 
     public static synchronized void hide() {
+        stopWatch();
+        lastLp = null;
         try {
             if (web != null && wm != null) wm.removeView(web);
         } catch (Throwable ignored) {
