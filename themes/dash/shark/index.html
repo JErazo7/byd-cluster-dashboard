@@ -410,6 +410,10 @@
     gBottom.setAttribute('opacity', minimal ? 0.25 : 1);
   };
 
+  var __BUILD_TAG = 'v12-fill';   /* carimbo visível para saber qual build está no carro */
+  var tagEl = el('text', { x: W - 10, y: H - 6, 'font-size': 11, fill: '#ff3b30', 'text-anchor': 'end' });
+  tagEl.textContent = __BUILD_TAG;
+
   fitSkin();
   window.addEventListener('resize', fitSkin);
   setTimeout(fitSkin, 300);
