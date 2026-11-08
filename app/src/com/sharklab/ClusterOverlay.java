@@ -2,8 +2,10 @@ package com.sharklab;
 
 import android.content.Context;
 import android.graphics.PixelFormat;
+import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.util.Log;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -14,10 +16,12 @@ import android.webkit.WebViewClient;
 /**
  * ClusterOverlay — a skin no painel do motorista como janela overlay.
  *
- * Lido do carro: a camada que o container da BYD mostra no clúster é uma janela
- * TYPE_APPLICATION_OVERLAY (2038) com título "EvSound painel" (metadata da BufferLayer em
- * SurfaceFlinger). Não é display, não é casteo: é overlay, e por isso exige
- * SYSTEM_ALERT_WINDOW (o app de referência recebe esse appop por adb).
+ * Lido do carro (SurfaceFlinger): a camada que o container da BYD mostra no clúster é uma
+ * janela TYPE_APPLICATION_OVERLAY (2038) com título "EvSound painel", no layerStack do painel
+ * — não é display nem casteo. Por isso exige SYSTEM_ALERT_WINDOW.
+ *
+ * A janela tem de ser criada com o Context do display do painel (createDisplayContext); no
+ * contexto da Activity ela nasce no display 0 e aparece por cima da tela central.
  */
 public final class ClusterOverlay {
 
@@ -40,12 +44,31 @@ public final class ClusterOverlay {
         return error;
     }
 
+    /** display do painel, ou null */
+    public static Display panelDisplay(Context ctx) {
+        try {
+            DisplayManager dm = (DisplayManager) ctx.getSystemService(Context.DISPLAY_SERVICE);
+            for (Display d : dm.getDisplays()) {
+                if (String.valueOf(d.getName()).contains("fission_bg_xdjaVirtualSurface")) return d;
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
     public static synchronized boolean show(Context ctx, String url) {
         hide();
         error = "";
         try {
-            wm = (WindowManager) ctx.getSystemService(Context.WINDOW_SERVICE);
-            web = new WebView(ctx);
+            Display target = panelDisplay(ctx);
+            if (target == null) {
+                error = "display do painel nao encontrado";
+                return false;
+            }
+            Context panelCtx = ctx.createDisplayContext(target);
+            wm = (WindowManager) panelCtx.getSystemService(Context.WINDOW_SERVICE);
+
+            web = new WebView(panelCtx);
             WebSettings s = web.getSettings();
             s.setJavaScriptEnabled(true);
             s.setAllowFileAccess(true);
@@ -85,12 +108,13 @@ public final class ClusterOverlay {
             lp.gravity = Gravity.TOP | Gravity.START;
             lp.x = 0;
             lp.y = 0;
-            /* o título é o que o container procura */
-            lp.setTitle(WINDOW_TITLE);
+            lp.setTitle(WINDOW_TITLE);      /* o título é o que o container procura */
             web.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+
             wm.addView(web, lp);
             if (url != null) web.loadUrl(url);
-            Log.i(TAG, "overlay do painel criado: " + WINDOW_TITLE);
+            Log.i(TAG, "overlay do painel criado no display " + target.getDisplayId()
+                    + " layerStack esperado do painel");
             return true;
         } catch (Throwable t) {
             error = t.getClass().getSimpleName() + ": " + t.getMessage();
@@ -113,5 +137,6 @@ public final class ClusterOverlay {
         } catch (Throwable ignored) {
         }
         web = null;
+        wm = null;
     }
 }

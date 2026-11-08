@@ -169,7 +169,8 @@ public class MainActivity extends Activity {
         setContentView(root);
 
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        web.loadUrl(urlFor(p.getString("skin", "shark"), true, false));
+        /* centro = galeria/ajustes; a skin vive no painel (overlay) */
+        web.loadUrl("file:///android_asset/lab/skins.html");
 
         startGps();
 
@@ -317,7 +318,12 @@ public class MainActivity extends Activity {
                 }
             }
         }, camFilter);
-        if (!p.getBoolean("projection", false) && p.getBoolean("cluster_cast", true)) bridge.clusterCast(16);
+        if (p.getBoolean("overlay", true)) {
+            boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "shark"), true, false));
+            Log.i(TAG, "painel por overlay: " + ok + " " + ClusterOverlay.error());
+        } else if (p.getBoolean("cluster_cast", true)) {
+            bridge.clusterCast(16);
+        }
 
         /* skin no painel do motorista, pela projeção (quando habilitada) */
         if (p.getBoolean("projection", false)) {
@@ -1185,6 +1191,12 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public boolean overlayReload(String id) {
+            SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+            p.edit().putString("skin", id).apply();
+            return ClusterOverlay.show(MainActivity.this, urlFor(id, true, false));
+        }
+
         public void applySkin(final String id) {
             getSharedPreferences("lab", MODE_PRIVATE).edit().putString("skin", id).apply();
             ui.post(new Runnable() {

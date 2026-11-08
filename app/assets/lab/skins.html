@@ -106,7 +106,8 @@
 
   document.getElementById('apply').addEventListener('click', function () {
     if (!picked) return;
-    if (L.applySkin) L.applySkin(picked);
+    if (L.overlayReload) L.overlayReload(picked);
+    else if (L.applySkin) L.applySkin(picked);
     current = picked;
     build();
   });
