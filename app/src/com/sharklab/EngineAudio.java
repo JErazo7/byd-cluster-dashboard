@@ -148,57 +148,101 @@ public final class EngineAudio {
 
     /* ---------- síntese ---------- */
 
+    /**
+     * Modelo físico do escape, no mesmo espírito do EvSound: a onda não é uma soma de
+     * harmônicos (soa a sintetizador), é a sequência de explosões de cada cilindro passando
+     * por um ressonador acompanhado do giro. Cada bloco tem:
+     *   - trem de pulsos por cilindro, com jitter (o ralenti "lope" de um V8);
+     *   - pressão de escape assimétrica saturada (é isso que dá corpo e não "buzina");
+     *   - filtro ressonante de estado variável preso à frequência de explosão;
+     *   - admissão de ruído filtrado, que cresce com o pedal;
+     *   - turbo em senoide aguda com a carga;
+     *   - estouros no corte de pedal.
+     */
     private static void renderLoop() {
-        float[] buf = new float[1920];   /* 960 quadros estéreo */
-        double phase = 0, phase2 = 0, turboPhase = 0;
-        double lp = 0, noise = 0, popEnv = 0;
+        float[] buf = new float[1920];              /* 960 quadros estéreo */
+        double crank = 0, pulse = 0, pulse2 = 0;
+        double svfLow = 0, svfBand = 0, bufDC = 0, hp = 0;
+        double intake = 0, intakeSlow = 0, turboPhase = 0, popEnv = 0;
         int blocks = 0;
-        long seed = 12345;
+        long seed = 97531;
+        final double pulseDecay = Math.exp(-1.0 / (0.011 * SR));
+        final double pulseDecay2 = Math.exp(-1.0 / (0.026 * SR));
 
         while (running) {
-            double fire = Math.max(20, rpm / 60.0 * (cylinders / 2.0));
+            double rev = rpm / 60.0;
+            double fireCyl = rev * cylinders / 2.0;                 /* V8: 4 explosões/volta */
+            double fire = Math.max(8.0, fireCyl);
             double t = Math.min(1, Math.max(0, (rpm - idle) / Math.max(1, limiter - idle)));
-            /* piso de corte: em ralenti a explosão de um V8 é ~40 Hz e o alto-falante do carro
-               não reproduz isso — sem o piso o som existe e não se ouve */
-            double cut = Math.max(420, (cut0 + (cut1 - cut0) * Math.pow(t, 0.75)) * (0.55 + 0.45 * load));
-            double a = 1 - Math.exp(-2 * Math.PI * Math.min(6000, Math.max(60, cut)) / SR);
-            double inc = fire * TABLE / SR;
-            double inc2 = inc * 1.006;
-            double amp = 0.75 + 0.35 * t;
-            double gain = (muted ? 0 : volume) * amp * (0.85 + 0.15 * load);
+            double pedal = Math.min(1, Math.max(0, tps));
+            double loadN = Math.min(1, Math.max(0, load));
+            double gain = (muted ? 0 : volume) * (0.55 + 0.45 * loadN);
+
+            /* ressonador preso à explosão: em ralenti fica grave, acelerando abre */
+            /* ressonância no 3º harmônico da explosão: é a faixa que o alto-falante do carro
+               reproduz (a fundamental de 80 Hz fica no subgrave e não se ouve) */
+            double fc = Math.min(5200, Math.max(90, fire * (3.2 - 1.2 * t)));
+            double f = 2 * Math.sin(Math.PI * fc / SR);
+            if (f > 1.4) f = 1.4;
+            double damp = 0.55;
+            double cutLP = 1 - Math.exp(-2 * Math.PI * Math.min(9000, Math.max(200, fc * 2.5)) / SR);
+            double intakeLP = 1 - Math.exp(-2 * Math.PI * 2600 / SR);
+            double intakeHP = 1 - Math.exp(-2 * Math.PI * 260 / SR);
+            double aHP = 1 - Math.exp(-2 * Math.PI * 110 / SR);   /* tira o subgrave inaudível */
 
             for (int i = 0; i < buf.length / 2; i++) {
-                phase += inc;
-                if (phase >= TABLE) phase -= TABLE;
-                phase2 += inc2;
-                if (phase2 >= TABLE) phase2 -= TABLE;
-                double s = table[(int) phase] * 0.65 + table[(int) phase2] * 0.35;
+                /* --- explosões: uma a cada 1/fire segundos, com jitter de combustão --- */
+                crank += fire / SR;
+                seed = seed * 6364136223846793005L + 1442695040888963407L;
+                double rnd = ((seed >>> 11) & 0xFFFFF) / (double) 0x100000;   /* 0..1 */
+                if (crank >= 1.0) {
+                    crank -= 1.0;
+                    double hit = (0.75 + 0.35 * pedal) * (0.85 + 0.3 * rnd);
+                    pulse += hit;
+                    pulse2 += hit * 0.45;              /* batida secundária, mais grave */
+                }
+                pulse *= pulseDecay;
+                pulse2 *= pulseDecay2;
 
-                /* admissão: ruído filtrado */
-                seed = seed * 1664525 + 1013904223;
-                noise = (seed >> 11) / (double) (1L << 52);
-                s += noise * (0.02 + 0.16 * t) * (0.3 + 0.7 * load);
+                /* pressão de escape assimétrica: o pulso empurra para um lado só */
+                double press = pulse * 2.4 + pulse2 * 1.1 - 0.18;
+                double ex = softClip(press);
+                ex = ex - 0.4 * softClip(press * 0.5);  /* cancela o DC e engrossa */
 
-                /* turbo */
-                if (turboAmt > 0) {
-                    turboPhase += (1800 + 7200 * load) * 2 * Math.PI / SR;
-                    if (turboPhase > 2 * Math.PI) turboPhase -= 2 * Math.PI;
-                    s += Math.sin(turboPhase) * turboAmt * load * 0.05;
+                /* ressonador de estado variável (corpo do escape) */
+                svfLow += f * svfBand;
+                double hpOut = ex - svfLow - damp * svfBand;
+                svfBand += f * hpOut;
+
+                /* admissão: ruído com banda, cresce com o pedal */
+                double n = rnd - 0.5;
+                intake += intakeLP * (n - intake);
+                intakeSlow += intakeHP * (intake - intakeSlow);
+                double intakeBand = intake - intakeSlow;
+
+                double s = svfLow * 0.75 + svfBand * 0.55 + intakeBand * (0.25 + 1.6 * pedal);
+
+                /* turbo: assobio fino que sobe com a carga */
+                if (turboAmt > 0.01 && loadN > 0.05) {
+                    turboPhase += (2200 + 7600 * loadN) / SR;
+                    if (turboPhase >= 1.0) turboPhase -= 1.0;
+                    s += sinp(turboPhase) * turboAmt * loadN * loadN * 0.09;
                 }
 
-                /* estouro ao tirar o pé */
+                /* estouros ao tirar o pé */
                 if (popAt > 0) {
-                    if (System.nanoTime() - popAt < 90_000_000L) popEnv = 0.8;
+                    if (System.nanoTime() - popAt < 120_000_000L) popEnv = 0.9;
                     else { popEnv = 0; popAt = -1; }
                 }
                 if (popEnv > 0.001) {
-                    s += noise * popEnv * popsAmt;
-                    popEnv *= 0.996;
+                    s += (rnd - 0.5) * popEnv * popsAmt * 1.3;
+                    popEnv *= 0.9955;
                 }
 
-                /* passa-baixa de um polo (escape) */
-                lp += a * (s - lp);
-                double out = lp * gain;
+                /* passa-baixa suave + DC block */
+                bufDC += cutLP * (s - bufDC);
+                hp += aHP * (bufDC - hp);
+                double out = softClip((bufDC - hp) * 9.0 * gain * 1.6);
                 if (out > 1) out = 1;
                 if (out < -1) out = -1;
                 buf[i * 2] = (float) out;
@@ -222,5 +266,26 @@ public final class EngineAudio {
                 running = false;
             }
         }
+    }
+
+    /** saturação suave (x/(1+|x|)): o escape real não corta em degrau */
+    private static double softClip(double x) {
+        if (x > 3) return 1 - 1 / (1 + x);
+        if (x < -3) return -1 + 1 / (1 - x);
+        return x / (1 + Math.abs(x));
+    }
+
+    private static final float[] SINE = new float[4097];
+
+    static {
+        for (int i = 0; i <= 4096; i++) SINE[i] = (float) Math.sin(i * 6.283185307179586 / 4096.0);
+    }
+
+    /** seno por tabela com interpolação linear, fase em [0,1) */
+    private static double sinp(double phase) {
+        double x = (phase - Math.floor(phase)) * 4096.0;
+        int i = (int) x;
+        double fr = x - i;
+        return SINE[i] + (SINE[i + 1] - SINE[i]) * fr;
     }
 }
