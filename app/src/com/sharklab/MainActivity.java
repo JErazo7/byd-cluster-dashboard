@@ -173,6 +173,7 @@ public class MainActivity extends Activity {
         web.loadUrl("file:///android_asset/lab/home.html");
 
         startGps();
+        startEngineLoop();
 
         if (getIntent() != null && getIntent().getBooleanExtra("jsontest", false)) {
             new Thread(new Runnable() {
@@ -432,6 +433,34 @@ public class MainActivity extends Activity {
             o.close();
         } catch (Throwable ignored) {
         }
+    }
+
+    /**
+     * Motor sonoro dirigido por Java: lê o pedal direto do carro a 20 Hz e alimenta o
+     * EngineAudio. Não depende de WebView nenhuma — antes o laço vivia no JS da tela central
+     * e, quando aquele feed não subia, o som ficava em ralenti para sempre.
+     */
+    private void startEngineLoop() {
+        final double[] rpmSim = {700};
+        final Runnable[] loop = new Runnable[1];
+        loop[0] = new Runnable() {
+            public void run() {
+                try {
+                    double[] b = byd.snapshot();
+                    double tps = byd.pedalPercent() / 100.0;
+                    if (tps < 0) tps = 0;
+                    if (tps > 1) tps = 1;
+                    double idle = 620, lim = 7000;
+                    double target = tps > 0.02 ? idle + tps * (lim - idle) : idle;
+                    rpmSim[0] += (target - rpmSim[0]) * 0.45;
+                    double load = Math.min(1, Math.max(tps, b[2] > -998 ? Math.abs(b[2]) / 160 : 0));
+                    EngineAudio.set(rpmSim[0], tps, load);
+                } catch (Throwable ignored) {
+                }
+                ui.postDelayed(this, 50);
+            }
+        };
+        ui.post(loop[0]);
     }
 
     /** velocidade do GPS (API pública): fonte real que não depende de permissão da BYD */
@@ -856,6 +885,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void engineMute(boolean m) {
             EngineAudio.setMuted(m);
+        }
+
+        @JavascriptInterface
+        public boolean engineNative() {
+            return true;
         }
 
         @JavascriptInterface

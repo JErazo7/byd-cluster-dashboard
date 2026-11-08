@@ -47,7 +47,9 @@ public final class BydBridge {
             {P + "statistic.BYDAutoStatisticDevice", "getElecDrivingRangeValue"}
     };
     private static final String[][] PEDAL = {
-            {P + "speed.BYDAutoSpeedDevice", "getAccelerateDeepness"},
+            {P + "speed.BYDAutoSpeedDevice", "getAccelerateDeepness"}
+    };
+    private static final String[][] PEDAL_FUEL = {
             {P + "speed.BYDAutoSpeedDevice", "getFuelAccelerateDeepness"}
     };
     private static final String[][] BRAKE = {
@@ -214,6 +216,22 @@ public final class BydBridge {
     }
 
     /* ---------- leitura ---------- */
+
+    /**
+     * Pedal em %: o Shark reporta o elétrico (getAccelerateDeepness) e o térmico
+     * (getFuelAccelerateDeepness) em escalas diferentes; em P um deles fica em 0.
+     * Vale o maior dos dois, normalizado quando vem acima de 100.
+     */
+    public double pedalPercent() {
+        double a = first(PEDAL);
+        double b = first(PEDAL_FUEL);
+        if (a <= NONE && b <= NONE) return 0;
+        double v = Math.max(a <= NONE ? 0 : a, b <= NONE ? 0 : b);
+        if (v > 100) v = v * 100.0 / 255.0;      /* escala 0..255 em algumas versões */
+        if (v < 0) v = 0;
+        if (v > 100) v = 100;
+        return v;
+    }
 
     /** snapshot cru; -999 = sem leitura */
     public double[] snapshot() {

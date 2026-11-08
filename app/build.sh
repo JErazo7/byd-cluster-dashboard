@@ -42,7 +42,7 @@ PKG_FLAG=""
 if [ -n "${PKG:-}" ]; then PKG_FLAG="--rename-manifest-package $PKG"; fi
 
 "$BT/aapt2" link -o build/base.apk --manifest AndroidManifest.xml -I "$JAR" -A build/assets $RES --auto-add-overlay $PKG_FLAG \
-  --min-sdk-version 26 --target-sdk-version 26 --version-code 1 --version-name 0.1
+  --min-sdk-version 26 --target-sdk-version 26 --version-code $(date +%Y%m%d%H%M | cut -c3-11) --version-name "$(date +%Y.%m.%d-%H%M)"
 
 echo "2/5 javac"
 javac -nowarn --release 8 -cp "$JAR" -d build/classes $(find src -name '*.java')
@@ -71,5 +71,5 @@ mkdir -p out
   --out "${OUT:-out/sharklab.apk}" build/app-aligned.apk
 "$BT/apksigner" verify "${OUT:-out/sharklab.apk}" >/dev/null
 
-"$BT/aapt2" dump badging "${OUT:-out/sharklab.apk}" | head -2
+"$BT/aapt2" dump badging "${OUT:-out/sharklab.apk}" 2>/dev/null | head -2 || true
 echo "APK: ${OUT:-out/sharklab.apk}"

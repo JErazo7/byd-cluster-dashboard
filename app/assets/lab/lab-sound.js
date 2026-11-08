@@ -71,7 +71,8 @@
     rpmSim += (target - rpmSim) * 0.45;
     if (rpmSim < idle * 0.9) rpmSim = idle * 0.9;
     var load = Math.min(1, Math.max(tps, Math.abs(ev.pw || 0) / 160));
-    if (started) window.Lab.engineSet(rpmSim, tps, load);
+    /* o alvo (rpm/pedal) é calculado no Java; aqui só se a ponte nativa não existir */
+    if (started && !window.Lab.engineNative) window.Lab.engineSet(rpmSim, tps, load);
   }, 50);
 
   window.EngineApp = {
