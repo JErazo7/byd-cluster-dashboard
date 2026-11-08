@@ -2,11 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Muscle Digital</title>
 <style>
-  html, body { margin: 0; height: 480px; overflow: hidden; background: #05070a; }
-  html.panel, html.panel body { background: #05070a; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #05070a; }
   svg { display: block; font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; }
   text { fill: #e8eef5; }
   .dim { fill: #7d8b99; }
@@ -18,59 +17,26 @@
 </style>
 </head>
 <body>
-<svg id="s" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg id="s" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1920 720" preserveAspectRatio="xMidYMid meet"></svg>
 <script>
 /*
- * Muscle Digital (SharkLab) — inspirado nos painéis digitais de muscle car: dois mostradores
- * grandes com arco em degradê, velocidade digital no meio, marcha e shift lights.
- * Código próprio, pensado para 1280×480 (a mesma proporção do painel 1920×720).
+ * Muscle Digital (SharkLab) — desenhado NATIVAMENTE em 1920×720, o tamanho exacto do painel.
+ * Sem escala, sem meta viewport: o que aparece aqui é pixel a pixel o quadro do clúster.
+ * Inspirado nos painéis digitais de muscle car (dois arcos em degradê, velocidade grande,
+ * marcha, shift lights), com código próprio.
  */
 (function () {
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
-  var W = 1280, H = 480;
+  var W = 1920, H = 720;
   var svg = document.getElementById('s');
-  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
-  svg.setAttribute('width', W);
-  svg.setAttribute('height', H);
-  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-  /* a skin desenha em 1280×480 e é escalada por CSS para o viewport real do painel */
-  function fitSkin() {
-    var k = Math.min((window.innerWidth || W) / W, (window.innerHeight || H) / H);
-    if (!(k > 0)) k = 1;
-    document.body.style.position = 'absolute';
-    document.body.style.left = '50%';
-    document.body.style.top = '50%';
-    document.body.style.width = W + 'px';
-    document.body.style.height = H + 'px';
-    document.body.style.transformOrigin = '50% 50%';
-    document.body.style.transform = 'translate(-50%, -50%) scale(' + k.toFixed(4) + ')';
-  }
-  /* tamanho real do painel em pixels vem no hash (#pw/#ph): com isso a skin preenche
-     exatamente o quadro, independente do devicePixelRatio do WebView */
-  var PANEL_PW = (/[#&]pw=(\d+)/.exec(location.hash) || [])[1] || 0;
-  function fitPanel() {
-    if (!PANEL_PW) { fitSkin(); return; }
-    var dpr = window.devicePixelRatio || 1;
-    var k = Math.min((+PANEL_PW) / dpr / W, ((/[#&]ph=(\d+)/.exec(location.hash) || [])[1] || H) / dpr / H);
-    if (!(k > 0)) k = 1;
-    document.body.style.position = 'absolute';
-    document.body.style.left = '50%';
-    document.body.style.top = '50%';
-    document.body.style.width = W + 'px';
-    document.body.style.height = H + 'px';
-    document.body.style.transformOrigin = '50% 50%';
-    document.body.style.transform = 'translate(-50%, -50%) scale(' + k.toFixed(4) + ')';
-  }
-  fitPanel();
-  window.addEventListener('resize', fitPanel);
 
   var LANG = (/[#&]lang=(pt|es|en)/.exec(location.hash) || [])[1] || 'es';
-  var T = {
+  var T = ({
     es: { power: 'POTENCIA', speed: 'km/h', bat: 'BATERÍA', km: 'km', odo: 'TOTAL', trip: 'VIAJE', ready: 'LISTO' },
     pt: { power: 'POTÊNCIA', speed: 'km/h', bat: 'BATERIA', km: 'km', odo: 'TOTAL', trip: 'VIAGEM', ready: 'PRONTO' },
     en: { power: 'POWER', speed: 'mph', bat: 'BATTERY', km: 'mi', odo: 'ODO', trip: 'TRIP', ready: 'READY' }
-  }[LANG] || {};
+  })[LANG] || {};
 
   function el(tag, attrs, parent) {
     var n = document.createElementNS(NS, tag), k;
@@ -78,8 +44,8 @@
     (parent || svg).appendChild(n);
     return n;
   }
-  function txt(x, y, s, size, cls, anchor, parent) {
-    var t = el('text', { x: x, y: y, 'font-size': size, 'text-anchor': anchor || 'middle', class: cls || '' }, parent);
+  function txt(x, y, s, size, cls, anchor) {
+    var t = el('text', { x: x, y: y, 'font-size': size, 'text-anchor': anchor || 'middle', class: cls || '' });
     t.textContent = s;
     return t;
   }
@@ -94,7 +60,6 @@
     return 'M' + p0[0] + ' ' + p0[1] + 'A' + r + ' ' + r + ' 0 ' + big + ' 1 ' + p1[0] + ' ' + p1[1];
   }
 
-  /* degradê dos arcos */
   var defs = el('defs');
   function grad(id, c1, c2) {
     var g = el('linearGradient', { id: id, x1: '0', y1: '1', x2: '1', y2: '0' }, defs);
@@ -105,81 +70,85 @@
   var gSpeed = grad('gSpeed', '#1b6fa8', '#38cfff');
   var gRpm = grad('gRpm', '#a8381b', '#ff7a3a');
 
+  /* fundo contínuo: garante que não aparece nada da BYD por trás */
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: '#05070a' });
+
   var A0 = 150, SWEEP = 240;
-  var CY = 250;
+  var CY = 375, R = 215;          /* raio dos aros */
+  var SPX = 360, RPX = W - 360;   /* centros */
 
-  /* --- velocímetro (esquerda) --- */
-  var spCx = 250, spR = 150;
-  el('path', { d: arc(spCx, CY, spR, A0, A0 + SWEEP), fill: 'none', stroke: '#111a24', 'stroke-width': 18, 'stroke-linecap': 'round' });
-  var spFill = el('path', { d: '', fill: 'none', stroke: gSpeed, 'stroke-width': 18, 'stroke-linecap': 'round' });
-  var spNum = txt(spCx, CY + 18, '0', 96, 'num');
+  /* velocímetro (esquerda) */
+  el('path', { d: arc(SPX, CY, R, A0, A0 + SWEEP), fill: 'none', stroke: '#111a24', 'stroke-width': 26, 'stroke-linecap': 'round' });
+  var spFill = el('path', { d: '', fill: 'none', stroke: gSpeed, 'stroke-width': 26, 'stroke-linecap': 'round' });
+  var spNum = txt(SPX, CY + 26, '0', 140, 'num');
   spNum.setAttribute('font-weight', 500);
-  var spUnit = txt(spCx, CY + 58, T.speed, 20, 'dim');
-  var gearTxt = txt(spCx, CY + 104, 'P', 30, 'accent');
+  var spUnit = txt(SPX, CY + 82, T.speed, 28, 'dim');
+  var gearTxt = txt(SPX, CY + 150, 'P', 44, 'accent');
 
-  /* --- conta-giros / potência (direita) --- */
-  var rpCx = W - 250;
-  el('path', { d: arc(rpCx, CY, spR, A0, A0 + SWEEP), fill: 'none', stroke: '#111a24', 'stroke-width': 18, 'stroke-linecap': 'round' });
-  var rpFill = el('path', { d: '', fill: 'none', stroke: gRpm, 'stroke-width': 18, 'stroke-linecap': 'round' });
-  var rpNum = txt(rpCx, CY + 18, '0', 76, 'num');
-  var rpUnit = txt(rpCx, CY + 56, T.power, 18, 'dim');
-  var batTxt = txt(rpCx, CY + 100, '', 20, 'dim');
+  /* potência (direita) */
+  el('path', { d: arc(RPX, CY, R, A0, A0 + SWEEP), fill: 'none', stroke: '#111a24', 'stroke-width': 26, 'stroke-linecap': 'round' });
+  var rpFill = el('path', { d: '', fill: 'none', stroke: gRpm, 'stroke-width': 26, 'stroke-linecap': 'round' });
+  var rpNum = txt(RPX, CY + 26, '0', 112, 'num');
+  var rpUnit = txt(RPX, CY + 80, T.power, 26, 'dim');
+  var batTxt = txt(RPX, CY + 146, '', 28, 'dim');
 
-  /* --- centro --- */
-  var modeTxt = txt(W / 2, 74, '', 20, 'accent');
-  var readyTxt = txt(W / 2, 412, T.ready, 16, 'good');
-  readyTxt.setAttribute('letter-spacing', '3');
+  /* centro */
+  var modeTxt = txt(W / 2, 108, '', 28, 'accent');
+  var readyTxt = txt(W / 2, 618, T.ready, 22, 'good');
+  readyTxt.setAttribute('letter-spacing', '4');
 
-  /* seletor PRND */
   var SEL = ['P', 'R', 'N', 'D'], selEls = [];
-  for (var i = 0; i < 4; i++) selEls.push(txt(W / 2 - 54 + i * 36, 372, SEL[i], 24, 'dim'));
+  for (var i = 0; i < 4; i++) selEls.push(txt(W / 2 - 81 + i * 54, 558, SEL[i], 36, 'dim'));
 
   /* shift lights */
   var shift = [];
   for (var k = 0; k < 8; k++) {
-    shift.push(el('rect', { x: W / 2 - 92 + k * 24, y: 96, width: 16, height: 6, rx: 3, fill: '#16212c' }));
+    shift.push(el('rect', { x: W / 2 - 138 + k * 36, y: 144, width: 24, height: 9, rx: 4, fill: '#16212c' }));
   }
 
-  /* rodapé */
-  var odoTxt = txt(28, H - 18, '', 18, 'dim', 'start');
-  var tripTxt = txt(W - 28, H - 18, '', 18, 'dim', 'end');
-  var clockTxt = txt(W / 2, H - 18, '', 18, 'dim');
+  /* pedal */
+  el('rect', { x: W / 2 - 210, y: 648, width: 420, height: 8, rx: 4, fill: '#16212c' });
+  var pedalFill = el('rect', { x: W / 2 - 210, y: 648, width: 0, height: 8, rx: 4, fill: '#38cfff' });
+  var pedalTxt = txt(W / 2, 638, '', 18, 'dim');
 
-  /* aviso BYD (faixa reservada no alto do meio) */
-  var safeBg = el('rect', { x: 427, y: 0, width: 426, height: 54, rx: 10, fill: '#05070a', opacity: 0.9 });
+  /* rodapé */
+  var odoTxt = txt(42, H - 26, '', 26, 'dim', 'start');
+  var tripTxt = txt(W - 42, H - 26, '', 26, 'dim', 'end');
+  var clockTxt = txt(W / 2, H - 26, '', 26, 'dim');
+
+  /* faixa reservada às luzes da BYD (x 640–1280, y 0–81 em 1920×720) */
+  el('rect', { x: 640, y: 0, width: 640, height: 81, rx: 14, fill: '#05070a' });
 
   function fmt(v) { return (v === null || v === undefined || v === -999) ? '--' : String(Math.round(v)); }
 
-  var ev = null, igniteAt = 0;
+  var igniteAt = 0;
 
   function draw(d) {
-    ev = d;
     var speed = Math.max(0, d.speed || 0);
-    var maxSpd = 220;
     spNum.textContent = String(Math.round(speed));
-    spFill.setAttribute('d', arc(spCx, CY, spR, A0, A0 + SWEEP * Math.min(1, speed / maxSpd)));
+    spFill.setAttribute('d', arc(SPX, CY, R, A0, A0 + SWEEP * Math.min(1, speed / 220)));
 
     var kw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
     rpNum.textContent = String(Math.abs(Math.round(kw)));
-    rpUnit.textContent = T.power;
+    rpUnit.textContent = (kw < -1 ? 'REGEN ' + T.power : T.power);
     var frac = Math.min(1, Math.abs(kw) / 200);
-    rpFill.setAttribute('d', arc(rpCx, CY, spR, A0, A0 + SWEEP * frac));
+    rpFill.setAttribute('d', arc(RPX, CY, R, A0, A0 + SWEEP * frac));
     rpFill.setAttribute('stroke', kw < -1 ? '#37e07a' : gRpm);
 
     gearTxt.textContent = d.sel || 'P';
-    for (var j = 0; j < 4; j++) {
-      selEls[j].setAttribute('class', d.sel === SEL[j] ? 'accent' : 'dim');
-    }
+    for (var j = 0; j < 4; j++) selEls[j].setAttribute('class', d.sel === SEL[j] ? 'accent' : 'dim');
     modeTxt.textContent = d.drive || '';
-    readyTxt.setAttribute('opacity', d.on === false ? 0.2 : 1);
+    readyTxt.setAttribute('opacity', d.on === false ? 0.25 : 1);
+    batTxt.textContent = d.soc >= 0 ? (Math.round(d.soc) + '%   ' + (d.range > -999 ? Math.round(d.range) + ' km' : '')) : '';
 
-    batTxt.textContent = d.soc >= 0 ? (Math.round(d.soc) + '%  ' + (d.range > -999 ? Math.round(d.range) + ' km' : '')) : '';
-
-    /* shift lights pela potência/giro */
     var lit = Math.round(frac * shift.length);
     for (var s2 = 0; s2 < shift.length; s2++) {
       shift[s2].setAttribute('fill', s2 < lit ? (s2 > 5 ? '#ff4b3e' : s2 > 3 ? '#ffb020' : '#38cfff') : '#16212c');
     }
+
+    var tps = Math.max(0, Math.min(100, d.tps || 0));
+    pedalFill.setAttribute('width', (420 * tps / 100).toFixed(0));
+    pedalTxt.textContent = tps > 0 ? Math.round(tps) + '%' : '';
 
     odoTxt.textContent = d.odo === -999 ? '' : T.odo + ' ' + fmt(d.odo) + ' km';
     var tkm = d.trip && typeof d.trip.km === 'number' ? d.trip.km : null;
@@ -188,24 +157,21 @@
     var now = new Date();
     clockTxt.textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
 
-    /* arranque: os arcos varrem até o fim e voltam */
     if (igniteAt) {
       var t = (Date.now() - igniteAt) / 900;
-      if (t >= 1) { igniteAt = 0; }
+      if (t >= 1) igniteAt = 0;
       else {
         var k2 = Math.sin(Math.min(1, t) * Math.PI);
-        spFill.setAttribute('d', arc(spCx, CY, spR, A0, A0 + SWEEP * k2));
-        rpFill.setAttribute('d', arc(rpCx, CY, spR, A0, A0 + SWEEP * k2));
+        spFill.setAttribute('d', arc(SPX, CY, R, A0, A0 + SWEEP * k2));
+        rpFill.setAttribute('d', arc(RPX, CY, R, A0, A0 + SWEEP * k2));
       }
     }
   }
 
   window.BrasaDriveUpdate = function (d) { if (d) draw(d); };
-
-  /* chamado pela app no ENCENDER */
   window.EvsIgnition = function () { igniteAt = Date.now(); };
 
-  draw({ speed: 0, pw: 0, soc: -1, range: -999, odo: -999, sel: 'P', on: false, drive: '' });
+  draw({ speed: 0, pw: 0, soc: -1, range: -999, odo: -999, sel: 'P', on: false, drive: '', tps: 0 });
 })();
 </script>
 </body>

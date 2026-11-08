@@ -78,9 +78,12 @@ public final class ClusterOverlay {
             s.setMediaPlaybackRequiresUserGesture(false);
             s.setCacheMode(WebSettings.LOAD_NO_CACHE);
             /* 1280 CSS × 1.5 = 1920 px: preenche o painel sem depender do dpr */
+            /* sem zoom artificial: o viewport fica em device-width (960 CSS com dpr 2) e o
+               SVG da skin (viewBox 1920×720) escala sozinho para o quadro inteiro */
             s.setUseWideViewPort(false);
             s.setLoadWithOverviewMode(false);
-            web.setInitialScale(Math.round(100f * W / 1280f));
+            s.setSupportZoom(false);
+            s.setBuiltInZoomControls(false);
             web.setBackgroundColor(0xFF0A1017);
             web.addJavascriptInterface(new ClusterSkinActivity.PanelBridge(ctx), "Lab");
             web.setWebViewClient(new WebViewClient() {
