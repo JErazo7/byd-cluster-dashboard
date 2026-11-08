@@ -42,18 +42,13 @@
   <h1>SharkLab</h1>
   <button class="start" id="start">ENCENDER<span class="sub" id="startSub">tocar para arrancar</span></button>
   <div style="text-align:center;color:#7f8c9b;font-size:13px;margin:-10px 0 18px">
-    pedal <b id="ped" style="color:#38cfff">0%</b> · sonido <b id="snd" style="color:#37e07a">—</b>
+    pedal <b id="ped" style="color:#38cfff">0%</b>
   </div>
   <div class="cards">
     <div class="card">
       <small>Tema actual</small>
       <b id="themeName">—</b>
       <button id="themeBtn">ELEGIR TEMA</button>
-    </div>
-    <div class="card">
-      <small>Sonido del vehículo</small>
-      <b id="engineName">—</b>
-      <button id="engineBtn">CAMBIAR SONIDO</button>
     </div>
   </div>
 </div>
@@ -62,10 +57,6 @@
 <div class="panel-sel" id="themePanel">
   <h2>Elegí tu tema</h2>
   <div class="grid" id="themeGrid"></div>
-</div>
-<div class="panel-sel" id="enginePanel">
-  <h2>Sonido del vehículo</h2>
-  <div class="grid" id="engineGrid"></div>
 </div>
 
 <script>
@@ -83,8 +74,6 @@
   }
   function refresh() {
     $('themeName').textContent = themeName();
-    var e = window.EngineApp;
-    $('engineName').textContent = e ? (e.list()[e.index()] || {}).name || '—' : '—';
     $('start').classList.toggle('on', started);
     $('startSub').textContent = started ? 'encendido · tocá para apagar' : 'tocar para arrancar';
     $('start').firstChild.textContent = started ? 'APAGAR' : 'ENCENDER';
@@ -93,15 +82,7 @@
   /* --- encender --- */
   $('start').addEventListener('click', function () {
     started = !started;
-    if (started) {
-      if (L.ignite) L.ignite();            /* painel: varredura de arranque */
-      if (window.EngineApp) {
-        window.EngineApp.start();
-        window.EngineApp.mute(false);
-      }
-    } else {
-      if (window.EngineApp) window.EngineApp.mute(true);
-    }
+    if (started && L.ignite) L.ignite();   /* painel: varredura de arranque */
     refresh();
   });
 
@@ -136,37 +117,6 @@
     if (e.target === this) this.classList.remove('show');
   });
 
-  /* --- motores --- */
-  function openEngines() {
-    var grid = $('engineGrid');
-    grid.innerHTML = '';
-    var e = window.EngineApp;
-    if (!e) { grid.textContent = 'motor no disponible'; }
-    else {
-      e.list().forEach(function (en, i) {
-        var d = document.createElement('div');
-        d.className = 'item';
-        d.setAttribute('aria-current', e.index() === i ? 'true' : 'false');
-        var s = document.createElement('span');
-        s.textContent = en.name;
-        d.appendChild(s);
-        d.style.padding = '16px';
-        d.addEventListener('click', function () {
-          e.start();
-          e.select(i);
-          $('enginePanel').classList.remove('show');
-          setTimeout(refresh, 200);
-        });
-        grid.appendChild(d);
-      });
-    }
-    $('enginePanel').classList.add('show');
-  }
-  $('engineBtn').addEventListener('click', openEngines);
-  $('enginePanel').addEventListener('click', function (e) {
-    if (e.target === this) this.classList.remove('show');
-  });
-
   /* --- avanzado (menú oculto) --- */
   $('gear').addEventListener('click', function () {
     if (L.openAdvanced) L.openAdvanced();
@@ -178,8 +128,6 @@
   setInterval(function () {
     var ev = window.__labEv;
     document.getElementById('ped').textContent = (ev ? Math.round(ev.tps || 0) : 0) + '%';
-    var e = window.EngineApp;
-    document.getElementById('snd').textContent = e ? (e.muted() ? 'mudo' : e.state()) : 'sin motor';
   }, 300);
 })();
 </script>

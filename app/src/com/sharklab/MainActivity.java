@@ -43,13 +43,11 @@ public class MainActivity extends Activity {
 
     /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
     static final String[] INJECT = {
-            "engine/profiles.js", "engine/synth.js", "engine/model.js",
-            "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-sound.js", "lab/lab-ui.js"
+            "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-ui.js"
     };
 
-    /** o painel não toca som (evita áudio duplicado): ele só desenha */
+    /** o painel só desenha: não injeta a interface de controle da central */
     static final String[] INJECT_PANEL = {
-            "engine/profiles.js", "engine/synth.js", "engine/model.js",
             "lab/lab-feed.js"
     };
     private WebView web;
@@ -173,8 +171,6 @@ public class MainActivity extends Activity {
         web.loadUrl("file:///android_asset/lab/home.html");
 
         startGps();
-        EngineAudio.init(this);
-        startEngineLoop();
         startCastWatch();
 
         if (getIntent() != null && getIntent().getBooleanExtra("jsontest", false)) {
@@ -369,12 +365,7 @@ public class MainActivity extends Activity {
 
     /** lê cada script do APK e joga na página, na ordem */
     private void inject() {
-        evalAsset("engine/profiles.js");
-        /* sons editáveis sem recompilar: <armazenamento>/sound/profiles.js sobrepõe a lista */
-        File custom = new File(getExternalFilesDir(null), "sound/profiles.js");
-        if (custom.isFile()) evalFile(custom);
         for (String rel : INJECT) {
-            if ("engine/profiles.js".equals(rel)) continue;
             try {
                 InputStream in = getAssets().open(rel);
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -387,31 +378,6 @@ public class MainActivity extends Activity {
                 Log.w(TAG, "não injetou " + rel, e);
             }
         }
-    }
-
-    private void evalAsset(String rel) {
-        try {
-            evalStream(getAssets().open(rel), rel);
-        } catch (IOException e) {
-            Log.w(TAG, "não injetou " + rel, e);
-        }
-    }
-
-    private void evalFile(File f) {
-        try {
-            evalStream(new java.io.FileInputStream(f), f.getAbsolutePath());
-        } catch (IOException e) {
-            Log.w(TAG, "não injetou " + f, e);
-        }
-    }
-
-    private void evalStream(InputStream in, String name) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        byte[] buf = new byte[8192];
-        int n;
-        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-        in.close();
-        web.evaluateJavascript(out.toString("UTF-8"), null);
     }
 
     private String readCmdFile() {
@@ -462,34 +428,6 @@ public class MainActivity extends Activity {
                 ui.postDelayed(this, 5000);
             }
         });
-    }
-
-    /**
-     * Motor sonoro dirigido por Java: lê o pedal direto do carro a 20 Hz e alimenta o
-     * EngineAudio. Não depende de WebView nenhuma — antes o laço vivia no JS da tela central
-     * e, quando aquele feed não subia, o som ficava em ralenti para sempre.
-     */
-    private void startEngineLoop() {
-        final double[] rpmSim = {700};
-        final Runnable[] loop = new Runnable[1];
-        loop[0] = new Runnable() {
-            public void run() {
-                try {
-                    double[] b = byd.snapshot();
-                    double tps = byd.pedalPercent() / 100.0;
-                    if (tps < 0) tps = 0;
-                    if (tps > 1) tps = 1;
-                    double idle = 620, lim = 7000;
-                    double target = tps > 0.02 ? idle + tps * (lim - idle) : idle;
-                    rpmSim[0] += (target - rpmSim[0]) * 0.45;
-                    double load = Math.min(1, Math.max(tps, b[2] > -998 ? Math.abs(b[2]) / 160 : 0));
-                    EngineAudio.set(rpmSim[0], tps, load);
-                } catch (Throwable ignored) {
-                }
-                ui.postDelayed(this, 50);
-            }
-        };
-        ui.post(loop[0]);
     }
 
     /** velocidade do GPS (API pública): fonte real que não depende de permissão da BYD */
@@ -891,48 +829,6 @@ public class MainActivity extends Activity {
                     + ",\"error\":\"" + ClusterProjection.error().replace("\"", "'") + "\"}";
         }
 
-        /* ---------- som do motor em canal próprio (EngineAudio) ---------- */
-
-        @JavascriptInterface
-        public void engineConfig(String json) {
-            EngineAudio.configure(json);
-        }
-
-        @JavascriptInterface
-        public void engineStart() {
-            EngineAudio.start();
-        }
-
-        @JavascriptInterface
-        public void engineSet(double rpm, double tps, double load) {
-            EngineAudio.set(rpm, tps, load);
-        }
-
-        @JavascriptInterface
-        public void engineVolume(double v) {
-            EngineAudio.setVolume((float) v);
-        }
-
-        @JavascriptInterface
-        public void engineMute(boolean m) {
-            EngineAudio.setMuted(m);
-        }
-
-        @JavascriptInterface
-        public boolean engineNative() {
-            return true;
-        }
-
-        @JavascriptInterface
-        public boolean engineRunning() {
-            return EngineAudio.running();
-        }
-
-        @JavascriptInterface
-        public void engineStop() {
-            EngineAudio.stop();
-        }
-
         /** controles da música: prev | play | next */
         @JavascriptInterface
         public void media(String cmd) {
@@ -1278,9 +1174,7 @@ public class MainActivity extends Activity {
             /* a janela só pode ser criada na thread de UI */
             ui.post(new Runnable() {
                 public void run() {
-                    if (ClusterOverlay.show(MainActivity.this, urlFor(id, true, false))) {
-                        bridge.clusterCast(16);
-                    }
+                    ClusterOverlay.show(MainActivity.this, urlFor(id, true, false));
                 }
             });
             return true;

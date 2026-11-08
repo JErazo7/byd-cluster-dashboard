@@ -1,13 +1,12 @@
 /*
- * lab-ui — control embebido en la skin: motor, panel, volumen y ajustes.
+ * lab-ui — control embebido en la skin: panel, cámara, volante y ajustes.
  *
- * Se inyecta después de lab-sound.js. Un botón discreto en la esquina abre la tarjeta;
- * todo lo que cambia se guarda (EngineApp guarda el motor, el Lab guarda la skin).
+ * Un botón discreto en la esquina abre la tarjeta; todo lo que cambia se guarda en el Lab.
  */
 (function () {
   'use strict';
   if (window.Lab && window.Lab.log) window.Lab.log('inj: lab-ui: injetado');
-  if (window.__labUi || !window.EngineApp) return;
+  if (window.__labUi) return;
   window.__labUi = true;
 
   var open = false, root = null, btn = null;
@@ -135,22 +134,6 @@
       }
     }
 
-    /* proyección al panel */
-    if (window.Lab && window.Lab.clusterCast) {
-      section('Proyección (avanzado)');
-      root.appendChild(el('div', { style: 'font-size:11px;color:#7f8c9b;margin:0 0 6px;line-height:1.35' },
-        'si el botón falla, por adb:\nservice call AutoContainer 2 i32 1000 i32 16 s16 ""'));
-      [['ESPEJAR EN EL PANEL (COMPLETO)', 16], ['MITAD', 17], ['VOLVER AL PANEL BYD', 18]].forEach(function (r) {
-        var b = el('button', { class: 'it' }, r[0]);
-        b.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var res = window.Lab.clusterCast(r[1]);
-          root.appendChild(el('div', { style: 'font-size:11px;color:#9fb0c2;margin:2px 0 6px' }, res));
-        });
-        root.appendChild(b);
-      });
-    }
-
     /* diagnóstico */
     if (window.Lab && window.Lab.probe) {
       var diag = el('button', { class: 'it', style: 'margin-top:6px' }, 'DIAGNÓSTICO DEL COCHE');
@@ -168,12 +151,6 @@
       root.appendChild(pre);
     }
 
-    /* motor */
-    section('Motor');
-    window.EngineApp.list().forEach(function (e, i) {
-      item(e.name, window.EngineApp.index() === i, function () { window.EngineApp.select(i); });
-    });
-
     /* paneles */
     var skins = [];
     try { skins = JSON.parse(window.Lab && window.Lab.skins ? window.Lab.skins() : '[]'); } catch (e) {}
@@ -184,21 +161,6 @@
         item(id, id === cur, function () { window.Lab.setSkin(id); });
       });
     }
-
-    /* sonido */
-    section('Sonido');
-    var row = el('div', { class: 'row' });
-    var mute = el('button', { class: 'it', 'aria-pressed': window.EngineApp.muted() ? 'true' : 'false' },
-      window.EngineApp.muted() ? 'MUDO' : 'SONIDO');
-    mute.style.width = '96px';
-    mute.style.margin = '0';
-    var vol = el('input', { type: 'range', min: '0', max: '150', value: '70' });
-    vol.value = String(Math.round((window.EngineApp.volume ? window.EngineApp.volume() : 0.7) * 100));
-    vol.addEventListener('input', function () { window.EngineApp.setVolume(this.value / 100); });
-    mute.addEventListener('click', function () { window.EngineApp.mute(!window.EngineApp.muted()); refresh(); });
-    row.appendChild(vol);
-    row.appendChild(mute);
-    root.appendChild(row);
 
     /* diario */
     if (window.EvLog) {
@@ -220,7 +182,7 @@
     }
 
     root.appendChild(el('div', { style: 'margin-top:10px;font-size:11px;color:#5f7183' },
-      'engine/profiles.js — editá y reabrí la app'));
+      'paneles en /sdcard/Android/data/<paquete>/files/dash — editá y reabrí la app'));
     root.hidden = true;
     document.body.appendChild(root);
 
@@ -250,12 +212,7 @@
       if (w.count > lastCount) {
         lastCount = w.count;
         var k = w.key;
-        if (k === 87) window.EngineApp.select((window.EngineApp.index() + 1) % window.EngineApp.list().length);
-        else if (k === 88) window.EngineApp.select((window.EngineApp.index() + window.EngineApp.list().length - 1) % window.EngineApp.list().length);
-        else if (k === 85) window.EngineApp.mute(!window.EngineApp.muted());
-        else if (k === 24) window.EngineApp.setVolume(Math.min(1.5, window.EngineApp.volume() + 0.1));
-        else if (k === 25) window.EngineApp.setVolume(Math.max(0, window.EngineApp.volume() - 0.1));
-        else if ((k === 21 || k === 22) && window.Lab.skins) {
+        if ((k === 21 || k === 22) && window.Lab.skins) {
           try { skinsCache = JSON.parse(window.Lab.skins()); } catch (e2) {}
           if (skinsCache.length > 1) {
             var cur = (/\/dash\/([a-z0-9_]+)\//.exec(location.pathname) || [])[1];

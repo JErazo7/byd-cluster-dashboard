@@ -41,16 +41,8 @@
 <h2>Panel</h2>
 <div class="grid" id="skins"></div>
 
-<h2>Sonido del motor</h2>
-<div class="grid" id="engines"></div>
-<div class="row"><input id="vol" type="range" min="0" max="150" value="70"><span class="hint" id="volV">70%</span></div>
-<div class="row"><button id="mute" style="width:auto">SOM / MUDO</button></div>
-
 <pre id="log" hidden></pre>
 
-<script src="../engine/profiles.js"></script>
-<script src="../engine/synth.js"></script>
-<script src="../engine/model.js"></script>
 <script>
 (function () {
   'use strict';
@@ -103,36 +95,6 @@
       box.appendChild(b);
     });
   })();
-
-  /* ---------- motores e volume ---------- */
-  var E = window.EngineApp || null;
-  (function () {
-    var box = $('engines');
-    var list = E ? E.list() : (window.ENGINES || []).map(function (e) { return { id: e.id, name: e.name }; });
-    list.forEach(function (e, i) {
-      var b = document.createElement('button');
-      b.textContent = e.name;
-      b.setAttribute('aria-pressed', E && E.index() === i ? 'true' : 'false');
-      b.addEventListener('click', function () {
-        if (E) { E.start && E.start(); E.select(i); }
-        [].forEach.call(box.children, function (c, j) { c.setAttribute('aria-pressed', j === i ? 'true' : 'false'); });
-      });
-      box.appendChild(b);
-    });
-  })();
-  if (E) {
-    $('vol').value = String(Math.round((E.volume ? E.volume() : 0.7) * 100));
-    $('volV').textContent = $('vol').value + '%';
-    $('vol').addEventListener('input', function () {
-      E.setVolume(this.value / 100);
-      $('volV').textContent = this.value + '%';
-    });
-    $('mute').textContent = E.muted() ? 'MUDO (toque para ligar)' : 'SOM (toque para mudar)';
-    $('mute').addEventListener('click', function () {
-      E.mute(!E.muted());
-      this.textContent = E.muted() ? 'MUDO (toque para ligar)' : 'SOM (toque para mudar)';
-    });
-  }
 
   refreshProj();
   setInterval(refreshProj, 2000);

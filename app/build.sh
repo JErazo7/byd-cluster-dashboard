@@ -33,8 +33,6 @@ cp -r assets build/assets
 mkdir -p build/assets/dash
 if [ -d "$THEMES/dash" ]; then cp -r "$THEMES"/dash/* build/assets/dash/; else die "sem temas em $THEMES/dash"; fi
 find build/assets -name theme.json -delete
-mkdir -p build/assets/engine
-if [ -d ../engine ]; then cp ../engine/*.js build/assets/engine/; else die "sem ../engine"; fi
 
 echo "1/5 recursos + manifesto"
 RES=""
