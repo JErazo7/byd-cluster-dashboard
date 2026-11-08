@@ -148,8 +148,7 @@ public class MainActivity extends Activity {
         s.setAllowFileAccessFromFileURLs(true);
         s.setAllowUniversalAccessFromFileURLs(true);
         s.setDomStorageEnabled(true);
-        s.setUseWideViewPort(true);
-        s.setLoadWithOverviewMode(true);
+        s.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
         web.setBackgroundColor(0xFF000000);
         web.addJavascriptInterface(bridge, "Lab");
         web.setWebViewClient(new WebViewClient() {
@@ -159,10 +158,10 @@ public class MainActivity extends Activity {
             }
         });
         web.setBackgroundColor(0);
+        web.clearCache(true);
         /* com cover a skin preenche o quadro todo (o painel recebe imagem de borda a borda) */
-        boolean cover = getSharedPreferences("lab", MODE_PRIVATE).getBoolean("cover", true);
-        int h = cover ? FrameLayout.LayoutParams.MATCH_PARENT
-                : Math.round(480 * getResources().getDisplayMetrics().density);
+        /* WebView no quadro todo: a skin calcula a escala sozinha (fitSkin) */
+        int h = FrameLayout.LayoutParams.MATCH_PARENT;
         FrameLayout.LayoutParams wlp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, h);
         wlp.gravity = android.view.Gravity.CENTER;
@@ -336,10 +335,11 @@ public class MainActivity extends Activity {
         File ext = new File(getExternalFilesDir(null), rel);
         String base = ext.isFile() ? ("file://" + ext.getAbsolutePath()) : ("file:///android_asset/" + rel);
         StringBuilder sb = new StringBuilder(base).append("#lab=1&panel=1");
-        if (getSharedPreferences("lab", MODE_PRIVATE).getBoolean("cover", true)) sb.append("&fit=cover");
         if (full) sb.append("&full=1");
         if (light) sb.append("&light=1");
-        sb.append("&h24=1&lang=pt");
+        String lang = java.util.Locale.getDefault().getLanguage();
+        if (!("pt".equals(lang) || "es".equals(lang) || "en".equals(lang) || "zh".equals(lang))) lang = "es";
+        sb.append("&h24=1&lang=").append(lang);
         return sb.toString();
     }
 
@@ -795,6 +795,43 @@ public class MainActivity extends Activity {
                     + ",\"error\":\"" + ClusterProjection.error().replace("\"", "'") + "\"}";
         }
 
+        /* ---------- som do motor em canal próprio (EngineAudio) ---------- */
+
+        @JavascriptInterface
+        public void engineConfig(String json) {
+            EngineAudio.configure(json);
+        }
+
+        @JavascriptInterface
+        public void engineStart() {
+            EngineAudio.start();
+        }
+
+        @JavascriptInterface
+        public void engineSet(double rpm, double tps, double load) {
+            EngineAudio.set(rpm, tps, load);
+        }
+
+        @JavascriptInterface
+        public void engineVolume(double v) {
+            EngineAudio.setVolume((float) v);
+        }
+
+        @JavascriptInterface
+        public void engineMute(boolean m) {
+            EngineAudio.setMuted(m);
+        }
+
+        @JavascriptInterface
+        public boolean engineRunning() {
+            return EngineAudio.running();
+        }
+
+        @JavascriptInterface
+        public void engineStop() {
+            EngineAudio.stop();
+        }
+
         /** controles da música: prev | play | next */
         @JavascriptInterface
         public void media(String cmd) {
@@ -1093,6 +1130,56 @@ public class MainActivity extends Activity {
                 sb.append('"').append(ids.get(i)).append('"');
             }
             return sb.append(']').toString();
+        }
+
+        /** base de uma skin: cartão (se existir) ou dentro do APK */
+        private String skinBase(String id) {
+            java.io.File ext = new java.io.File(getExternalFilesDir(null), "dash/" + id);
+            if (new java.io.File(ext, "index.html").isFile()) return "file://" + ext.getAbsolutePath() + "/";
+            return "file:///android_asset/dash/" + id + "/";
+        }
+
+        @JavascriptInterface
+        public String thumbUrl(String id) {
+            return skinBase(id) + "thumb.jpg";
+        }
+
+        @JavascriptInterface
+        public String skinUrl(String id) {
+            return skinBase(id) + "index.html";
+        }
+
+        @JavascriptInterface
+        public String currentSkin() {
+            return getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "shark");
+        }
+
+        @JavascriptInterface
+        public void applySkin(final String id) {
+            getSharedPreferences("lab", MODE_PRIVATE).edit().putString("skin", id).apply();
+            ui.post(new Runnable() {
+                public void run() {
+                    if (web != null) web.loadUrl(urlFor(id, false, false));
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openSkin() {
+            ui.post(new Runnable() {
+                public void run() {
+                    if (web != null) web.loadUrl(urlFor(currentSkin(), false, false));
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openGallery() {
+            ui.post(new Runnable() {
+                public void run() {
+                    if (web != null) web.loadUrl("file:///android_asset/lab/skins.html");
+                }
+            });
         }
 
         @JavascriptInterface
