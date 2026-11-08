@@ -320,6 +320,7 @@ public class MainActivity extends Activity {
             boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
             Log.i(TAG, "painel por overlay: " + ok + " " + ClusterOverlay.error());
             if (ok) bridge.clusterCast(16);      /* assume o painel sem depender do EvSound */
+            retryOverlay();
         } else if (p.getBoolean("cluster_cast", true)) {
             bridge.clusterCast(16);
         }
@@ -338,6 +339,31 @@ public class MainActivity extends Activity {
 
         /* painel do motorista: uma Presentation no display virtual do carro */
         if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "industria"));
+    }
+
+    /**
+     * No boot o display do painel pode ainda não existir quando o onCreate roda; a overlay
+     * falha e sem janela nenhum cmd 16 aparece. Tenta de novo por ~30 s enquanto não houver.
+     */
+    private void retryOverlay() {
+        final int[] tries = {0};
+        final Runnable retry = new Runnable() {
+            public void run() {
+                if (ClusterOverlay.running()) return;
+                ensureOverlay();
+                if (!ClusterOverlay.running() && ++tries[0] < 15) ui.postDelayed(this, 2000);
+            }
+        };
+        ui.postDelayed(retry, 1500);
+    }
+
+    /** garante a janela do painel quando ela não existe (boot, troca de display, etc.) */
+    private void ensureOverlay() {
+        SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+        if (!p.getBoolean("overlay", true) || ClusterOverlay.running()) return;
+        boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
+        Log.i(TAG, "painel: overlay recriado=" + ok + " " + ClusterOverlay.error());
+        if (ok) bridge.clusterCast(16);
     }
 
     private void hideSystemUi() {
@@ -479,6 +505,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+        ensureOverlay();
         if (p.getBoolean("cluster_cast", true) && !p.getBoolean("projection", false)) {
             bridge.clusterCast(16);
             ClusterOverlay.bringToFront();
