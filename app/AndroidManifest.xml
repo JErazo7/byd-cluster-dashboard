@@ -49,6 +49,9 @@
             android:name=".ClusterSkinActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize|uiMode"
             android:exported="true"
+            android:resizeableActivity="true"
+            android:taskAffinity=".cluster"
+            android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
         <activity
             android:name=".CamView"

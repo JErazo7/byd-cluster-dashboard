@@ -508,11 +508,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
-        SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        if (p.getBoolean("cluster_cast", true) && p.getBoolean("release_on_pause", true)) {
-            bridge.clusterCast(18);
-            Log.i(TAG, "painel: liberado no onPause");
-        }
+        /* NÃO liberar o painel aqui: quando a skin do painel assume, a MainActivity pausa e
+           o cmd 18 devolvia o painel da BYD, apagando a própria projeção em segundos */
         super.onPause();
     }
 
