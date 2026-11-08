@@ -173,6 +173,33 @@ public class MainActivity extends Activity {
 
         startGps();
 
+        if (getIntent() != null && getIntent().getBooleanExtra("jsontest", false)) {
+            new Thread(new Runnable() {
+                public void run() {
+                    String[] payloads = {
+                            "{\"auto_container\":true}",
+                            "{\"auto_container\":true,\"name\":\"shared_fission_bg_XDJAScreenProjection_0\",\"width\":1920,\"height\":720}",
+                            "{\"name\":\"shared_fission_bg_XDJAScreenProjection_0\",\"width\":1920,\"height\":720,\"auto_container\":1}",
+                            "{\"display\":\"shared_fission_bg_XDJAScreenProjection_0\",\"w\":1920,\"h\":720}",
+                            "{\"projection\":\"shared_fission_bg_XDJAScreenProjection_0\"}"
+                    };
+                    StringBuilder sb = new StringBuilder("[");
+                    for (int i = 0; i < payloads.length; i++) {
+                        sb.append("{\"i\":").append(i).append(",\"r\":\"").append(bridge.jsonCmd(1000, payloads[i])).append("\"}");
+                        if (i + 1 < payloads.length) sb.append(',');
+                    }
+                    sb.append(']');
+                    try {
+                        java.io.File f = new java.io.File(getExternalFilesDir(null), "json.json");
+                        java.io.FileOutputStream o = new java.io.FileOutputStream(f);
+                        o.write(sb.toString().getBytes("UTF-8"));
+                        o.close();
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }).start();
+        }
+
         /* gancho de teste por adb: --ez proj true|false força a projeção */
         if (getIntent() != null && getIntent().hasExtra("proj")) {
             boolean want = getIntent().getBooleanExtra("proj", true);
@@ -512,6 +539,24 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void autostartSet(boolean on) {
             getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("autostart", on).apply();
+        }
+
+        /** comando cru ao AutoContainer (diagnóstico): sendJson(type, json) */
+        @JavascriptInterface
+        public String jsonCmd(int type, String json) {
+            try {
+                Class<?> sm = Class.forName("android.os.ServiceManager");
+                Object binder = sm.getMethod("getService", String.class).invoke(null, "AutoContainer");
+                Class<?> stub = Class.forName("android.os.IAutoContainer$Stub");
+                Object svc = stub.getMethod("asInterface", android.os.IBinder.class).invoke(null, binder);
+                Object r = svc.getClass().getMethod("sendJson", int.class, String.class)
+                        .invoke(svc, type, json);
+                return String.valueOf(r);
+            } catch (Throwable t) {
+                Throwable c = t;
+                while (c.getCause() != null && c != c.getCause()) c = c.getCause();
+                return "erro: " + c;
+            }
         }
 
         /** liga/desliga o tema no painel (persistente) */
