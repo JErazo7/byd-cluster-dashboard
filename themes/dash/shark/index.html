@@ -2,15 +2,11 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=1280">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <script>
   /* largura do painel: o app abre a skin com "#...&wide=<px>" quando a janela é maior que 1280 */
-  (function () {
-    var m = /[#&]wide=(\d+)/.exec(location.hash);
-    var w = m && +m[1] > 1280 ? +m[1] : 1280;
-    document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=' + w);
-    window.EVS_W = w;
-  })();
+  /* viewport real do painel: sem largura fixa, para o browser não ampliar a página */
+  window.EVS_W = 1280;
   if (/[#&]light=1/.test(location.hash)) document.documentElement.className += ' light';
   if (/[#&](panel|full)=1/.test(location.hash)) document.documentElement.className += ' panel';
   if (/[#&]full=1/.test(location.hash)) document.documentElement.className += ' full';
@@ -55,6 +51,20 @@
   var COVER = /[#&]fit=cover/.test(location.hash);
   var svg = document.getElementById('s');
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  /* a skin tem tamanho fixo (1280×480) e é escalada por CSS para caber no viewport real:
+     independe de dpr e de meta viewport, e nunca recorta */
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  function fitSkin() {
+    var k = Math.min((window.innerWidth || W) / W, (window.innerHeight || H) / H);
+    if (!(k > 0)) k = 1;
+    document.body.style.position = 'absolute';
+    document.body.style.left = '50%';
+    document.body.style.top = '50%';
+    document.body.style.width = W + 'px';
+    document.body.style.height = H + 'px';
+    document.body.style.transformOrigin = '50% 50%';
+    document.body.style.transform = 'translate(-50%, -50%) scale(' + k.toFixed(4) + ')';
+  }
   if (COVER) {
     document.documentElement.style.height = '100%';
     document.body.style.height = '100%';
@@ -398,6 +408,10 @@
     minimal = !minimal;
     gBottom.setAttribute('opacity', minimal ? 0.25 : 1);
   };
+
+  fitSkin();
+  window.addEventListener('resize', fitSkin);
+  setTimeout(fitSkin, 300);
 
   /* primeira pintura (antes do primeiro quadro do app) */
   draw({ speed: 0, rpm: 0, sel: 'P', on: false, pw: 0, soc: -1, range: -999, odo: -999, tps: 0,

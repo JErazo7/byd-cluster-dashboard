@@ -25,23 +25,23 @@
 </style>
 </head>
 <body>
-<h1>SharkLab · ajustes da central</h1>
+<h1>SharkLab · ajustes de la central</h1>
 
 <div class="grid">
-  <div class="card"><small>velocidade</small><b id="vSpeed">--</b></div>
-  <div class="card"><small>bateria</small><b id="vSoc">--</b></div>
-  <div class="card"><small>autonomia</small><b id="vRange">--</b></div>
+  <div class="card"><small>velocidad</small><b id="vSpeed">--</b></div>
+  <div class="card"><small>batería</small><b id="vSoc">--</b></div>
+  <div class="card"><small>autonomía</small><b id="vRange">--</b></div>
   <div class="card"><small>marcha</small><b id="vGear">--</b></div>
 </div>
 
-<h2>Painel do motorista</h2>
-<button id="proj" aria-pressed="false">PROJETAR SKIN NO PAINEL</button>
+<h2>Panel del conductor</h2>
+<button id="proj" aria-pressed="false">PROYECTAR SKIN EN EL PANEL</button>
 <div class="hint" id="projInfo">—</div>
 
-<h2>Painel</h2>
+<h2>Panel</h2>
 <div class="grid" id="skins"></div>
 
-<h2>Som do motor</h2>
+<h2>Sonido del motor</h2>
 <div class="grid" id="engines"></div>
 <div class="row"><input id="vol" type="range" min="0" max="150" value="70"><span class="hint" id="volV">70%</span></div>
 <div class="row"><button id="mute" style="width:auto">SOM / MUDO</button></div>
@@ -75,7 +75,7 @@
     var on = false, info = L.projState ? L.projState() : '';
     try { on = JSON.parse(info).running; } catch (e) {}
     $('proj').setAttribute('aria-pressed', on ? 'true' : 'false');
-    $('proj').textContent = on ? 'PAINEL PROJETANDO (toque para parar)' : 'PROJETAR SKIN NO PAINEL';
+    $('proj').textContent = on ? 'PANEL PROYECTANDO (tocá para parar)' : 'PROYECTAR SKIN EN EL PANEL';
     $('projInfo').textContent = info || '—';
   }
   $('proj').addEventListener('click', function () {
@@ -91,7 +91,7 @@
     var list = [];
     try { list = JSON.parse(L.skins ? L.skins() : '[]'); } catch (e) {}
     var box = $('skins');
-    if (!list.length) { box.innerHTML = '<div class="hint">nenhum painel encontrado</div>'; return; }
+    if (!list.length) { box.innerHTML = '<div class="hint">ningún panel encontrado</div>'; return; }
     list.forEach(function (id) {
       var b = document.createElement('button');
       b.textContent = id;
