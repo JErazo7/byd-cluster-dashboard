@@ -47,6 +47,48 @@ public final class ClusterProjection {
         return display != null;
     }
 
+    /**
+     * Cria o display como o app de referência: com o token do MediaProjection, flags
+     * PUBLIC|PRESENTATION (3) e o nome que o compositor do clúster espera. Sem o token,
+     * PUBLIC lança SecurityException; com OWN_CONTENT_ONLY o compositor ignora o display.
+     */
+    public static void startWithProjection(Context ctx, android.media.projection.MediaProjection mp,
+                                           MainActivity.Lab bridge, String url) {
+        stop();
+        error = "";
+        try {
+            texture = new SurfaceTexture(0);
+            texture.setDefaultBufferSize(W, H);
+            surface = new Surface(texture);
+            display = mp.createVirtualDisplay(NAMES[0], W, H, DPI, 3, surface, null,
+                    new Handler(Looper.getMainLooper()));
+            if (display == null) {
+                error = "createVirtualDisplay devolveu null";
+                return;
+            }
+            final Display d = display.getDisplay();
+            final Context app = ctx;
+            final MainActivity.Lab b = bridge;
+            final String u = url;
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                public void run() {
+                    try {
+                        presentation = new ClusterPresentation(app, d, u, b);
+                        presentation.show();
+                        Log.i(TAG, "projeção (token): " + NAMES[0] + " display " + d.getDisplayId());
+                    } catch (Throwable t) {
+                        error = "apresentação recusada: " + t;
+                        Log.w(TAG, error, t);
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            error = t.getClass().getSimpleName() + ": " + t.getMessage();
+            Log.w(TAG, "projeção com token falhou", t);
+            stop();
+        }
+    }
+
     /** cria (ou recria) o display de projeção e a apresentação da skin */
     public static void start(Context ctx, MainActivity.Lab bridge, String url) {
         stop();

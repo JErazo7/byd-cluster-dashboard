@@ -58,6 +58,7 @@ public class MainActivity extends Activity {
     private android.view.Surface camSurface;
     private android.graphics.SurfaceTexture camTexture;
     private boolean camShown = false;
+    private boolean wantProjection = false;
     private ClusterPresentation cluster;
     private final Lab bridge = new Lab();
     private volatile double gpsKmh = -1;
@@ -198,6 +199,25 @@ public class MainActivity extends Activity {
                     }
                 }
             }).start();
+        }
+
+        /* teste: lançar a skin no display 1 pelo próprio app (ActivityOptions) */
+        if (getIntent() != null && getIntent().getBooleanExtra("disp", false)) {
+            ui.postDelayed(new Runnable() {
+                public void run() {
+                    try {
+                        ActivityOptions o = ActivityOptions.makeBasic();
+                        o.setLaunchDisplayId(1);
+                        Intent i = new Intent(MainActivity.this, MainActivity.class);
+                        i.putExtra("skinonly", true);
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                        startActivity(i, o.toBundle());
+                        Log.i(TAG, "disp: lançado no display 1");
+                    } catch (Throwable t) {
+                        Log.w(TAG, "disp: recusado", t);
+                    }
+                }
+            }, 1200);
         }
 
         /* gancho de teste por adb: --ez proj true|false força a projeção */
@@ -408,8 +428,21 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
         if (request == Mirror.REQUEST_CODE && result == RESULT_OK) {
-            Mirror.start(this, result, data);
-            startActivity(new Intent(this, MirrorActivity.class));
+            if (wantProjection) {
+                wantProjection = false;
+                try {
+                    android.media.projection.MediaProjectionManager mpm =
+                            (android.media.projection.MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
+                    android.media.projection.MediaProjection mp = mpm.getMediaProjection(result, data);
+                    ClusterProjection.startWithProjection(this, mp, bridge,
+                            urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "shark"), true, false));
+                } catch (Throwable t) {
+                    Log.w(TAG, "projeção com token falhou", t);
+                }
+            } else {
+                Mirror.start(this, result, data);
+                startActivity(new Intent(this, MirrorActivity.class));
+            }
         }
     }
 
@@ -661,8 +694,10 @@ public class MainActivity extends Activity {
         public String projStart() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             p.edit().putBoolean("projection", true).apply();
-            ClusterProjection.start(MainActivity.this, this, urlFor(p.getString("skin", "shark"), true, false));
-            return projState();
+            /* precisa do token de captura: PUBLIC sem ele é recusado pelo sistema */
+            wantProjection = true;
+            Mirror.request(MainActivity.this);
+            return "{\"step\":\"aguardando consentimento\"}";
         }
 
         @JavascriptInterface

@@ -45,6 +45,10 @@ public final class Mirror {
     private Mirror() {
     }
 
+    public static MediaProjection projection() {
+        return projection;
+    }
+
     public static boolean isRunning() {
         return running;
     }
