@@ -47,3 +47,34 @@ Do que é acessível sem assinatura de plataforma, o clúster só recebe **espel
 Logo: a skin tem de estar na central (sem barras, 1920×720 no topo do quadro) e os ajustes
 aparecem por cima quando abertos. Separar "ajustes na central / skin no painel" exige o
 attach privilegiado (root, ou app de sistema).
+
+## Quem pode falar com o AutoContainer (verificado)
+
+`/system/etc/container_comm_cfg.json` lista os pacotes autorizados; nesta unidade só
+`com.xdja.clusterdemo` (tipos 0–134217727). Qualquer outro nome recebe
+`SecurityException: Not allowed package` e o painel continua na BYD. Por isso o build da
+SharkLab sai com `--rename-manifest-package com.xdja.clusterdemo`.
+
+O app (uid de aplicação, sem adb) chama `sendInfo(1000, cmd, "")` por binder e o comando é
+aceito. O `EvSound` faz o mesmo por ADB (`service call AutoContainer ...`) porque foi
+instalado com outro nome; não é necessário para nós.
+
+## O que cada comando faz no painel
+
+| cmd | efeito observado |
+|---|---|
+| 16 | painel mostra o display virtual `fission_bg_xdjaVirtualSurface` (1920×720) a tela cheia |
+| 17 | metade |
+| 18 | volta para a interface original da BYD |
+| 35 | aceito, sem mudança visível quando o painel já está no modo 16 |
+
+O modo 16 fica ativo até alguém mandar 18. Enquanto ele está ativo, **qualquer** janela no
+display 1 aparece no painel — inclusive a overlay `TYPE_APPLICATION_OVERLAY` com título
+"EvSound painel" que a SharkLab cria. Sem o modo 16, essa mesma janela é desenhada mas o
+painel não a mostra (é exatamente o sintoma de "depende do EvSound").
+
+Verificação do painel físico sem olhar o carro:
+
+```bash
+adb shell fission_screencap -d 0 > panel.raw   # cabeçalho 8 bytes + RGBA 1920×720
+```

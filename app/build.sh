@@ -9,6 +9,10 @@ cd "$(dirname "$0")"
 
 SDK="${SDK:-/opt/android-sdk}"
 THEMES="${THEMES:-../themes}"
+# o AutoContainer só aceita sendInfo de com.xdja.clusterdemo (lista em
+# /system/etc/container_comm_cfg.json); sem esse nome o painel fica com a BYD.
+PKG="${PKG:-com.xdja.clusterdemo}"
+OUT="${OUT:-out/sharklab-cluster.apk}"
 BT="${ANDROID_BUILD_TOOLS:-$SDK/build-tools/36.0.0}"
 JAR="$(ls -d "$SDK"/platforms/android-*/android.jar 2>/dev/null | sort -V | tail -1)"
 KS="${LAB_KEYSTORE:-lab.keystore}"
@@ -68,8 +72,8 @@ if [ ! -f "$KS" ]; then
 fi
 mkdir -p out
 "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$PASS" --key-pass "pass:$PASS" \
-  --out "${OUT:-out/sharklab.apk}" build/app-aligned.apk
-"$BT/apksigner" verify "${OUT:-out/sharklab.apk}" >/dev/null
+  --out "${OUT}" build/app-aligned.apk
+"$BT/apksigner" verify "${OUT}" >/dev/null
 
-"$BT/aapt2" dump badging "${OUT:-out/sharklab.apk}" 2>/dev/null | head -2 || true
-echo "APK: ${OUT:-out/sharklab.apk}"
+"$BT/aapt2" dump badging "${OUT}" 2>/dev/null | head -2 || true
+echo "APK: ${OUT}"

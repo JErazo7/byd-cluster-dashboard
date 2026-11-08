@@ -180,7 +180,7 @@ public final class ClusterOverlay {
         watch = new Runnable() {
             public void run() {
                 bringToFront();
-                if (ui != null) ui.postDelayed(this, 20000);
+                if (ui != null) ui.postDelayed(this, 8000);
             }
         };
         ui.postDelayed(watch, 20000);

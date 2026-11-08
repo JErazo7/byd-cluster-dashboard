@@ -324,6 +324,7 @@ public class MainActivity extends Activity {
         if (p.getBoolean("overlay", true)) {
             boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
             Log.i(TAG, "painel por overlay: " + ok + " " + ClusterOverlay.error());
+            if (ok) bridge.clusterCast(16);      /* assume o painel sem depender do EvSound */
         } else if (p.getBoolean("cluster_cast", true)) {
             bridge.clusterCast(16);
         }
@@ -439,12 +440,15 @@ public class MainActivity extends Activity {
 
     /**
      * O clúster não é um display Android: o AutoContainer só mostra o display virtual do
-     * painel enquanto estiver "espelhando" (cmd 16). Quando o outro app fecha, ele devolve o
-     * painel para a BYD e a nossa janela continua desenhada, mas fora da tela — por isso o
-     * comando é reafirmado de tempos em tempos.
+     * painel enquanto o modo de projeção estiver ligado (cmd 16, tela cheia). O EvSound liga
+     * esse modo quando aplica um tema; sem ele, nenhuma janela no display do painel aparece.
+     *
+     * Por isso o app assume o painel sozinho: manda o cmd 16 logo ao abrir e reafirma a cada
+     * 5 s. O binder é barato e idempotente; assim a skin continua no painel mesmo que outro
+     * app (EvSound, Electro, Overdrive) devolva o painel para a BYD.
      */
     private void startCastWatch() {
-        ui.postDelayed(new Runnable() {
+        ui.post(new Runnable() {
             public void run() {
                 try {
                     SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
@@ -455,9 +459,9 @@ public class MainActivity extends Activity {
                     }
                 } catch (Throwable ignored) {
                 }
-                ui.postDelayed(this, 30000);
+                ui.postDelayed(this, 5000);
             }
-        }, 15000);
+        });
     }
 
     /**
@@ -752,6 +756,7 @@ public class MainActivity extends Activity {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             boolean ok = ClusterOverlay.show(MainActivity.this,
                     urlFor(p.getString("skin", "industria"), true, false));
+            if (ok) clusterCast(16);
             return "{\"ok\":" + ok + ",\"erro\":\"" + ClusterOverlay.error().replace("\"", "'") + "\"}";
         }
 
@@ -1273,7 +1278,9 @@ public class MainActivity extends Activity {
             /* a janela só pode ser criada na thread de UI */
             ui.post(new Runnable() {
                 public void run() {
-                    ClusterOverlay.show(MainActivity.this, urlFor(id, true, false));
+                    if (ClusterOverlay.show(MainActivity.this, urlFor(id, true, false))) {
+                        bridge.clusterCast(16);
+                    }
                 }
             });
             return true;
