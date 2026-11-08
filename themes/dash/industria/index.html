@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Industria</title>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #05070a; }
+  svg { display: block; font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  text { fill: #e8eef5; }
+  .dim { fill: #7d8b99; }
+  .num { fill: #eaf3ff; }
+  .accent { fill: #2f9df5; }
+  .good { fill: #37e07a; }
+  .warm { fill: #ffb020; }
+  .bad { fill: #ff4b3e; }
+</style>
+</head>
+<body>
+<svg id="s" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1920 720" preserveAspectRatio="xMidYMid meet"></svg>
+<script>
+/*
+ * Industria (SharkLab) — dois mostradores analógicos com ponteiro, mapa/mídia ao centro e a
+ * barra de estado embaixo, desenhado nativamente em 1920×720 (o quadro exato do painel).
+ * Código próprio; a leitura do carro chega pelo feed (window.BrasaDriveUpdate).
+ */
+(function () {
+  'use strict';
+  var NS = 'http://www.w3.org/2000/svg';
+  var W = 1920, H = 720;
+  var svg = document.getElementById('s');
+
+  var LANG = (/[#&]lang=(pt|es|en)/.exec(location.hash) || [])[1] || 'es';
+  var T = ({
+    es: { gear: 'MARCHA', speed: 'KM/H', ready: 'LISTO', temp: 'TEMP', bat: 'BATERÍA', km: 'km', media: 'MÚSICA' },
+    pt: { gear: 'MARCHA', speed: 'KM/H', ready: 'PRONTO', temp: 'TEMP', bat: 'BATERIA', km: 'km', media: 'MÚSICA' },
+    en: { gear: 'GEAR', speed: 'MPH', ready: 'READY', temp: 'TEMP', bat: 'BATTERY', km: 'mi', media: 'MEDIA' }
+  })[LANG] || {};
+
+  function el(tag, at) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in at) if (at.hasOwnProperty(k)) e.setAttribute(k, at[k]);
+    svg.appendChild(e);
+    return e;
+  }
+  function txt(x, y, s, size, cls, anchor, weight) {
+    var t = el('text', {
+      x: x, y: y, 'font-size': size || 24, 'text-anchor': anchor || 'middle',
+      'font-weight': weight || 400, 'letter-spacing': 0
+    });
+    t.textContent = s == null ? '' : s;
+    if (cls) t.setAttribute('class', cls);
+    return t;
+  }
+  function deg2xy(cx, cy, r, a) {
+    var rad = a * Math.PI / 180;
+    return [cx + r * Math.sin(rad), cy - r * Math.cos(rad)];
+  }
+  function arcPath(cx, cy, r, a0, a1) {
+    var p0 = deg2xy(cx, cy, r, a0), p1 = deg2xy(cx, cy, r, a1);
+    var large = Math.abs(a1 - a0) > 180 ? 1 : 0;
+    return 'M' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + large +
+      ' 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1);
+  }
+
+  var A0 = -130, A1 = 130, SWEEP = A1 - A0;
+  var LX = 372, RX = 1548, CY = 372, R = 306;
+
+  /* fundo */
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: '#05070a' });
+  var g = el('linearGradient', { id: 'bg', x1: 0, y1: 0, x2: 0, y2: 1 });
+  var gs1 = document.createElementNS(NS, 'stop'); gs1.setAttribute('offset', '0'); gs1.setAttribute('stop-color', '#0b141d'); g.appendChild(gs1);
+  var gs2 = document.createElementNS(NS, 'stop'); gs2.setAttribute('offset', '1'); gs2.setAttribute('stop-color', '#04070a'); g.appendChild(gs2);
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#bg)', opacity: 0.9 });
+
+  /* faixa reservada às luzes da BYD (x 640–1280, y 0–81) */
+  el('rect', { x: 640, y: 0, width: 640, height: 82, rx: 14, fill: '#05070a' });
+
+  function dial(cx, max, major, minor, label, digits) {
+    el('circle', { cx: cx, cy: CY, r: R + 26, fill: '#0a1119', stroke: '#16202b', 'stroke-width': 2 });
+    el('circle', { cx: cx, cy: CY, r: R + 8, fill: 'none', stroke: '#1b2734', 'stroke-width': 3 });
+    el('circle', { cx: cx, cy: CY, r: 176, fill: '#070c12', stroke: '#16202b', 'stroke-width': 2 });
+
+    for (var v = 0; v <= max; v += minor) {
+      var a = A0 + SWEEP * (v / max);
+      var big = Math.abs(v / major - Math.round(v / major)) < 1e-6;
+      var r0 = big ? R - 26 : R - 14;
+      var p0 = deg2xy(cx, CY, r0, a), p1 = deg2xy(cx, CY, R + 4, a);
+      el('line', {
+        x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1],
+        stroke: big ? '#9fb4c8' : '#3d4d5e', 'stroke-width': big ? 3 : 2, 'stroke-linecap': 'round'
+      });
+      if (big && v > 0) {
+        var pn = deg2xy(cx, CY, R - 66, a);
+        txt(pn[0], pn[1] + 12, String(v / digits), 30, 'num');
+      }
+    }
+    /* ponteiro */
+    var pn0 = deg2xy(cx, CY, R + 2, A0), pn1 = deg2xy(cx, CY, R - 52, A0);
+    var needle = el('line', {
+      x1: pn0[0], y1: pn0[1], x2: pn1[0], y2: pn1[1], stroke: '#eef6ff', 'stroke-width': 7,
+      'stroke-linecap': 'round', opacity: 0.95
+    });
+    var hub = el('circle', { cx: cx, cy: CY, r: 13, fill: '#16202b', stroke: '#4f6b82', 'stroke-width': 2 });
+    /* arco de progresso */
+    var prog = el('path', { d: '', fill: 'none', stroke: '#2f9df5', 'stroke-width': 6, 'stroke-linecap': 'round', opacity: 0.85 });
+    /* textos centrais */
+    txt(cx, CY - 74, label, 26, 'dim');
+    var big = txt(cx, CY + 56, '0', 96, 'num', 'middle', 300);
+    return { needle: needle, big: big, prog: prog, cx: cx, max: max };
+  }
+
+  var tach = dial(LX, 8, 1, 0.25, T.gear, 1);
+  var speed = dial(RX, 280, 20, 10, T.speed, 1);
+
+  /* modo de condução e regen, sob a marcha */
+  var modeTxt = txt(LX, CY + 116, '', 24, 'good');
+  var regenTxt = txt(LX, CY + 152, '', 20, 'dim');
+
+  /* pressão dos pneus, sob a velocidade */
+  var tyreTxt = null;
+
+  /* centro: mapa + mídia */
+  el('rect', { x: 706, y: 96, width: 508, height: 440, rx: 22, fill: '#0a121b', stroke: '#16202b', 'stroke-width': 2 });
+  var compass = el('path', {
+    d: 'M0 -16 L13 16 L0 8 L-13 16 Z', fill: '#ff5a3c', transform: 'translate(960,330)'
+  });
+  var mediaBox = el('rect', { x: 730, y: 470, width: 460, height: 56, rx: 28, fill: '#0f1a24', stroke: '#1b2734', 'stroke-width': 1 });
+  var mediaTxt = txt(960, 505, '', 22, 'num');
+  var navTxt = txt(960, 560, '', 20, 'dim');
+
+  /* barra inferior */
+  el('rect', { x: 0, y: 636, width: W, height: 84, fill: '#070d13' });
+  var odoTxt = txt(40, 692, '', 28, 'dim', 'start');
+  var rangeTxt = txt(W - 40, 692, '', 28, 'dim', 'end');
+  var clockTxt = txt(W - 40, 52, '', 30, 'num', 'end');
+  var outTxt = txt(40, 52, '', 30, 'num', 'start');
+
+  /* PRND e READY */
+  var SEL = ['P', 'R', 'N', 'D'], selEls = [];
+  for (var i = 0; i < 4; i++) selEls.push(txt(860 + i * 66, 692, SEL[i], 32, 'dim'));
+  var readyTxt = txt(790, 692, '', 26, 'good', 'end');
+
+  /* temperatura (esquerda) e bateria (direita) */
+  el('rect', { x: 210, y: 654, width: 200, height: 10, rx: 5, fill: '#16202b' });
+  var tempBar = el('rect', { x: 210, y: 654, width: 0, height: 10, rx: 5, fill: '#2f9df5' });
+  el('rect', { x: 1510, y: 654, width: 200, height: 10, rx: 5, fill: '#16202b' });
+  var batBar = el('rect', { x: 1510, y: 654, width: 0, height: 10, rx: 5, fill: '#2f9df5' });
+  txt(186, 666, 'C', 24, 'dim');
+  txt(434, 666, 'H', 24, 'dim');
+  txt(1486, 666, 'E', 24, 'dim');
+  txt(1734, 666, 'F', 24, 'dim');
+
+  /* testemunhas */
+  var warnTxt = txt(960, 620, '', 22, 'bad');
+
+  function fmt(v) {
+    return (v === null || v === undefined || v === -999 || isNaN(v)) ? '--' : String(Math.round(v));
+  }
+
+  function setNeedle(d, v) {
+    var k = Math.max(0, Math.min(1, v / d.max));
+    var a = A0 + SWEEP * k;
+    var pa = deg2xy(d.cx, CY, R + 2, a), pb = deg2xy(d.cx, CY, R - 52, a);
+    d.needle.setAttribute('x1', pa[0]);
+    d.needle.setAttribute('y1', pa[1]);
+    d.needle.setAttribute('x2', pb[0]);
+    d.needle.setAttribute('y2', pb[1]);
+    d.prog.setAttribute('d', k > 0.004 ? arcPath(d.cx, CY, R + 18, A0, a) : '');
+  }
+
+  function draw(d) {
+    var sp = Math.max(0, Math.min(280, d.speed || 0));
+    var rpm = Math.max(0, Math.min(8, (d.rpm || 0) / 1000));
+    setNeedle(speed, sp);
+    setNeedle(tach, rpm);
+    speed.big.textContent = String(Math.round(sp));
+    tach.big.textContent = (d.sel || 'P');
+
+    modeTxt.textContent = (d.dmode || '').toUpperCase();
+    regenTxt.textContent = d.regen ? 'REGEN' : '';
+    readyTxt.textContent = d.ready ? T.ready : '';
+
+    for (var i = 0; i < 4; i++) {
+      var on = (d.sel || 'P') === SEL[i];
+      selEls[i].setAttribute('class', on ? 'bad' : 'dim');
+      selEls[i].setAttribute('font-size', on ? 40 : 32);
+    }
+
+    odoTxt.textContent = fmt(d.odo) + ' ' + T.km;
+    rangeTxt.textContent = fmt(d.range) + ' ' + T.km;
+    outTxt.textContent = (d.tout === -999 || d.tout == null) ? '' : Math.round(d.tout) + ' °C';
+
+    var now = new Date();
+    clockTxt.textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+
+    var soc = (d.soc === -999 || d.soc == null) ? 0 : d.soc;
+    batBar.setAttribute('width', (200 * Math.max(0, Math.min(1, soc / 100))).toFixed(0));
+    var bt = (d.btemp === -999 || d.btemp == null) ? 0 : d.btemp;
+    tempBar.setAttribute('width', (200 * Math.max(0, Math.min(1, bt / 100))).toFixed(0));
+
+    if (d.tyre && tyreTxt === null) {
+      tyreTxt = txt(RX, CY + 116, '', 22, 'dim');
+    }
+    if (tyreTxt) {
+      var y = d.tyre;
+      if (y && y.fl != null) {
+        tyreTxt.textContent = fmt(y.fl) + '  ' + fmt(y.fr) + '   ' + fmt(y.rl) + '  ' + fmt(y.rr);
+      } else tyreTxt.textContent = '';
+    }
+
+    var m = d.media;
+    if (m && m.title) {
+      mediaBox.setAttribute('opacity', 1);
+      mediaTxt.textContent = m.title + (m.artist ? ' · ' + m.artist : '');
+    } else {
+      mediaBox.setAttribute('opacity', 0.35);
+      mediaTxt.textContent = T.media;
+    }
+
+    navTxt.textContent = (d.nmv && d.nmv.text) ? d.nmv.text : '';
+    warnTxt.textContent = (d.warn && d.warn.length) ? d.warn.join('  ') : '';
+  }
+
+  window.BrasaDriveUpdate = function (d) { if (d) draw(d); };
+
+  draw({ speed: 0, rpm: 0, sel: 'P', soc: 0, range: -999, odo: -999, ready: false, tout: -999, btemp: -999 });
+})();
+</script>
+</body>
+</html>

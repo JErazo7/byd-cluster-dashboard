@@ -39,7 +39,7 @@ import java.util.List;
 public class MainActivity extends Activity {
 
     private static final String TAG = "SharkLab";
-    private static final String[] BUILTIN = {"muscle", "shark"};
+    private static final String[] BUILTIN = {"industria", "muscle", "shark"};
 
     /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
     static final String[] INJECT = {
@@ -221,7 +221,7 @@ public class MainActivity extends Activity {
                         o.setLaunchDisplayId(did);
                         Intent i = new Intent(MainActivity.this, ClusterSkinActivity.class);
                         i.putExtra(ClusterSkinActivity.EXTRA_URL,
-                                urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "muscle"), true, false));
+                                urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria"), true, false));
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                         startActivity(i, o.toBundle());
                         Log.i(TAG, "disp: lançado no display " + did);
@@ -237,7 +237,7 @@ public class MainActivity extends Activity {
         if (cmd != null && !cmd.isEmpty()) {
             Log.i(TAG, "cmd.txt=" + cmd);
             if (cmd.contains("pub")) {
-                int d = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "muscle"), true, false));
+                int d = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "industria"), true, false));
                 writeResult("pub.json", "{\"display\":" + d + ",\"erro\":\""
                         + ClusterProjection.error().replace("\"", "'") + "\"}");
                 if (d > 0) {
@@ -253,7 +253,7 @@ public class MainActivity extends Activity {
                     }
                 }
             } else if (cmd.contains("overlay")) {
-                boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "muscle"), true, false));
+                boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
                 writeResult("overlay.json", "{\"ok\":" + ok + ",\"erro\":\""
                         + ClusterOverlay.error().replace("\"", "'") + "\"}");
             } else if (cmd.contains("token")) {
@@ -264,7 +264,7 @@ public class MainActivity extends Activity {
 
         /* gancho: --ez pub true cria o display "evsound_mapa" (flags 3) e joga a skin nele */
         if (getIntent() != null && getIntent().getBooleanExtra("pub", false)) {
-            int did = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "muscle"), true, false));
+            int did = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "industria"), true, false));
             try {
                 java.io.File f = new java.io.File(getExternalFilesDir(null), "pub.json");
                 java.io.FileOutputStream o = new java.io.FileOutputStream(f);
@@ -321,7 +321,7 @@ public class MainActivity extends Activity {
             }
         }, camFilter);
         if (p.getBoolean("overlay", true)) {
-            boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "muscle"), true, false));
+            boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
             Log.i(TAG, "painel por overlay: " + ok + " " + ClusterOverlay.error());
         } else if (p.getBoolean("cluster_cast", true)) {
             bridge.clusterCast(16);
@@ -329,7 +329,7 @@ public class MainActivity extends Activity {
 
         /* skin no painel do motorista, pela projeção (quando habilitada) */
         if (p.getBoolean("projection", false)) {
-            ClusterProjection.start(this, bridge, urlFor(p.getString("skin", "muscle"), true, false));
+            ClusterProjection.start(this, bridge, urlFor(p.getString("skin", "industria"), true, false));
             ui.postDelayed(new Runnable() {
                 public void run() {
                     if (ClusterProjection.running()) return;      /* projeção ok */
@@ -340,7 +340,7 @@ public class MainActivity extends Activity {
         }
 
         /* painel do motorista: uma Presentation no display virtual do carro */
-        if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "muscle"));
+        if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "industria"));
     }
 
     private void hideSystemUi() {
@@ -565,7 +565,7 @@ public class MainActivity extends Activity {
                             (android.media.projection.MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
                     android.media.projection.MediaProjection mp = mpm.getMediaProjection(result, data);
                     ClusterProjection.startWithProjection(this, mp, bridge,
-                            urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "muscle"), true, false));
+                            urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria"), true, false));
                 } catch (Throwable t) {
                     Log.w(TAG, "projeção com token falhou", t);
                 }
@@ -727,7 +727,7 @@ public class MainActivity extends Activity {
         public String overlayShow() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             boolean ok = ClusterOverlay.show(MainActivity.this,
-                    urlFor(p.getString("skin", "muscle"), true, false));
+                    urlFor(p.getString("skin", "industria"), true, false));
             return "{\"ok\":" + ok + ",\"erro\":\"" + ClusterOverlay.error().replace("\"", "'") + "\"}";
         }
 
@@ -965,7 +965,7 @@ public class MainActivity extends Activity {
         public String clusterShow() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             p.edit().putBoolean("cluster", true).apply();
-            showCluster(p.getString("skin", "muscle"));
+            showCluster(p.getString("skin", "industria"));
             return "{\"ok\":" + (clusterError.isEmpty()) + ",\"why\":\"" + clusterError.replace("\"", "'") + "\"}";
         }
 
@@ -1223,7 +1223,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String currentSkin() {
-            return getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "muscle");
+            return getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria");
         }
 
         /** efeito de arranque no painel */
