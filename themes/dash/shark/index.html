@@ -414,8 +414,24 @@
   var tagEl = el('text', { x: W - 10, y: H - 6, 'font-size': 11, fill: '#ff3b30', 'text-anchor': 'end' });
   tagEl.textContent = __BUILD_TAG;
 
-  fitSkin();
-  window.addEventListener('resize', fitSkin);
+  /* tamanho real do painel em pixels vem no hash (#pw/#ph): com isso a skin preenche
+     exatamente o quadro, independente do devicePixelRatio do WebView */
+  var PANEL_PW = (/[#&]pw=(\d+)/.exec(location.hash) || [])[1] || 0;
+  function fitPanel() {
+    if (!PANEL_PW) { fitSkin(); return; }
+    var dpr = window.devicePixelRatio || 1;
+    var k = Math.min((+PANEL_PW) / dpr / W, ((/[#&]ph=(\d+)/.exec(location.hash) || [])[1] || H) / dpr / H);
+    if (!(k > 0)) k = 1;
+    document.body.style.position = 'absolute';
+    document.body.style.left = '50%';
+    document.body.style.top = '50%';
+    document.body.style.width = W + 'px';
+    document.body.style.height = H + 'px';
+    document.body.style.transformOrigin = '50% 50%';
+    document.body.style.transform = 'translate(-50%, -50%) scale(' + k.toFixed(4) + ')';
+  }
+  fitPanel();
+  window.addEventListener('resize', fitPanel);
   setTimeout(fitSkin, 300);
 
   /* primeira pintura (antes do primeiro quadro do app) */

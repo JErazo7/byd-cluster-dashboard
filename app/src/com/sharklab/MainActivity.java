@@ -39,7 +39,7 @@ import java.util.List;
 public class MainActivity extends Activity {
 
     private static final String TAG = "SharkLab";
-    private static final String[] BUILTIN = {"shark"};
+    private static final String[] BUILTIN = {"muscle", "shark"};
 
     /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
     static final String[] INJECT = {
@@ -71,7 +71,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        hideSystemUi();
+        /* a tela central NÃO é tela cheia; só o overlay do painel é */
 
         HiddenApi.allowAll();
         Log.i(TAG, "hiddenApi=" + HiddenApi.result());
@@ -1207,10 +1207,16 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public boolean overlayReload(String id) {
-            SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+        public boolean overlayReload(final String id) {
+            final SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             p.edit().putString("skin", id).apply();
-            return ClusterOverlay.show(MainActivity.this, urlFor(id, true, false));
+            /* a janela só pode ser criada na thread de UI */
+            ui.post(new Runnable() {
+                public void run() {
+                    ClusterOverlay.show(MainActivity.this, urlFor(id, true, false));
+                }
+            });
+            return true;
         }
 
         public void applySkin(final String id) {

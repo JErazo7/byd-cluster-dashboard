@@ -77,6 +77,10 @@ public final class ClusterOverlay {
             s.setDomStorageEnabled(true);
             s.setMediaPlaybackRequiresUserGesture(false);
             s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+            /* 1280 CSS × 1.5 = 1920 px: preenche o painel sem depender do dpr */
+            s.setUseWideViewPort(false);
+            s.setLoadWithOverviewMode(false);
+            web.setInitialScale(Math.round(100f * W / 1280f));
             web.setBackgroundColor(0xFF0A1017);
             web.addJavascriptInterface(new ClusterSkinActivity.PanelBridge(ctx), "Lab");
             web.setWebViewClient(new WebViewClient() {
@@ -112,7 +116,12 @@ public final class ClusterOverlay {
             web.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
 
             wm.addView(web, lp);
-            if (url != null) web.loadUrl(url);
+            if (url != null) {
+                /* tamanho real do painel: a skin se escala sozinha para preencher */
+                String u = url.indexOf('#') >= 0 ? url : url + "#";
+                u += (u.endsWith("#") ? "" : "&") + "pw=" + W + "&ph=" + H;
+                web.loadUrl(u);
+            }
             Log.i(TAG, "overlay do painel criado no display " + target.getDisplayId()
                     + " layerStack esperado do painel");
             return true;
