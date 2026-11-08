@@ -17,7 +17,7 @@
   window.__labSound = true;
 
   var engines = window.ENGINES;
-  var idx = 0, vol = 0.7, muted = false, started = false;
+  var idx = 0, vol = 1.0, muted = false, started = false;
   var rpmSim = 700, lastPw = 0;
 
   try { idx = Math.max(0, Math.min(engines.length - 1, parseInt(localStorage.getItem('evs_engine'), 10) || 0)); } catch (e) {}

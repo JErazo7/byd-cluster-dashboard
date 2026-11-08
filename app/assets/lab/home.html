@@ -41,6 +41,9 @@
 <div class="wrap">
   <h1>SharkLab</h1>
   <button class="start" id="start">ENCENDER<span class="sub" id="startSub">tocar para arrancar</span></button>
+  <div style="text-align:center;color:#7f8c9b;font-size:13px;margin:-10px 0 18px">
+    pedal <b id="ped" style="color:#38cfff">0%</b> · sonido <b id="snd" style="color:#37e07a">—</b>
+  </div>
   <div class="cards">
     <div class="card">
       <small>Tema actual</small>
@@ -171,6 +174,13 @@
 
   refresh();
   setInterval(refresh, 1500);
+  /* diagnóstico ao vivo */
+  setInterval(function () {
+    var ev = window.__labEv;
+    document.getElementById('ped').textContent = (ev ? Math.round(ev.tps || 0) : 0) + '%';
+    var e = window.EngineApp;
+    document.getElementById('snd').textContent = e ? (e.muted() ? 'mudo' : e.state()) : 'sin motor';
+  }, 300);
 })();
 </script>
 </body>

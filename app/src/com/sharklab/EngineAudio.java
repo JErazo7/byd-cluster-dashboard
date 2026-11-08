@@ -26,7 +26,7 @@ public final class EngineAudio {
     private static AudioTrack track;
     private static Thread thread;
     private static volatile boolean running;
-    private static volatile float volume = 0.7f;
+    private static volatile float volume = 1.0f;
     private static volatile boolean muted;
 
     private static volatile double rpm = 700, tps = 0, load = 0;
@@ -160,8 +160,8 @@ public final class EngineAudio {
             double a = 1 - Math.exp(-2 * Math.PI * Math.min(6000, Math.max(60, cut)) / SR);
             double inc = fire * TABLE / SR;
             double inc2 = inc * 1.006;
-            double amp = 0.5 + 0.45 * t;
-            double gain = (muted ? 0 : volume) * amp * (0.68 + 0.32 * load);
+            double amp = 0.75 + 0.35 * t;
+            double gain = (muted ? 0 : volume) * amp * (0.85 + 0.15 * load);
 
             for (int i = 0; i < buf.length; i++) {
                 phase += inc;
