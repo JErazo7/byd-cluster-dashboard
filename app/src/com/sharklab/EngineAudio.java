@@ -35,6 +35,8 @@ public final class EngineAudio {
     private static volatile double[] harmonics = {1, 0.7, 0.5, 0.35, 0.2, 0.15};
     private static volatile float[] table = buildTable(harmonics);
     private static volatile double popAt = -1;
+    private static volatile android.content.Context ctx;
+    private static volatile double comp = 1.0;
 
     private EngineAudio() {
     }
@@ -126,6 +128,31 @@ public final class EngineAudio {
         load = l;
     }
 
+    public static void init(android.content.Context c) {
+        ctx = c == null ? null : c.getApplicationContext();
+    }
+
+    /**
+     * Compensação de volume, igual à do EvSound (m.r.b): o motor sai em STREAM_MUSIC porque é
+     * o único canal que a central reproduz, então, para a música poder subir e descer sem
+     * mudar o motor, a ganho é normalizado pelo volume atual do stream.
+     * O valor desta app (0..1.5) é o alvo em % do máximo; o desvio em passos vira dB.
+     */
+    private static double compensation() {
+        double pct = Math.min(1.5, Math.max(0, volume));
+        if (pct <= 0) return 0;
+        try {
+            android.media.AudioManager am = (android.media.AudioManager)
+                    ctx.getSystemService(android.content.Context.AUDIO_SERVICE);
+            int cur = am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC);
+            int max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+            if (cur < 0 || max <= 0) return Math.min(1, pct);
+            return Math.min(1.5, Math.pow(10, -(cur - (pct * max)) / 20.0));
+        } catch (Throwable t) {
+            return Math.min(1, pct);
+        }
+    }
+
     public static void setVolume(float v) {
         volume = v;
     }
@@ -176,7 +203,8 @@ public final class EngineAudio {
             double t = Math.min(1, Math.max(0, (rpm - idle) / Math.max(1, limiter - idle)));
             double pedal = Math.min(1, Math.max(0, tps));
             double loadN = Math.min(1, Math.max(0, load));
-            double gain = (muted ? 0 : volume) * (0.55 + 0.45 * loadN);
+            if ((blocks % 20) == 0) comp = compensation();
+            double gain = (muted ? 0 : 1.0) * comp * (0.55 + 0.45 * loadN);
 
             /* ressonador preso à explosão: em ralenti fica grave, acelerando abre */
             /* ressonância no 3º harmônico da explosão: é a faixa que o alto-falante do carro

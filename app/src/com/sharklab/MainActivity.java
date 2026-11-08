@@ -173,6 +173,7 @@ public class MainActivity extends Activity {
         web.loadUrl("file:///android_asset/lab/home.html");
 
         startGps();
+        EngineAudio.init(this);
         startEngineLoop();
 
         if (getIntent() != null && getIntent().getBooleanExtra("jsontest", false)) {
