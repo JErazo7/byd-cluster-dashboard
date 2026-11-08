@@ -249,6 +249,10 @@ public class MainActivity extends Activity {
                         writeResult("pub2.json", "{\"launch\":\"" + String.valueOf(t).replace("\"", "'") + "\"}");
                     }
                 }
+            } else if (cmd.contains("overlay")) {
+                boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "shark"), true, false));
+                writeResult("overlay.json", "{\"ok\":" + ok + ",\"erro\":\""
+                        + ClusterOverlay.error().replace("\"", "'") + "\"}");
             } else if (cmd.contains("token")) {
                 wantProjection = true;
                 Mirror.request(this);
@@ -679,6 +683,25 @@ public class MainActivity extends Activity {
                 while (c.getCause() != null && c != c.getCause()) c = c.getCause();
                 return "erro: " + c;
             }
+        }
+
+        /** skin no painel como janela overlay (título que o container procura) */
+        @JavascriptInterface
+        public String overlayShow() {
+            SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+            boolean ok = ClusterOverlay.show(MainActivity.this,
+                    urlFor(p.getString("skin", "shark"), true, false));
+            return "{\"ok\":" + ok + ",\"erro\":\"" + ClusterOverlay.error().replace("\"", "'") + "\"}";
+        }
+
+        @JavascriptInterface
+        public void overlayHide() {
+            ClusterOverlay.hide();
+        }
+
+        @JavascriptInterface
+        public boolean overlayOn() {
+            return ClusterOverlay.running();
         }
 
         /** liga/desliga o tema no painel (persistente) */

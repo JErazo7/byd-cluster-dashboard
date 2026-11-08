@@ -29,6 +29,9 @@ public final class ClusterProjection {
             "shared_fission_bg_XDJAScreenProjection_1"
     };
     private static final int W = 1920, H = 720, DPI = 320;
+    /* o compositor da BYD pendura no painel a superfície por NOME (visto no SurfaceFlinger:
+       "EvSound painel"), não por display */
+    private static final String SURFACE_NAME = "EvSound painel";
 
     private static VirtualDisplay display;
     private static Surface surface;
@@ -59,7 +62,7 @@ public final class ClusterProjection {
         try {
             texture = new SurfaceTexture(0);
             texture.setDefaultBufferSize(W, H);
-            surface = new Surface(texture);
+            surface = namedSurface(W, H);
             display = mp.createVirtualDisplay(NAMES[0], W, H, DPI, 3, surface, null,
                     new Handler(Looper.getMainLooper()));
             if (display == null) {
@@ -106,6 +109,22 @@ public final class ClusterProjection {
             error = t.getClass().getSimpleName() + ": " + t.getMessage();
             Log.w(TAG, "projeção pública falhou", t);
             return -1;
+        }
+    }
+
+    /** Surface com nome (SurfaceControl); sem nome o painel ignora o display */
+    static Surface namedSurface(int w, int h) {
+        try {
+            Class<?> builder = Class.forName("android.view.SurfaceControl$Builder");
+            Object b = builder.getDeclaredConstructor().newInstance();
+            builder.getMethod("setName", String.class).invoke(b, SURFACE_NAME);
+            builder.getMethod("setBufferSize", int.class, int.class).invoke(b, w, h);
+            Object sc = builder.getMethod("build").invoke(b);
+            android.util.Log.i(TAG, "superfície nomeada: " + SURFACE_NAME);
+            return new Surface((android.view.SurfaceControl) sc);
+        } catch (Throwable t) {
+            android.util.Log.w(TAG, "SurfaceControl falhou (" + t + "), caindo para SurfaceTexture");
+            return new Surface(texture);
         }
     }
 
