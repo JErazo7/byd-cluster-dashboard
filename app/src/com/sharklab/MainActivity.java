@@ -205,13 +205,23 @@ public class MainActivity extends Activity {
             ui.postDelayed(new Runnable() {
                 public void run() {
                     try {
+                        /* display do painel: procura pelo nome que o container service usa */
+                        int did = 1;
+                        android.hardware.display.DisplayManager dm =
+                                (android.hardware.display.DisplayManager) getSystemService(DISPLAY_SERVICE);
+                        for (android.view.Display d : dm.getDisplays()) {
+                            if (String.valueOf(d.getName()).contains("fission_bg_xdjaVirtualSurface")) {
+                                did = d.getDisplayId();
+                            }
+                        }
                         ActivityOptions o = ActivityOptions.makeBasic();
-                        o.setLaunchDisplayId(1);
-                        Intent i = new Intent(MainActivity.this, MainActivity.class);
-                        i.putExtra("skinonly", true);
+                        o.setLaunchDisplayId(did);
+                        Intent i = new Intent(MainActivity.this, ClusterSkinActivity.class);
+                        i.putExtra(ClusterSkinActivity.EXTRA_URL,
+                                urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "shark"), true, false));
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                         startActivity(i, o.toBundle());
-                        Log.i(TAG, "disp: lançado no display 1");
+                        Log.i(TAG, "disp: lançado no display " + did);
                     } catch (Throwable t) {
                         Log.w(TAG, "disp: recusado", t);
                     }
