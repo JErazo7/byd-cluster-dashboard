@@ -148,17 +148,20 @@ public final class EngineAudio {
         short[] buf = new short[1024];
         double phase = 0, phase2 = 0, turboPhase = 0;
         double lp = 0, noise = 0, popEnv = 0;
+        int blocks = 0;
         long seed = 12345;
 
         while (running) {
             double fire = Math.max(20, rpm / 60.0 * (cylinders / 2.0));
             double t = Math.min(1, Math.max(0, (rpm - idle) / Math.max(1, limiter - idle)));
-            double cut = (cut0 + (cut1 - cut0) * Math.pow(t, 0.75)) * (0.55 + 0.45 * load);
+            /* piso de corte: em ralenti a explosão de um V8 é ~40 Hz e o alto-falante do carro
+               não reproduz isso — sem o piso o som existe e não se ouve */
+            double cut = Math.max(420, (cut0 + (cut1 - cut0) * Math.pow(t, 0.75)) * (0.55 + 0.45 * load));
             double a = 1 - Math.exp(-2 * Math.PI * Math.min(6000, Math.max(60, cut)) / SR);
             double inc = fire * TABLE / SR;
             double inc2 = inc * 1.006;
-            double amp = 0.25 + 0.55 * t;
-            double gain = (muted ? 0 : volume) * amp * (0.5 + 0.5 * load);
+            double amp = 0.5 + 0.45 * t;
+            double gain = (muted ? 0 : volume) * amp * (0.68 + 0.32 * load);
 
             for (int i = 0; i < buf.length; i++) {
                 phase += inc;
@@ -195,6 +198,18 @@ public final class EngineAudio {
                 if (out > 1) out = 1;
                 if (out < -1) out = -1;
                 buf[i] = (short) (out * 32000);
+            }
+            /* diagnóstico: pico do buffer uma vez por segundo */
+            if ((blocks++ % 43) == 0) {
+                short peak = 0;
+                for (int i = 0; i < buf.length; i++) {
+                    short v = buf[i];
+                    if (v < 0) v = (short) -v;
+                    if (v > peak) peak = v;
+                }
+                android.util.Log.i("SharkLab", "audio peak=" + peak + " rpm=" + (int) rpm
+                        + " tps=" + (int) (tps * 100) + " load=" + (int) (load * 100)
+                        + " vol=" + volume + " muted=" + muted);
             }
             try {
                 track.write(buf, 0, buf.length);
