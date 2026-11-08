@@ -171,7 +171,6 @@ public class MainActivity extends Activity {
         web.loadUrl("file:///android_asset/lab/home.html");
 
         startGps();
-        startCastWatch();
 
         if (getIntent() != null && getIntent().getBooleanExtra("jsontest", false)) {
             new Thread(new Runnable() {
@@ -402,32 +401,6 @@ public class MainActivity extends Activity {
             o.close();
         } catch (Throwable ignored) {
         }
-    }
-
-    /**
-     * O clúster não é um display Android: o AutoContainer só mostra o display virtual do
-     * painel enquanto o modo de projeção estiver ligado (cmd 16, tela cheia). O EvSound liga
-     * esse modo quando aplica um tema; sem ele, nenhuma janela no display do painel aparece.
-     *
-     * Por isso o app assume o painel sozinho: manda o cmd 16 logo ao abrir e reafirma a cada
-     * 5 s. O binder é barato e idempotente; assim a skin continua no painel mesmo que outro
-     * app (EvSound, Electro, Overdrive) devolva o painel para a BYD.
-     */
-    private void startCastWatch() {
-        ui.post(new Runnable() {
-            public void run() {
-                try {
-                    SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-                    if (p.getBoolean("cluster_cast", true)
-                            && !p.getBoolean("projection", false)
-                            && ClusterOverlay.running()) {
-                        bridge.clusterCast(16);
-                    }
-                } catch (Throwable ignored) {
-                }
-                ui.postDelayed(this, 5000);
-            }
-        });
     }
 
     /** velocidade do GPS (API pública): fonte real que não depende de permissão da BYD */

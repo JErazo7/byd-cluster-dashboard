@@ -16,7 +16,7 @@ texto y una app Android que las pinta en la pantalla central y en el panel detr�
 |---|---|
 | Panel/skin propio (SVG, 1920×720, claro/oscuro, panel entero, ancho variable) | ✅ |
 | Skin en el panel detrás del volante a pantalla completa, sin depender del EvSound | ✅ |
-| El app toma el panel solo: manda `AutoContainer` cmd 16 al abrir y lo reafirma cada 5 s | ✅ |
+| El app toma el panel solo: manda `AutoContainer` cmd 16 al abrir la ventana y al volver a primer plano | ✅ |
 | Carga de skins desde el almacenamiento (sin recompilar) | ✅ |
 | Tarjeta de control dentro del panel (skin, panel, cámara, volante) | ✅ |
 | Lectura de datos reales del BYD (CAN/DiLink) | ⏳ pendiente |
@@ -52,8 +52,8 @@ AutoContainer está en modo proyección**. Ese modo se pide por binder, tipo 100
 | 18 | vuelvo al panel original de BYD |
 
 La skin es una ventana `TYPE_APPLICATION_OVERLAY` creada con el contexto del display del
-panel. El app manda el cmd 16 al crear la ventana, en `onResume` y cada 5 s; así el panel
-vuelve solo aunque otro app (EvSound, Electro, Overdrive) lo devuelva a BYD.
+panel. El app manda el cmd 16 al crear la ventana y en `onResume`; con el EvSound
+desinstalado, nada más devuelve el panel a BYD.
 
 Para inspeccionar el panel desde la PC:
 
