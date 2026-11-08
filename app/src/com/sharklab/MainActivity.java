@@ -220,6 +220,64 @@ public class MainActivity extends Activity {
             }, 1200);
         }
 
+        /* disparador por arquivo (teste por adb): cmd.txt com "pub" / "token" / "proj" */
+        final String cmd = readCmdFile();
+        if (cmd != null && !cmd.isEmpty()) {
+            Log.i(TAG, "cmd.txt=" + cmd);
+            if (cmd.contains("pub")) {
+                int d = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "shark"), true, false));
+                writeResult("pub.json", "{\"display\":" + d + ",\"erro\":\""
+                        + ClusterProjection.error().replace("\"", "'") + "\"}");
+                if (d > 0) {
+                    try {
+                        ActivityOptions o = ActivityOptions.makeBasic();
+                        o.setLaunchDisplayId(d);
+                        Intent i3 = new Intent(this, MainActivity.class);
+                        i3.putExtra("skinonly", true);
+                        i3.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                        startActivity(i3, o.toBundle());
+                    } catch (Throwable t) {
+                        writeResult("pub2.json", "{\"launch\":\"" + String.valueOf(t).replace("\"", "'") + "\"}");
+                    }
+                }
+            } else if (cmd.contains("token")) {
+                wantProjection = true;
+                Mirror.request(this);
+            }
+        }
+
+        /* gancho: --ez pub true cria o display "evsound_mapa" (flags 3) e joga a skin nele */
+        if (getIntent() != null && getIntent().getBooleanExtra("pub", false)) {
+            int did = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "shark"), true, false));
+            try {
+                java.io.File f = new java.io.File(getExternalFilesDir(null), "pub.json");
+                java.io.FileOutputStream o = new java.io.FileOutputStream(f);
+                o.write(("{\"display\":" + did + ",\"erro\":\"" + ClusterProjection.error().replace("\"", "'") + "\"}")
+                        .getBytes("UTF-8"));
+                o.close();
+            } catch (Throwable ignored) {
+            }
+            if (did > 0) {
+                try {
+                    ActivityOptions o = ActivityOptions.makeBasic();
+                    o.setLaunchDisplayId(did);
+                    Intent i2 = new Intent(this, MainActivity.class);
+                    i2.putExtra("skinonly", true);
+                    i2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                    startActivity(i2, o.toBundle());
+                    Log.i(TAG, "skin lançada no display " + did);
+                } catch (Throwable t) {
+                    Log.w(TAG, "launch no display " + did + " recusado", t);
+                }
+            }
+        }
+
+        /* gancho de teste: --ez token true pede o consentimento e projeta com o token */
+        if (getIntent() != null && getIntent().getBooleanExtra("token", false)) {
+            wantProjection = true;
+            Mirror.request(this);
+        }
+
         /* gancho de teste por adb: --ez proj true|false força a projeção */
         if (getIntent() != null && getIntent().hasExtra("proj")) {
             boolean want = getIntent().getBooleanExtra("proj", true);
@@ -330,6 +388,30 @@ public class MainActivity extends Activity {
         while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
         in.close();
         web.evaluateJavascript(out.toString("UTF-8"), null);
+    }
+
+    private String readCmdFile() {
+        try {
+            java.io.File f = new java.io.File(getExternalFilesDir(null), "cmd.txt");
+            if (!f.isFile()) return "";
+            java.io.FileInputStream in = new java.io.FileInputStream(f);
+            byte[] b = new byte[(int) f.length()];
+            int n = in.read(b);
+            in.close();
+            return new String(b, 0, Math.max(0, n), "UTF-8").trim();
+        } catch (Throwable t) {
+            return "";
+        }
+    }
+
+    private void writeResult(String name, String json) {
+        try {
+            java.io.File f = new java.io.File(getExternalFilesDir(null), name);
+            java.io.FileOutputStream o = new java.io.FileOutputStream(f);
+            o.write(json.getBytes("UTF-8"));
+            o.close();
+        } catch (Throwable ignored) {
+        }
     }
 
     /** velocidade do GPS (API pública): fonte real que não depende de permissão da BYD */

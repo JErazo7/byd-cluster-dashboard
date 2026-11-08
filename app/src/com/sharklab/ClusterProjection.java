@@ -89,6 +89,26 @@ public final class ClusterProjection {
         }
     }
 
+    /** igual ao app de referência: display "evsound_mapa" com flags 3, sem token, e uma Activity dentro */
+    public static int startPublic(Context ctx, String url) {
+        stop();
+        error = "";
+        try {
+            DisplayManager dm = (DisplayManager) ctx.getSystemService(Context.DISPLAY_SERVICE);
+            texture = new SurfaceTexture(0);
+            texture.setDefaultBufferSize(W, H);
+            surface = new Surface(texture);
+            display = dm.createVirtualDisplay("evsound_mapa", W, H, DPI, surface, 3);
+            int id = display.getDisplay().getDisplayId();
+            Log.i(TAG, "projeção pública: evsound_mapa display " + id);
+            return id;
+        } catch (Throwable t) {
+            error = t.getClass().getSimpleName() + ": " + t.getMessage();
+            Log.w(TAG, "projeção pública falhou", t);
+            return -1;
+        }
+    }
+
     /** cria (ou recria) o display de projeção e a apresentação da skin */
     public static void start(Context ctx, MainActivity.Lab bridge, String url) {
         stop();
