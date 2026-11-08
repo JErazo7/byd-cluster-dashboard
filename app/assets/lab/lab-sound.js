@@ -21,7 +21,7 @@
   var rpmSim = 700, lastPw = 0;
 
   try { idx = Math.max(0, Math.min(engines.length - 1, parseInt(localStorage.getItem('evs_engine'), 10) || 0)); } catch (e) {}
-  try { muted = localStorage.getItem('evs_mute') === '1'; } catch (e) {}
+  /* o mudo NÃO persiste: depois de reiniciar o carro o motor precisa voltar a soar */
   try { var v0 = parseFloat(localStorage.getItem('evs_vol')); if (v0 >= 0 && v0 <= 1.5) vol = v0; } catch (e) {}
 
   function profileJson(e) {
@@ -74,6 +74,14 @@
     /* o alvo (rpm/pedal) é calculado no Java; aqui só se a ponte nativa não existir */
     if (started && !window.Lab.engineNative) window.Lab.engineSet(rpmSim, tps, load);
   }, 50);
+
+  /* com o arranque automático ligado, o motor soa junto com o carro */
+  try {
+    if (window.Lab.autostartGet && window.Lab.autostartGet()) {
+      select(idx);
+      start();
+    }
+  } catch (e) {}
 
   window.EngineApp = {
     list: function () { return engines.map(function (e) { return { id: e.id, name: e.name }; }); },

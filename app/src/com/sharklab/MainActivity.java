@@ -175,6 +175,7 @@ public class MainActivity extends Activity {
         startGps();
         EngineAudio.init(this);
         startEngineLoop();
+        startCastWatch();
 
         if (getIntent() != null && getIntent().getBooleanExtra("jsontest", false)) {
             new Thread(new Runnable() {
@@ -434,6 +435,29 @@ public class MainActivity extends Activity {
             o.close();
         } catch (Throwable ignored) {
         }
+    }
+
+    /**
+     * O clúster não é um display Android: o AutoContainer só mostra o display virtual do
+     * painel enquanto estiver "espelhando" (cmd 16). Quando o outro app fecha, ele devolve o
+     * painel para a BYD e a nossa janela continua desenhada, mas fora da tela — por isso o
+     * comando é reafirmado de tempos em tempos.
+     */
+    private void startCastWatch() {
+        ui.postDelayed(new Runnable() {
+            public void run() {
+                try {
+                    SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+                    if (p.getBoolean("cluster_cast", true)
+                            && !p.getBoolean("projection", false)
+                            && ClusterOverlay.running()) {
+                        bridge.clusterCast(16);
+                    }
+                } catch (Throwable ignored) {
+                }
+                ui.postDelayed(this, 30000);
+            }
+        }, 15000);
     }
 
     /**
