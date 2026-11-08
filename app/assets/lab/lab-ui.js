@@ -135,16 +135,6 @@
       }
     }
 
-    /* espejo de la central */
-    if (window.Lab && window.Lab.mirrorStart) {
-      section('Espejo');
-      var live = window.Lab.mirrorLive && window.Lab.mirrorLive();
-      var mb = el('button', { class: 'it', 'aria-pressed': live ? 'true' : 'false' },
-        live ? 'ESPEJO ACTIVO' : 'ESPEJAR LA CENTRAL (TIEMPO REAL)');
-      mb.addEventListener('click', function (e) { e.stopPropagation(); window.Lab.mirrorStart(); });
-      root.appendChild(mb);
-    }
-
     /* proyección al panel */
     if (window.Lab && window.Lab.clusterCast) {
       section('Proyección (avanzado)');

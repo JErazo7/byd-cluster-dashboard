@@ -124,6 +124,18 @@ public final class ClusterOverlay {
         }
     }
 
+    /** executa JS na skin do painel (arranque, recarregar tema) */
+    public static synchronized void javaScript(final String js) {
+        try {
+            if (web != null) web.post(new Runnable() {
+                public void run() {
+                    try { web.evaluateJavascript(js, null); } catch (Throwable ignored) {}
+                }
+            });
+        } catch (Throwable ignored) {
+        }
+    }
+
     public static synchronized void hide() {
         try {
             if (web != null && wm != null) wm.removeView(web);
