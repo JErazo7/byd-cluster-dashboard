@@ -49,10 +49,11 @@
   function dist(v) { return window.EvsDU === 2 ? v / 1.609344 : v; }
   var DIST_U = (window.EvsDU === 2) ? 'mi' : 'km';
 
+  var layer = svg;          /* tudo o que é interface vai aqui e pode ser mascarado */
   function el(tag, attrs, parent) {
     var n = document.createElementNS(NS, tag), k;
     for (k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
-    (parent || svg).appendChild(n);
+    (parent || layer).appendChild(n);
     return n;
   }
   function txt(x, y, s, size, cls, anchor, weight) {
@@ -114,6 +115,10 @@
   var tyreClip = el('clipPath', { id: 'cTyre' }, defs);
   el('rect', { x: 470, y: 330, width: 340, height: 116, rx: 18 }, tyreClip);
 
+  var safeMask = el('mask', { id: 'mSafe', maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: W, height: H }, defs);
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }, safeMask);
+  el('rect', { x: 427, y: -1, width: 426, height: 58, rx: 12, fill: '#000' }, safeMask);
+
   var clip = el('clipPath', { id: 'clipFrame' }, defs);
   el('rect', { x: 0, y: 0, width: W, height: H }, clip);
 
@@ -125,8 +130,9 @@
   el('rect', { x: 0, y: 380, width: W, height: 100, fill: '#04070c' }, gBg);
 
   /* arco fino de fundo atrás da velocidade */
-  el('path', { d: arcPath(640, 336, 296, 208, 332), fill: 'none', stroke: '#38cfff', 'stroke-width': 2.5, opacity: 0.45 });
-  el('path', { d: arcPath(640, 336, 310, 214, 326), fill: 'none', stroke: '#38cfff', 'stroke-width': 1.2, opacity: 0.2 });
+  layer = el('g', { mask: 'url(#mSafe)' });
+  el('path', { d: arcPath(640, 336, 258, 208, 332), fill: 'none', stroke: '#38cfff', 'stroke-width': 2.5, opacity: 0.45 });
+  el('path', { d: arcPath(640, 336, 270, 214, 326), fill: 'none', stroke: '#38cfff', 'stroke-width': 1.2, opacity: 0.2 });
 
   /* ---------- topo ---------- */
   var clockTxt = txt(24, 34, '', 22, 'num', 'start');
