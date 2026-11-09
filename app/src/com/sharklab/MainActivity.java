@@ -325,17 +325,12 @@ public class MainActivity extends Activity {
             bridge.clusterCast(16);
         }
 
-        /* skin no painel do motorista, pela projeção (quando habilitada) */
-        if (p.getBoolean("projection", false)) {
-            ClusterProjection.start(this, bridge, urlFor(p.getString("skin", "industria"), true, false));
-            ui.postDelayed(new Runnable() {
-                public void run() {
-                    if (ClusterProjection.running()) return;      /* projeção ok */
-                    Log.i(TAG, "sem projeção, usando espelho da IVI no painel");
-                    bridge.clusterCast(16);
-                }
-            }, 1500);
+        /* projeção com token: é o que faz o cluster aceitar o cmd 16 sem depender do EvSound */
+        if (!ClusterProjection.running()) {
+            wantProjection = true;
+            Mirror.request(this);      /* consentimento de captura, uma vez por processo */
         }
+        startPanelKeep();
 
         /* painel do motorista: uma Presentation no display virtual do carro */
         if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "industria"));
@@ -364,6 +359,26 @@ public class MainActivity extends Activity {
         boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
         Log.i(TAG, "painel: overlay recriado=" + ok + " " + ClusterOverlay.error());
         if (ok) bridge.clusterCast(16);
+    }
+
+    /**
+     * Com a projeção (token) ativa, reafirma o cmd 16 a cada 5 s: é o que devolve o painel
+     * quando outro app manda 18 ou quando o cluster volta ao layout nativo. Sem projeção
+     * registrada o 16 é recusado, então o laço só roda com a projeção viva.
+     */
+    private void startPanelKeep() {
+        Log.i(TAG, "panel keep: iniciado");
+        ui.post(new Runnable() {
+            public void run() {
+                try {
+                    if (ClusterProjection.running()) {
+                        bridge.clusterCast(16);
+                    }
+                } catch (Throwable ignored) {
+                }
+                ui.postDelayed(this, 5000);
+            }
+        });
     }
 
     private void hideSystemUi() {
@@ -532,6 +547,7 @@ public class MainActivity extends Activity {
                     android.media.projection.MediaProjection mp = mpm.getMediaProjection(result, data);
                     ClusterProjection.startWithProjection(this, mp, bridge,
                             urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria"), true, false));
+                    bridge.clusterCast(16);
                 } catch (Throwable t) {
                     Log.w(TAG, "projeção com token falhou", t);
                 }
