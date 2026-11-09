@@ -84,9 +84,11 @@
   var defs = el('defs');
 
   var gThr = el('linearGradient', { id: 'gThr', x1: '0.2', y1: '1', x2: '0.8', y2: '0' }, defs);
-  el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gThr);
-  el('stop', { offset: '0.55', 'stop-color': '#38cfff' }, gThr);
-  el('stop', { offset: '1', 'stop-color': '#9ef0ff' }, gThr);
+  var thrStop = [
+    el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gThr),
+    el('stop', { offset: '0.55', 'stop-color': '#38cfff' }, gThr),
+    el('stop', { offset: '1', 'stop-color': '#9ef0ff' }, gThr)
+  ];
 
   var gPow = el('linearGradient', { id: 'gPow', x1: '0.2', y1: '1', x2: '0.8', y2: '0' }, defs);
   el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gPow);
@@ -109,7 +111,7 @@
   el('stop', { offset: '1', 'stop-color': '#050c15', 'stop-opacity': '0.96' }, gCard);
 
   var tyreClip = el('clipPath', { id: 'cTyre' }, defs);
-  el('rect', { x: 574, y: 331, width: 132, height: 120, rx: 12 }, tyreClip);
+  el('rect', { x: 470, y: 330, width: 340, height: 120, rx: 18 }, tyreClip);
 
   var clip = el('clipPath', { id: 'clipFrame' }, defs);
   el('rect', { x: 0, y: 0, width: W, height: H }, clip);
@@ -251,13 +253,19 @@
 
   /* cartão 2: pressões, com o carro visto de cima */
   var c2 = card(470, 340);
-  /* a arte do carro já traz as linhas que apontam para as rodas: as etiquetas encostam nelas */
-  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 579, y: 333, width: 122, height: 116, 'clip-path': 'url(#cTyre)' }, c2);
-  var TYRE = [['fl', 508, 356, 'start'], ['fr', 772, 356, 'end'], ['rl', 508, 434, 'start'], ['rr', 772, 434, 'end']];
+  c2.firstChild.setAttribute('fill', '#04090f');
+  /* a imagem inteira preenche o cartão; os números ficam em cima, onde as linhas terminam */
+  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 533, y: 330, width: 213, height: 120,
+    preserveAspectRatio: 'xMidYMid meet' }, c2);
+  var TYRE = [['fl', 590, 358, 'end'], ['fr', 690, 358, 'start'], ['rl', 590, 424, 'end'], ['rr', 690, 424, 'start']];
   var tyreNum = {};
   TYRE.forEach(function (t) {
-    var n = txt(t[1], t[2], '--', 21, 'num', t[3]);
-    var u = el('tspan', { 'font-size': 11, class: 'mut', dx: 4 });
+    var n = txt(t[1], t[2], '--', 17, 'num', t[3]);
+    n.setAttribute('paint-order', 'stroke');
+    n.setAttribute('stroke', 'rgba(2,6,14,0.8)');
+    n.setAttribute('stroke-width', '3.5');
+    n.setAttribute('stroke-linejoin', 'round');
+    var u = el('tspan', { 'font-size': 10, class: 'mut', dx: 3 });
     u.textContent = '';
     n.appendChild(u);
     tyreNum[t[0]] = { num: n, unit: u };
@@ -302,6 +310,31 @@
 
   var MODES = { 1: 'ECO', 2: 'NORMAL', 3: 'SPORT' };
 
+  function rgb(hex) {
+    var n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function mix(a, b, t) {
+    var x = typeof a === 'string' ? rgb(a) : a, y = typeof b === 'string' ? rgb(b) : b;
+    return 'rgb(' + Math.round(x[0] + (y[0] - x[0]) * t) + ',' +
+      Math.round(x[1] + (y[1] - x[1]) * t) + ',' +
+      Math.round(x[2] + (y[2] - x[2]) * t) + ')';
+  }
+  /* pedal: azul até metade, âmbar a partir de 50% e vermelho no fim do curso */
+  function pedalColour(f) {
+    if (f <= 0.32) return mix('#1b6fe0', '#38cfff', f / 0.32);
+    if (f <= 0.55) return mix('#38cfff', '#5ce0ff', (f - 0.32) / 0.23);
+    if (f <= 0.75) return mix('#5ce0ff', '#ffbe3d', (f - 0.55) / 0.20);
+    return mix('#ffbe3d', '#ff4b3e', (f - 0.75) / 0.25);
+  }
+  function tintThrottle(f) {
+    var c = pedalColour(f);
+    thrStop[0].setAttribute('stop-color', mix(c, '#04121f', 0.35));
+    thrStop[1].setAttribute('stop-color', c);
+    thrStop[2].setAttribute('stop-color', mix(c, '#ffffff', 0.45));
+    thrRing.glow.setAttribute('opacity', (0.12 + 0.3 * f).toFixed(2));
+  }
+
   function draw(d) {
     var kmh = Math.max(0, d.speed || 0);
     spdNum.textContent = String(Math.round(spd(kmh)));
@@ -309,6 +342,7 @@
     var tps = Math.max(0, Math.min(100, d.tps || 0));
     thrNum.firstChild.nodeValue = String(Math.round(tps));
     setRing(thrRing, tps / 100);
+    tintThrottle(tps / 100);
 
     /* potência com sinal: negativo quando está regenerando */
     var kw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
