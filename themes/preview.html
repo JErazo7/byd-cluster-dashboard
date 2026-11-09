@@ -35,7 +35,8 @@
   <label>Velocidade <input id="speed" type="range" min="0" max="220" value="87"><span id="speedV">87</span></label>
   <label>Potência kW <input id="pw" type="range" min="-120" max="220" value="64"><span id="pwV">64</span></label>
   <label>Bateria % <input id="soc" type="range" min="0" max="100" value="68"><span id="socV">68</span></label>
-  <label>Combustível % <input id="fuel" type="range" min="0" max="100" value="62"><span id="fuelV">62</span></label>
+  <label>Depósito % <input id="fuel" type="range" min="0" max="100" value="62"><span id="fuelV">62</span></label>
+  <label>Combustível km <input id="fuelKm" type="range" min="0" max="950" step="10" value="640"><span id="fuelKmV">640</span></label>
   <label>Pedal % <input id="tps" type="range" min="0" max="100" value="34"><span id="tpsV">34</span></label>
   <label>Marcha <select id="sel"><option>P</option><option>R</option><option>N</option><option selected>D</option></select></label>
   <label>Modo <select id="drive"><option>ECO</option><option selected>NORMAL</option><option>MONTAÑA</option><option>NIEVE</option><option>ARENA</option><option>LODO</option><option>SPORT</option></select></label>
@@ -64,7 +65,7 @@
     f.contentWindow.EvsPU = 1; f.contentWindow.EvsDU = 1; f.contentWindow.EvsSU = 1;
     f.contentWindow.BrasaDriveUpdate({
       speed: +$('speed').value, rpm: 1800, gear: '3', tps: +$('tps').value, map: 1.2, boostBar: 0,
-      soc: +$('soc').value, fuel: +$('fuel').value, lambda: 1, brake: 0,
+      soc: +$('soc').value, fuel: +$('fuel').value, fuelKm: +$('fuelKm').value, lambda: 1, brake: 0,
       turnLeft: turn === '1' ? 1 : 0, turnRight: turn === '2' ? 1 : 0,
       on: true, sel: $('sel').value, car: 'V8', pw: +$('pw').value, odo: 12843, range: 412, tout: 24, btemp: 32,
       dmode: 2, drive: $('drive').value, ready: 1, regen: 0, v12: 13.8, phone: -1, tt: {}, rhd: false, warn: [],
@@ -90,7 +91,7 @@
     f.src = 'dash/' + $('theme').value + '/index.html' + (v ? v : '#nopreview=1') + (v ? '&' : '') + 'v=' + Date.now();
   }
 
-  ['speed', 'pw', 'soc', 'fuel', 'tps'].forEach(function (id) {
+  ['speed', 'pw', 'soc', 'fuel', 'fuelKm', 'tps'].forEach(function (id) {
     $(id).addEventListener('input', function () { $(id + 'V').textContent = this.value; feed(); });
   });
   ['sel', 'drive', 'turn'].forEach(function (id) { $(id).addEventListener('change', feed); });
