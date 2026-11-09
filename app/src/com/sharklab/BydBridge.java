@@ -102,6 +102,23 @@ public final class BydBridge {
     private static final String[][] DRIVE_CONFIG = {
             {P + "setting.BYDAutoSettingDevice", "getDriveConfig"}
     };
+    /* outros candidatos a carregar o modo de condução (medidos um por um no carro) */
+    private static final String[][] SURF_MODE = {
+            {P + "energy.BYDAutoEnergyDevice", "getRoadSurfaceMode"}
+    };
+    private static final String[][] DC_MODE = {
+            {P + "energy.BYDAutoEnergyDevice", "getDCWorkMode"}
+    };
+    private static final String[][] OP_MODE = {
+            {P + "energy.BYDAutoEnergyDevice", "getOperationMode"}
+    };
+    private static final String[][] MENU_STATE = {
+            {P + "instrument.BYDAutoInstrumentDevice", "get2in1MenuState"}
+    };
+    private static final String[][] AUTO_MODE = {
+            {P + "gearbox.BYDAutoGearboxDevice", "getGearboxAutoModeType"}
+    };
+
     /* as quatro luzes de modo do painel: a que estiver acesa é o modo ativo */
     private static final String[][] M_NORMAL = {
             {P + "instrument.BYDAutoInstrumentDevice", "get2in1FaultNormalIndicator"}
@@ -360,7 +377,12 @@ public final class BydBridge {
                 first(M_NORMAL),                        /* 19 luz do modo normal */
                 first(M_MUD),                           /* 20 luz do modo lama */
                 first(M_SAND),                          /* 21 luz do modo areia */
-                first(M_GRASS)                          /* 22 luz do modo grama/neve */
+                first(M_GRASS),                         /* 22 luz do modo grama/neve */
+                first(SURF_MODE),                       /* 23 energy.getRoadSurfaceMode */
+                first(DC_MODE),                         /* 24 energy.getDCWorkMode */
+                first(OP_MODE),                         /* 25 energy.getOperationMode */
+                first(MENU_STATE),                      /* 26 instrument.get2in1MenuState */
+                first(AUTO_MODE)                        /* 27 gearbox.getGearboxAutoModeType */
         };
     }
 }

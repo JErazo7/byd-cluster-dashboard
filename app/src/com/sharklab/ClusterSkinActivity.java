@@ -104,23 +104,25 @@ public class ClusterSkinActivity extends Activity {
                     + ",\"dcfg\":" + num(b[18]) + ",\"surf\":" + num(b[17]) + ",\"emode\":" + num(b[16])
                     + ",\"mNormal\":" + num(b[19]) + ",\"mMud\":" + num(b[20])
                     + ",\"mSand\":" + num(b[21]) + ",\"mGrass\":" + num(b[22])
+                    + ",\"surfmode\":" + num(b[23]) + ",\"dcmode\":" + num(b[24])
+                    + ",\"opmode\":" + num(b[25]) + ",\"menu\":" + num(b[26])
+                    + ",\"automode\":" + num(b[27])
                     + ",\"v12\":" + (b[9] > -998 ? b[9] : 13.8)
                     + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"adas\":" + byd.adasJson()
                     + ",\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":null}";
         }
 
         /**
-         * Modo ativo. As luzes do painel NÃO são booleanas (65535 = não se aplica, 8322 em
-         * todas) e dcfg/surf ainda não mudaram entre ECO e NORMAL medidas no carro, então a
-         * tabela abaixo só tem o que foi confirmado; o resto cai em NORMAL em vez de chutar.
+         * Modo ativo, medido no carro: quem carrega o modo é `energy.getRoadSurfaceMode()`,
+         * 1 = montanha, 2 = neve, 3 = lama, 4 = areia e 5 = asfalto (normal). As luzes do
+         * painel não são booleanas (65535/8322) e `dcfg` ficou em 2 em ECO e NORMAL, então
+         * eco/sport não se distinguem — caem em NORMAL em vez de mentir.
          */
         private String driveName(double[] b) {
-            int cfg = b[18] > -998 ? (int) b[18] : -1;
-            int surf = b[17] > -998 ? (int) b[17] : -1;
-            if (cfg == 1) return "ECO";
-            if (cfg == 3) return "SPORT";
-            if (surf == 1) return "NIEVE";
-            if (surf == 2) return "LODO";
+            int surf = b[23] > -998 ? (int) b[23] : -1;
+            if (surf == 1) return "MONTAÑA";
+            if (surf == 2) return "NIEVE";
+            if (surf == 3) return "LODO";
             if (surf == 4) return "ARENA";
             return "NORMAL";
         }
