@@ -331,6 +331,7 @@ public class MainActivity extends Activity {
             Mirror.request(this);      /* consentimento de captura, uma vez por processo */
         }
         startPanelKeep();
+        AdbShell.start(this);
 
         /* painel do motorista: uma Presentation no display virtual do carro */
         if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "industria"));
@@ -376,7 +377,7 @@ public class MainActivity extends Activity {
                     }
                 } catch (Throwable ignored) {
                 }
-                ui.postDelayed(this, 5000);
+                ui.postDelayed(this, 60000);
             }
         });
     }
