@@ -106,23 +106,23 @@ public class ClusterSkinActivity extends Activity {
                     + ",\"mSand\":" + num(b[21]) + ",\"mGrass\":" + num(b[22])
                     + ",\"v12\":" + (b[9] > -998 ? b[9] : 13.8)
                     + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"adas\":" + byd.adasJson()
-                    + ",\"tyre\":null,\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":null}";
+                    + ",\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":null}";
         }
 
-        /** modo ativo: as luzes do painel (lama/areia/grama) mandam, `dcfg` cobre eco/sport */
+        /**
+         * Modo ativo. As luzes do painel NÃO são booleanas (65535 = não se aplica, 8322 em
+         * todas) e dcfg/surf ainda não mudaram entre ECO e NORMAL medidas no carro, então a
+         * tabela abaixo só tem o que foi confirmado; o resto cai em NORMAL em vez de chutar.
+         */
         private String driveName(double[] b) {
-            if (lit(b[20])) return "LODO";
-            if (lit(b[21])) return "ARENA";
-            if (lit(b[22])) return "NIEVE";
             int cfg = b[18] > -998 ? (int) b[18] : -1;
+            int surf = b[17] > -998 ? (int) b[17] : -1;
             if (cfg == 1) return "ECO";
             if (cfg == 3) return "SPORT";
+            if (surf == 1) return "NIEVE";
+            if (surf == 2) return "LODO";
+            if (surf == 4) return "ARENA";
             return "NORMAL";
-        }
-
-        /** luz acesa: 1/true; 65535 e negativos são sentinela */
-        private boolean lit(double v) {
-            return v > 0.5 && v < 65000;
         }
 
         /** número inteiro ou -999 (o contrato das skins usa -999 como "sem leitura") */
@@ -142,11 +142,14 @@ public class ClusterSkinActivity extends Activity {
         private String tyres() {
             double fl = byd.tyre(1), fr = byd.tyre(2), rl = byd.tyre(3), rr = byd.tyre(4);
             if (fl <= -998 && fr <= -998 && rl <= -998 && rr <= -998) return "null";
-            return "{\"fl\":" + raw(fl) + ",\"fr\":" + raw(fr) + ",\"rl\":" + raw(rl) + ",\"rr\":" + raw(rr) + "}";
+            /* o carro devolve kPa (265); o cartão mostra bar */
+            return "{\"fl\":" + bar(fl) + ",\"fr\":" + bar(fr) + ",\"rl\":" + bar(rl) + ",\"rr\":" + bar(rr) + "}";
         }
 
-        private String raw(double v) {
-            return String.valueOf(v > -998 ? Math.round(v * 10) / 10.0 : -999);
+        private String bar(double kpa) {
+            if (kpa <= -998) return "-999";
+            double bar = kpa > 20 ? kpa / 100.0 : kpa;      /* já em bar em algumas versões */
+            return String.valueOf(Math.round(bar * 10) / 10.0);
         }
 
         /** diagnóstico do TPMS, para a skin de sonda */
