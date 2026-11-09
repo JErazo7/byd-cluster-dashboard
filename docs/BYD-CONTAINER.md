@@ -130,3 +130,14 @@ O EvSound não usa MediaProjection: ele conversa com o adbd local (`127.0.0.1:55
 
 Verificado (EvSound desabilitado): conecta sem prompt, `cmd 16` assume o painel, `cmd 18`
 devolve a barra da BYD e o laço de 60 s retoma a skin sozinho.
+
+## Cores trocadas no painel (R e B)
+
+Medido em 2026-11-09 com o painel ao vivo: a skin mandava `#0480ff` (azul) e o painel mostrava
+`#ff8004` (laranja) — os canais R e B invertidos. Branco e cinza passam intactos, o que explica
+o sintoma "fotos laranja com texto branco". A camada é nossa (os ícones da BYD na faixa do topo
+saem nas cores certas), então a suspeita fica na janela: `PixelFormat.TRANSLUCENT` deixa o
+container escolher o formato. Agora o overlay pede `PixelFormat.RGBA_8888` explícito.
+
+Se ainda sair trocado, a segunda alavanca é o WebView: `ClusterOverlay` usa
+`LAYER_TYPE_HARDWARE`; passar para `LAYER_TYPE_SOFTWARE` testa o caminho de composição do GPU.

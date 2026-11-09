@@ -79,6 +79,26 @@ public final class BydBridge {
             {P + "instrument.BYDAutoInstrumentDevice", "getSpeedUnit"}
     };
 
+    /* combustível, pneus e estado de energia — lidos da API do carro (ver shark_gate/BYD_VEHICLE_API.md) */
+    private static final String[][] FUEL = {
+            {P + "statistic.BYDAutoStatisticDevice", "getFuelPercentageValue"}
+    };
+    private static final String[][] FUEL_KM = {
+            {P + "statistic.BYDAutoStatisticDevice", "getFuelDrivingRangeValue"}
+    };
+    private static final String[][] ENGINE_SPEED = {
+            {P + "engine.BYDAutoEngineDevice", "getEngineSpeed"}
+    };
+    private static final String[][] ENERGY_MODE = {
+            {P + "energy.BYDAutoEnergyDevice", "getEnergyMode"}
+    };
+    private static final String[][] ROAD_SURFACE = {
+            {P + "energy.BYDAutoEnergyDevice", "getRoadSurfacKind"}
+    };
+    private static final String[][] DRIVE_CONFIG = {
+            {P + "setting.BYDAutoSettingDevice", "getDriveConfig"}
+    };
+
     /* ADAS: só estados e distâncias do radar da BYD — nada de câmera nem modelo */
     private static final String[][] BSD = {{P + "adas.BYDAutoADASDevice", "getBSDState"}};
     private static final String[][] LKS = {{P + "adas.BYDAutoADASDevice", "getLKSMode"}};
@@ -132,6 +152,20 @@ public final class BydBridge {
         } catch (Throwable ignored) {
         }
         return null;
+    }
+
+    /** getter com um argumento int (getTyrePressureValue(1..4), por exemplo) */
+    private double numInt(String cls, String method, int arg) {
+        Object d = device(cls);
+        if (d == null) return NONE;
+        try {
+            Method m = d.getClass().getMethod(method, int.class);
+            m.setAccessible(true);
+            Object v = m.invoke(d, arg);
+            if (v instanceof Number) return ((Number) v).doubleValue();
+        } catch (Throwable ignored) {
+        }
+        return NONE;
     }
 
     private double first(String[][] candidates) {
@@ -233,6 +267,11 @@ public final class BydBridge {
         return v;
     }
 
+    /** pressão de um pneu; 1 = dianteiro esquerdo, 2 = dianteiro direito, 3/4 = traseiros */
+    public double tyre(int n) {
+        return numInt(P + "tyre.BYDAutoTyreDevice", "getTyrePressureValue", n);
+    }
+
     /** snapshot cru; -999 = sem leitura */
     public double[] snapshot() {
         double speed = first(SPEED);
@@ -250,7 +289,13 @@ public final class BydBridge {
                 first(V12),                             /* 9 V */
                 first(TURN),                            /* 10 pisca */
                 first(PWR_UNIT),                        /* 11 1 kW / 2 hp */
-                first(SPD_UNIT)                         /* 12 1 km/h / 2 mph */
+                first(SPD_UNIT),                        /* 12 1 km/h / 2 mph */
+                first(FUEL),                            /* 13 % tanque */
+                first(FUEL_KM),                         /* 14 km a combustível */
+                first(ENGINE_SPEED),                    /* 15 rpm do motor */
+                first(ENERGY_MODE),                     /* 16 modo de energia (cru) */
+                first(ROAD_SURFACE),                    /* 17 tipo de piso (cru) */
+                first(DRIVE_CONFIG)                     /* 18 config de condução (cru) */
         };
     }
 }

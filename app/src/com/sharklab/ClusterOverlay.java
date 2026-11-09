@@ -116,7 +116,10 @@ public final class ClusterOverlay {
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT,
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    PixelFormat.TRANSLUCENT);
+                    /* RGBA_8888 explícito: com TRANSLUCENT a camada saía no painel com R e B
+                       trocados — o azul da skin (#0480ff) chegava na tela como #ff8004. A skin
+                       pinta o quadro inteiro, então não há transparência a perder. */
+                    PixelFormat.RGBA_8888);
             lp.gravity = Gravity.TOP | Gravity.START;
             lp.x = 0;
             lp.y = 0;

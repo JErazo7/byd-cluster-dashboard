@@ -98,9 +98,35 @@ public class ClusterSkinActivity extends Activity {
                     + ",\"range\":" + (b[4] > -998 ? (int) b[4] : -999)
                     + ",\"tout\":" + (b[7] > -998 ? (int) b[7] : -999)
                     + ",\"btemp\":-999,\"dmode\":2,\"drive\":\"NORMAL\",\"ready\":1,\"regen\":0"
+                    + ",\"fuel\":" + num(b[13]) + ",\"fuelKm\":" + num(b[14])
+                    + ",\"ev\":" + evState(b)
+                    + ",\"tyre\":" + tyres()
+                    + ",\"dcfg\":" + num(b[18]) + ",\"surf\":" + num(b[17]) + ",\"emode\":" + num(b[16])
                     + ",\"v12\":" + (b[9] > -998 ? b[9] : 13.8)
                     + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"adas\":" + byd.adasJson()
                     + ",\"tyre\":null,\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":null}";
+        }
+
+        /** número inteiro ou -999 (o contrato das skins usa -999 como "sem leitura") */
+        private String num(double v) {
+            return String.valueOf(v > -998 ? (int) Math.round(v) : -999);
+        }
+
+        /** EV quando o motor a combustão está parado, HEV quando ele gira */
+        private String evState(double[] b) {
+            if (b[15] <= -998) return "null";
+            return b[15] < 1 ? "1" : "0";
+        }
+
+        /** pressões cruas dos quatro pneus; null quando o carro não responde */
+        private String tyres() {
+            double fl = byd.tyre(1), fr = byd.tyre(2), rl = byd.tyre(3), rr = byd.tyre(4);
+            if (fl <= -998 && fr <= -998 && rl <= -998 && rr <= -998) return "null";
+            return "{\"fl\":" + raw(fl) + ",\"fr\":" + raw(fr) + ",\"rl\":" + raw(rl) + ",\"rr\":" + raw(rr) + "}";
+        }
+
+        private String raw(double v) {
+            return String.valueOf(v > -998 ? Math.round(v * 10) / 10.0 : -999);
         }
 
         @android.webkit.JavascriptInterface

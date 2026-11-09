@@ -672,10 +672,23 @@ public class MainActivity extends Activity {
                     + ",\"pw\":" + pw
                     + ",\"odo\":" + odo + ",\"range\":" + range
                     + ",\"tout\":" + temp + ",\"btemp\":30,\"dmode\":2,\"drive\":\"ECO\",\"ready\":1,\"regen\":0"
+                    + ",\"fuel\":" + i(b[13]) + ",\"fuelKm\":" + i(b[14])
+                    + ",\"ev\":" + (b[15] > -998 ? (b[15] < 1 ? "1" : "0") : "null")
+                    + ",\"tyre\":" + tyreJson(b)
                     + ",\"v12\":" + v12
                     + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"tyre\":null"
                     + ",\"adas\":" + byd.adasJson()
                     + ",\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":{\"km\":12.4}}";
+        }
+
+        private String i(double v) {
+            return String.valueOf(v > -998 ? (int) Math.round(v) : -999);
+        }
+
+        private String tyreJson(double[] b) {
+            double fl = byd.tyre(1), fr = byd.tyre(2), rl = byd.tyre(3), rr = byd.tyre(4);
+            if (fl <= -998 && fr <= -998 && rl <= -998 && rr <= -998) return "null";
+            return "{\"fl\":" + fl + ",\"fr\":" + fr + ",\"rl\":" + rl + ",\"rr\":" + rr + "}";
         }
 
         /** giro estimado a partir da velocidade e da marcha (as APIs do BYD não dão rpm) */
