@@ -228,12 +228,18 @@
   var c1 = card(14, 446);
   batteryIcon(44, 348, c1);
   var batNum = txt(74, 374, '--', 27, 'num', 'start');
+  var batUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
+  batUnit.textContent = '';
+  batNum.appendChild(batUnit);
   txt(74, 392, T.bat, 11, 'mut', 'start');
   rrect(44, 404, 148, 6, 3, { fill: '#0e1d2c' }, c1);
   var batBar = rrect(44, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
 
   pumpIcon(238, 348, c1);
   var fuelNum = txt(288, 374, '--', 27, 'num', 'start');
+  var fuelUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
+  fuelUnit.textContent = '';
+  fuelNum.appendChild(fuelUnit);
   txt(288, 392, T.fuel, 11, 'mut', 'start');
   rrect(238, 404, 158, 6, 3, { fill: '#0e1d2c' }, c1);
   var fuelBar = rrect(238, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
@@ -324,12 +330,23 @@
     modeTxt.textContent = mode.toUpperCase();
 
     var soc = pct(d.soc);
-    batNum.textContent = soc === null ? '--' : String(Math.round(soc));
+    batNum.firstChild.nodeValue = soc === null ? '--' : String(Math.round(soc));
+    batUnit.textContent = soc === null ? '' : '%';
     batBar.setAttribute('width', soc === null ? 0 : (148 * soc / 100).toFixed(1));
 
+    /* o combustível aparece em km (autonomia): `fuelKm`; se só vier a porcentagem do tanque,
+       mostra em % e a barra usa essa porcentagem */
     var fuel = pct(d.fuel);
-    fuelNum.textContent = fuel === null ? '--' : String(Math.round(fuel));
-    fuelBar.setAttribute('width', fuel === null ? 0 : (148 * fuel / 100).toFixed(1));
+    var fuelKm = (d.fuelKm == null || d.fuelKm === -999) ? null : d.fuelKm;
+    if (fuelKm !== null) {
+      fuelNum.firstChild.nodeValue = String(Math.round(dist(fuelKm)));
+      fuelUnit.textContent = DIST_U;
+    } else {
+      fuelNum.firstChild.nodeValue = fuel === null ? '--' : String(Math.round(fuel));
+      fuelUnit.textContent = fuel === null ? '' : '%';
+    }
+    var fuelFrac = fuel !== null ? fuel / 100 : (fuelKm !== null ? Math.min(1, fuelKm / 900) : 0);
+    fuelBar.setAttribute('width', (158 * fuelFrac).toFixed(1));
 
     var rg = (d.range === -999 || d.range == null) ? null : d.range;
     rangeNum.textContent = rg === null ? '--' : (Math.round(dist(rg)) + ' ' + DIST_U);
