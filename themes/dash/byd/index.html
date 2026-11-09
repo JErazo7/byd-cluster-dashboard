@@ -52,9 +52,9 @@
 
   var LANG = (/[#&]lang=(pt|es|en)/.exec(location.hash) || [])[1] || 'es';
   var T = ({
-    es: { thr: 'Acelerador', pow: 'Potencia', kmh: 'km/h', bat: 'Batería', fuel: 'Combustible', range: 'Autonomía Total', cons: 'Consumo', regen: 'Regeneración' },
-    pt: { thr: 'Acelerador', pow: 'Potência', kmh: 'km/h', bat: 'Bateria', fuel: 'Combustível', range: 'Autonomia Total', cons: 'Consumo', regen: 'Regeneração' },
-    en: { thr: 'Throttle', pow: 'Power', kmh: 'mph', bat: 'Battery', fuel: 'Fuel', range: 'Total Range', cons: 'Consumption', regen: 'Regen' }
+    es: { thr: 'Acelerador', pow: 'Potencia', kmh: 'km/h', bat: 'Batería', fuel: 'Combustible', range: 'Autonomía EV', cons: 'Consumo', regen: 'Regeneración' },
+    pt: { thr: 'Acelerador', pow: 'Potência', kmh: 'km/h', bat: 'Bateria', fuel: 'Combustível', range: 'Autonomia EV', cons: 'Consumo', regen: 'Regeneração' },
+    en: { thr: 'Throttle', pow: 'Power', kmh: 'mph', bat: 'Battery', fuel: 'Fuel', range: 'EV Range', cons: 'Consumption', regen: 'Regen' }
   })[LANG] || {};
 
   /* unidades do painel BYD: 1 = métrico, 2 = imperial (o app manda km, km/h e kW) */
@@ -523,11 +523,14 @@
   }
 
   function draw(d) {
-    var mode0 = (typeof d.drive === 'string' && d.drive) ? d.drive : (MODES[+d.dmode] || '');
+    var mode0 = ((typeof d.drive === 'string' && d.drive) ? d.drive : (MODES[+d.dmode] || ''))
+      .replace(/^\s+|\s+$/g, '');
     var kmh = Math.max(0, d.speed || 0);
     spdNum.textContent = String(Math.round(spd(kmh)));
 
-    var tps = Math.max(0, Math.min(100, d.tps || 0));
+    /* o feed do carro manda `ped`; `tps` é o nome do contrato antigo */
+    var pedalRaw = (d.tps != null) ? d.tps : d.ped;
+    var tps = Math.max(0, Math.min(100, pedalRaw || 0));
     thrNum.firstChild.nodeValue = String(Math.round(tps));
     var sport = /SPORT/i.test(mode0);
     var scene = sceneFor(mode0);
@@ -550,7 +553,7 @@
     bolt.setAttribute('fill', regen ? '#38cfff' : '#ff9a3c');
 
     /* o feed manda o modo como texto em `drive` e o código em `dmode` (2 = NORMAL) */
-    var mode = (typeof d.drive === 'string' && d.drive) ? d.drive : (MODES[+d.dmode] || '');
+    var mode = ((typeof d.drive === 'string' && d.drive) ? d.drive : (MODES[+d.dmode] || '')).replace(/^\s+|\s+$/g, '');
     modeTxt.textContent = mode.toUpperCase();
     modeGlyph(mode);
 
@@ -630,7 +633,10 @@
     }
 
     /* seletor: a marcha ativa acende */
-    var sel = d.sel || 'P';
+    /* `sel` pronto ('P','R','N','D') ou o código do carro em `gsel` (0 N, 1 R, 2 D, 3 P, 4 N) */
+    var GSEL = { 0: 'N', 1: 'R', 2: 'D', 3: 'P', 4: 'N' };
+    var sel = (typeof d.sel === 'string' && d.sel) ? d.sel.toUpperCase()
+      : (GSEL[+d.gsel] || 'P');
     gearCells.forEach(function (c, i) {
       var on = SEL_ORDER[i] === sel;
       c.bg.setAttribute('fill', on ? 'rgba(4,128,255,0.3)' : 'rgba(11,24,38,0.9)');
