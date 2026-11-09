@@ -112,10 +112,12 @@ public class ClusterSkinActivity extends Activity {
             return String.valueOf(v > -998 ? (int) Math.round(v) : -999);
         }
 
-        /** EV quando o motor a combustão está parado, HEV quando ele gira */
+        /** EV quando o motor a combustão está parado, HEV quando ele gira.
+         *  Rotações fora de 200..8000 (0, 65535, -10011) são sentinela: motor parado. */
         private String evState(double[] b) {
             if (b[15] <= -998) return "null";
-            return b[15] < 1 ? "1" : "0";
+            boolean running = b[15] >= 200 && b[15] <= 8000;
+            return running ? "0" : "1";
         }
 
         /** pressões cruas dos quatro pneus; null quando o carro não responde */

@@ -673,7 +673,7 @@ public class MainActivity extends Activity {
                     + ",\"odo\":" + odo + ",\"range\":" + range
                     + ",\"tout\":" + temp + ",\"btemp\":30,\"dmode\":2,\"drive\":\"ECO\",\"ready\":1,\"regen\":0"
                     + ",\"fuel\":" + i(b[13]) + ",\"fuelKm\":" + i(b[14])
-                    + ",\"ev\":" + (b[15] > -998 ? (b[15] < 1 ? "1" : "0") : "null")
+                    + ",\"ev\":" + (b[15] > -998 ? ((b[15] >= 200 && b[15] <= 8000) ? "0" : "1") : "null")
                     + ",\"tyre\":" + tyreJson(b)
                     + ",\"v12\":" + v12
                     + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"tyre\":null"
