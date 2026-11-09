@@ -144,7 +144,7 @@
   var odoTxt = txt(1264, 38, '', 19, 'num', 'end');
 
   /* ---------- aros ---------- */
-  var RING_Y = 202, R = 104, LX = 172, RX = W - 172;
+  var RING_Y = 224, R = 138, LX = 144, RX = W - 144;
   var A_THR = 135, DIR_THR = 1;   /* esquerda: começa embaixo à esquerda e sobe pelo lado esquerdo */
   var A_POW = 45, DIR_POW = -1;   /* direita: começa embaixo à direita e sobe pelo lado direito */
 
@@ -152,8 +152,18 @@
     var g = el('g');
     el('circle', { cx: cx, cy: RING_Y, r: R, fill: 'none', stroke: '#22405c', 'stroke-width': 2.4 }, g);
     el('circle', { cx: cx, cy: RING_Y, r: R - 9, fill: 'none', stroke: '#12253a', 'stroke-width': 1.2 }, g);
-    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 26, 'stroke-linecap': 'round', opacity: 0.14 }, g);
-    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 17, 'stroke-linecap': 'round' }, g);
+    /* marcas de escala: 30 traços curtos por dentro do aro */
+    for (var t = 0; t < 30; t++) {
+      var a = t * 12;
+      var q0 = pt(cx, RING_Y, R - 26, a), q1 = pt(cx, RING_Y, R - 16, a);
+      el('line', {
+        x1: q0[0], y1: q0[1], x2: q1[0], y2: q1[1],
+        stroke: '#2b4a68', 'stroke-width': t % 5 === 0 ? 2 : 1.1, 'stroke-linecap': 'round',
+        opacity: t % 5 === 0 ? 0.85 : 0.5
+      }, g);
+    }
+    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 34, 'stroke-linecap': 'round', opacity: 0.14 }, g);
+    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 22, 'stroke-linecap': 'round' }, g);
     return { glow: glow, val: val, cx: cx, a0: a0, dir: dir };
   }
   function setRing(rg, frac) {
@@ -166,22 +176,22 @@
   var powRing = ring(RX, 'url(#gPow)', A_POW, DIR_POW);
 
   /* rótulo em cima e valor+unidade centrados como um bloco só dentro do aro */
-  var lblThr = txt(LX, 176, T.thr, 19, 'dim');
+  var lblThr = txt(LX, 198, T.thr, 20, 'dim');
   lblThr.setAttribute('letter-spacing', '1.2');
-  var thrNum = txt(LX, 244, '0', 56, 'num');
-  var thrUnit = el('tspan', { 'font-size': 22, class: 'dim', dx: 4 });
+  var thrNum = txt(LX, 266, '0', 60, 'num');
+  var thrUnit = el('tspan', { 'font-size': 24, class: 'dim', dx: 4 });
   thrUnit.textContent = '%';
   thrNum.appendChild(thrUnit);
 
-  var bolt = el('path', { d: 'M' + (RX - 4) + ' 150 l9 -16 l-2.5 10.5 h8 l-10 17 l2.5 -11.5 z', fill: '#ff9a3c', opacity: 0.9 });
-  var lblPow = txt(RX, 176, T.pow, 19, 'dim');
+  var bolt = el('path', { d: 'M' + (RX - 4) + ' 170 l9 -16 l-2.5 10.5 h8 l-10 17 l2.5 -11.5 z', fill: '#ff9a3c', opacity: 0.9 });
+  var lblPow = txt(RX, 198, T.pow, 20, 'dim');
   lblPow.setAttribute('letter-spacing', '1.2');
-  var powNum = txt(RX, 244, '0', 56, 'num');
-  var powUnit = el('tspan', { 'font-size': 22, class: 'dim', dx: 4 });
+  var powNum = txt(RX, 266, '0', 60, 'num');
+  var powUnit = el('tspan', { 'font-size': 24, class: 'dim', dx: 4 });
   powUnit.textContent = powU();
   powNum.appendChild(powUnit);
-  var powLine = el('rect', { x: RX - 56, y: 258, width: 112, height: 2, rx: 1, fill: '#ff9a3c', opacity: 0.85 });
-  var powLabel = txt(RX, 276, '', 13, 'mut');
+  var powLine = el('rect', { x: RX - 60, y: 282, width: 120, height: 2, rx: 1, fill: '#ff9a3c', opacity: 0.85 });
+  var powLabel = txt(RX, 300, '', 13, 'mut');
   powLabel.setAttribute('letter-spacing', '1');
 
   /* ---------- centro: velocidade e caminhonete ---------- */
@@ -209,6 +219,7 @@
     var f = k || 1;
     rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 10 * f, opacity: 0.1 }, parent);
     rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 2.8 * f, opacity: 0.7 }, parent);
+    rrect(x + 4, y + 4, w - 8, h - 8, Math.max(2, r - 4), { fill: 'none', stroke: NEON, 'stroke-width': 1, opacity: 0.22 }, parent);
     return rrect(x, y, w, h, r, { fill: 'none', stroke: NEON_CORE, 'stroke-width': 1.1 * f, opacity: 0.85 }, parent);
   }
   function card(x, w) {
@@ -230,6 +241,20 @@
     }, parent);
     return el('rect', { x: x + 3, y: y + 6, width: 9, height: 7, rx: 1, fill: ICON }, parent);
   }
+  /* barra de nível em blocos, como no desenho */
+  function segBar(parent, x, y, w, h, n) {
+    var gap = 3, sw = (w - gap * (n - 1)) / n, cells = [];
+    for (var i = 0; i < n; i++) {
+      cells.push(rrect(x + i * (sw + gap), y, sw, h, 2, { fill: '#0e1d2c' }, parent));
+    }
+    return cells;
+  }
+  function drawSegBar(cells, frac) {
+    var lit = Math.round(Math.max(0, Math.min(1, frac)) * cells.length);
+    cells.forEach(function (r, i) {
+      r.setAttribute('fill', i < lit ? NEON : '#0e1d2c');
+    });
+  }
   function mountainIcon(x, y, s, parent) {
     return el('path', {
       d: 'M' + (x - s) + ' ' + (y + s * 0.6) + 'l' + (s * 0.55) + ' ' + (-s * 1.25) + 'l' + (s * 0.35) + ' ' + (s * 0.6) +
@@ -246,8 +271,7 @@
   batUnit.textContent = '';
   batNum.appendChild(batUnit);
   txt(92, 396, T.bat, 11, 'mut', 'start');
-  rrect(60, 410, 148, 6, 3, { fill: '#0e1d2c' }, c1);
-  var batBar = rrect(60, 410, 0, 6, 3, { fill: NEON }, c1);
+  var batBar = segBar(c1, 60, 410, 148, 7, 10);
 
   pumpIcon(254, 350, c1);
   var fuelNum = txt(306, 378, '--', 27, 'num', 'start');
@@ -255,8 +279,7 @@
   fuelUnit.textContent = '';
   fuelNum.appendChild(fuelUnit);
   txt(306, 396, T.fuel, 11, 'mut', 'start');
-  rrect(254, 410, 148, 6, 3, { fill: '#0e1d2c' }, c1);
-  var fuelBar = rrect(254, 410, 0, 6, 3, { fill: NEON }, c1);
+  var fuelBar = segBar(c1, 254, 410, 148, 7, 10);
 
   el('rect', { x: 231, y: 344, width: 1, height: 58, fill: '#16283c' }, c1);
 
@@ -305,6 +328,7 @@
   }
 
   var evGlow = rrect(1074, 393, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.1 }, c3);
+  var evFill = rrect(1076, 395, 156, 24, 12, { fill: 'rgba(4,128,255,0.26)' }, c3);
   var evPill = rrect(1074, 393, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 2.2, opacity: 0.75 }, c3);
   var evTxt = txt(1154, 413, '', 15, 'num', null, 600, c3);
   evTxt.setAttribute('letter-spacing', '1.5');
@@ -365,7 +389,7 @@
     var soc = pct(d.soc);
     batNum.firstChild.nodeValue = soc === null ? '--' : String(Math.round(soc));
     batUnit.textContent = soc === null ? '' : '%';
-    batBar.setAttribute('width', soc === null ? 0 : (148 * soc / 100).toFixed(1));
+    drawSegBar(batBar, soc === null ? 0 : soc / 100);
 
     /* o combustível aparece em km (autonomia): `fuelKm`; se só vier a porcentagem do tanque,
        mostra em % e a barra usa essa porcentagem */
@@ -379,7 +403,7 @@
       fuelUnit.textContent = fuel === null ? '' : '%';
     }
     var fuelFrac = fuel !== null ? fuel / 100 : (fuelKm !== null ? Math.min(1, fuelKm / 900) : 0);
-    fuelBar.setAttribute('width', (158 * fuelFrac).toFixed(1));
+    drawSegBar(fuelBar, fuelFrac);
 
     var rg = (d.range === -999 || d.range == null) ? null : d.range;
     rangeNum.textContent = rg === null ? '--' : (Math.round(dist(rg)) + ' ' + DIST_U);
@@ -399,7 +423,7 @@
     var sel = d.sel || 'P';
     gearCells.forEach(function (c, i) {
       var on = SEL_ORDER[i] === sel;
-      c.bg.setAttribute('fill', on ? '#17506f' : '#0b1826');
+      c.bg.setAttribute('fill', on ? 'rgba(4,128,255,0.42)' : '#0b1826');
       c.tx.setAttribute('class', on ? 'num' : 'mut');
       c.tx.setAttribute('fill', on ? '#eaf7ff' : '#5d7891');
     });
@@ -412,6 +436,8 @@
     if (ev === 1 || ev === 0) {
       evTxt.textContent = ev === 1 ? 'EV' : 'HEV';
       var tint = ev === 1 ? NEON : '#ffb020';
+      evFill.setAttribute('fill', ev === 1 ? 'rgba(4,128,255,0.26)' : 'rgba(255,176,32,0.22)');
+      evFill.setAttribute('opacity', '1');
       evTxt.setAttribute('fill', ev === 1 ? NEON_CORE : '#ffcf80');
       evPill.setAttribute('stroke', tint);
       evGlow.setAttribute('stroke', tint);
@@ -421,6 +447,7 @@
       evTxt.textContent = '';
       evPill.setAttribute('opacity', '0');
       evGlow.setAttribute('opacity', '0');
+      evFill.setAttribute('opacity', '0');
     }
 
     var now = new Date();
