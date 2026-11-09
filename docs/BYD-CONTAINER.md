@@ -89,3 +89,30 @@ skin. Só com `FLAG_LAYOUT_NO_LIMITS` a tela cheia fica limpa.
 Medição (16:54–16:57): com as flags antigas, `cmd 18` e `cmd 16` não mudavam a barra; com
 `FLAG_LAYOUT_NO_LIMITS`, `cmd 18` devolve a barra e `cmd 16` a remove, com o EvSound ativo
 ou parado. O cmd 35 não altera nada nesse estado.
+
+## O que faz o cluster aceitar o cmd 16 (medido em 08/11)
+
+O cluster só mostra o display 1 a tela cheia sem a barra nativa quando o processo que manda
+`sendInfo(1000, 16, "")` mantém uma **projeção de tela viva** (MediaProjection):
+
+- a SharkLab pede o consentimento de captura e cria o display virtual
+  `shared_fission_bg_XDJAScreenProjection_0` (1920×720, flags 3);
+- com essa projeção registrada, `cmd 16` esconde a barra (P/ECO, bateria, autonomia, ODO);
+- sem projeção, o mesmo `16` é aceito (retorna 0) mas o cluster continua no layout nativo.
+
+Verificado com o EvSound **desabilitado** (0 processos):
+
+| ação | painel |
+|---|---|
+| SharkLab aberto e consentimento aceito | skin completa, sem barra |
+| `cmd 18` | barra da BYD volta em ~1 s |
+| laço de `cmd 16` a cada 5 s | SharkLab volta sozinho em ≤5 s |
+
+O consentimento do MediaProjection é por processo: ao abrir a SharkLab depois de um boot
+aparece o diálogo “Comenzar ahora” uma vez. O EvSound não usa MediaProjection: ele conecta
+por ADB Wi-Fi (`127.0.0.1:5555`) com chave RSA persistida (autoriza uma vez) e roda
+`service call AutoContainer ...` como shell; o vigilante dele reafirma o painel a cada ~60 s.
+
+Consequência: enquanto o EvSound estiver instalado e for **pausado**, ele manda `46 → 18 → 0`
+e o cluster recusa o `16` de outros processos até o EvSound voltar a ativar. Com o EvSound
+desabilitado/desinstalado não existe esse bloqueio.
