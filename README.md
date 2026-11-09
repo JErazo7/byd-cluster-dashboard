@@ -76,3 +76,17 @@ ANDROID_BUILD_TOOLS=/ruta/build-tools ./tools/evsound-build.sh themes
 Código propio, escrito desde cero a partir del comportamiento observable del panel (contrato
 de datos documentado en `docs/`). El repo **no incluye** el APK de EvSound, sus assets ni su
 código. Los temas son de quien los escribe.
+
+## Temas do EvSound (uso pessoal, fora do repo)
+
+Os temas pagos do EvSound **não** entram no repositório (APK público redistribuindo assets de
+outra licença). Para usá-los só no seu carro:
+
+```bash
+./tools/import-evsound-assets.sh /caminho/EvSound.apk [serial]
+```
+
+Isso descompacta o APK licenciado e copia `dash/<tema>/` para
+`/sdcard/Android/data/com.xdja.clusterdemo/files/dash/`, que a SharkLab carrega. No APK
+gratuito só `pilot`, `muscle` e `vision` trazem `index.html`; os outros temas têm apenas a
+miniatura — a skin completa vem do pack Pro/motor do EvSound.
