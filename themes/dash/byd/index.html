@@ -144,31 +144,27 @@
   var odoTxt = txt(1264, 38, '', 19, 'num', 'end');
 
   /* ---------- aros ---------- */
-  var RING_Y = 224, R = 138, LX = 144, RX = W - 144;
+  var RING_Y = 214, R = 120, LX = 152, RX = W - 152;
+  var SWEEP = 268;                /* arco aberto em baixo: nada do aro cai sobre os painéis */
   var A_THR = 135, DIR_THR = 1;   /* esquerda: começa embaixo à esquerda e sobe pelo lado esquerdo */
   var A_POW = 45, DIR_POW = -1;   /* direita: começa embaixo à direita e sobe pelo lado direito */
 
   function ring(cx, grad, a0, dir) {
     var g = el('g');
-    el('circle', { cx: cx, cy: RING_Y, r: R, fill: 'none', stroke: '#22405c', 'stroke-width': 2.4 }, g);
-    el('circle', { cx: cx, cy: RING_Y, r: R - 9, fill: 'none', stroke: '#12253a', 'stroke-width': 1.2 }, g);
-    /* marcas de escala: 30 traços curtos por dentro do aro */
-    for (var t = 0; t < 30; t++) {
-      var a = t * 12;
-      var q0 = pt(cx, RING_Y, R - 26, a), q1 = pt(cx, RING_Y, R - 16, a);
-      el('line', {
-        x1: q0[0], y1: q0[1], x2: q1[0], y2: q1[1],
-        stroke: '#2b4a68', 'stroke-width': t % 5 === 0 ? 2 : 1.1, 'stroke-linecap': 'round',
-        opacity: t % 5 === 0 ? 0.85 : 0.5
-      }, g);
-    }
-    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 34, 'stroke-linecap': 'round', opacity: 0.14 }, g);
-    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 22, 'stroke-linecap': 'round' }, g);
+    var full = arcPath(cx, RING_Y, R, a0, a0 + dir * SWEEP);
+    /* trilha do aro, aro de marcas pontilhadas e o arco de valor */
+    el('path', { d: full, fill: 'none', stroke: '#22405c', 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
+    el('path', {
+      d: arcPath(cx, RING_Y, R - 15, a0, a0 + dir * SWEEP), fill: 'none', stroke: '#2f4f6c',
+      'stroke-width': 6, 'stroke-dasharray': '2 15', 'stroke-linecap': 'round', opacity: 0.9
+    }, g);
+    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 30, 'stroke-linecap': 'round', opacity: 0.16 }, g);
+    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
     return { glow: glow, val: val, cx: cx, a0: a0, dir: dir };
   }
   function setRing(rg, frac) {
     var f = Math.max(0, Math.min(0.9995, frac));   /* 360° exatos não desenham nada em SVG */
-    var d = f > 0.004 ? arcPath(rg.cx, RING_Y, R, rg.a0, rg.a0 + rg.dir * 360 * f) : '';
+    var d = f > 0.004 ? arcPath(rg.cx, RING_Y, R, rg.a0, rg.a0 + rg.dir * SWEEP * f) : '';
     rg.val.setAttribute('d', d);
     rg.glow.setAttribute('d', d);
   }
@@ -176,22 +172,22 @@
   var powRing = ring(RX, 'url(#gPow)', A_POW, DIR_POW);
 
   /* rótulo em cima e valor+unidade centrados como um bloco só dentro do aro */
-  var lblThr = txt(LX, 198, T.thr, 20, 'dim');
+  var lblThr = txt(LX, 192, T.thr, 19, 'dim');
   lblThr.setAttribute('letter-spacing', '1.2');
-  var thrNum = txt(LX, 266, '0', 60, 'num');
-  var thrUnit = el('tspan', { 'font-size': 24, class: 'dim', dx: 4 });
+  var thrNum = txt(LX, 254, '0', 56, 'num');
+  var thrUnit = el('tspan', { 'font-size': 22, class: 'dim', dx: 4 });
   thrUnit.textContent = '%';
   thrNum.appendChild(thrUnit);
 
-  var bolt = el('path', { d: 'M' + (RX - 4) + ' 170 l9 -16 l-2.5 10.5 h8 l-10 17 l2.5 -11.5 z', fill: '#ff9a3c', opacity: 0.9 });
-  var lblPow = txt(RX, 198, T.pow, 20, 'dim');
+  var bolt = el('path', { d: 'M' + (RX - 4) + ' 164 l9 -16 l-2.5 10.5 h8 l-10 17 l2.5 -11.5 z', fill: '#ff9a3c', opacity: 0.9 });
+  var lblPow = txt(RX, 192, T.pow, 19, 'dim');
   lblPow.setAttribute('letter-spacing', '1.2');
-  var powNum = txt(RX, 266, '0', 60, 'num');
-  var powUnit = el('tspan', { 'font-size': 24, class: 'dim', dx: 4 });
+  var powNum = txt(RX, 254, '0', 56, 'num');
+  var powUnit = el('tspan', { 'font-size': 22, class: 'dim', dx: 4 });
   powUnit.textContent = powU();
   powNum.appendChild(powUnit);
-  var powLine = el('rect', { x: RX - 60, y: 282, width: 120, height: 2, rx: 1, fill: '#ff9a3c', opacity: 0.85 });
-  var powLabel = txt(RX, 300, '', 13, 'mut');
+  var powLine = el('rect', { x: RX - 58, y: 268, width: 116, height: 2, rx: 1, fill: '#ff9a3c', opacity: 0.85 });
+  var powLabel = txt(RX, 286, '', 13, 'mut');
   powLabel.setAttribute('letter-spacing', '1');
 
   /* ---------- centro: velocidade e caminhonete ---------- */
@@ -217,10 +213,9 @@
   var ICON = '#5ab6ff';
   function neon(parent, x, y, w, h, r, k) {
     var f = k || 1;
-    rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 10 * f, opacity: 0.1 }, parent);
-    rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 2.8 * f, opacity: 0.7 }, parent);
-    rrect(x + 4, y + 4, w - 8, h - 8, Math.max(2, r - 4), { fill: 'none', stroke: NEON, 'stroke-width': 1, opacity: 0.22 }, parent);
-    return rrect(x, y, w, h, r, { fill: 'none', stroke: NEON_CORE, 'stroke-width': 1.1 * f, opacity: 0.85 }, parent);
+    rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 9 * f, opacity: 0.08 }, parent);
+    rrect(x + 3, y + 3, w - 6, h - 6, Math.max(2, r - 3), { fill: 'none', stroke: NEON_CORE, 'stroke-width': 1, opacity: 0.18 }, parent);
+    return rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 1.5 * f, opacity: 0.65 }, parent);
   }
   function card(x, w) {
     var g = el('g');
@@ -320,9 +315,11 @@
   var SEL_ORDER = ['P', 'R', 'N', 'D'], gearCells = [];
   for (var gi = 0; gi < 4; gi++) {
     var gx = 872 + gi * 48;
-    neon(c3, gx, 392, 42, 30, 9, 0.55);
+    el('circle', { cx: gx + 21, cy: 407, r: 16.5, fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.06 }, c3);
+    var ringStroke = el('circle', { cx: gx + 21, cy: 407, r: 16.5, fill: 'none', stroke: NEON, 'stroke-width': 1.3, opacity: 0.55 }, c3);
     gearCells.push({
-      bg: rrect(gx + 2, 394, 38, 26, 7, { fill: '#0b1826' }, c3),
+      bg: el('circle', { cx: gx + 21, cy: 407, r: 15, fill: 'rgba(11,24,38,0.9)' }, c3),
+      ring: ringStroke,
       tx: txt(gx + 21, 414, SEL_ORDER[gi], 19, 'mut', 'middle', 600, c3)
     });
   }
@@ -423,7 +420,10 @@
     var sel = d.sel || 'P';
     gearCells.forEach(function (c, i) {
       var on = SEL_ORDER[i] === sel;
-      c.bg.setAttribute('fill', on ? 'rgba(4,128,255,0.42)' : '#0b1826');
+      c.bg.setAttribute('fill', on ? 'rgba(4,128,255,0.3)' : 'rgba(11,24,38,0.9)');
+      c.ring.setAttribute('stroke', on ? NEON_CORE : NEON);
+      c.ring.setAttribute('opacity', on ? '1' : '0.55');
+      c.ring.setAttribute('stroke-width', on ? '2' : '1.3');
       c.tx.setAttribute('class', on ? 'num' : 'mut');
       c.tx.setAttribute('fill', on ? '#eaf7ff' : '#5d7891');
     });
