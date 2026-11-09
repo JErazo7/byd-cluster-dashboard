@@ -40,6 +40,8 @@ public final class AdbShell {
             A_OKAY = 0x59414b4f, A_CLSE = 0x45534c43, A_WRTE = 0x57525445;
 
     private static boolean started;
+    private static volatile boolean paused;
+    private static volatile boolean wake;
     private static byte[] embeddedKeyLine;
 
     private AdbShell() {
@@ -61,9 +63,12 @@ public final class AdbShell {
                 while (true) {
                     try {
                         if (sess == null) sess = connect(ctx);
-                        String out = exec(sess, "service call AutoContainer 2 i32 1000 i32 16 s16 null", id++);
-                        Log.i(TAG, "adb: 16 -> " + (out == null ? "null" : out.trim()));
-                        Thread.sleep(60000);
+                        if (!paused) {
+                            String out = exec(sess, "service call AutoContainer 2 i32 1000 i32 16 s16 null", id++);
+                            Log.i(TAG, "adb: 16 -> " + (out == null ? "null" : out.trim()));
+                        }
+                        for (int i = 0; i < 60 && !wake; i++) Thread.sleep(1000);
+                        wake = false;
                     } catch (Throwable t) {
                         Log.w(TAG, "adb: reconectando: " + t);
                         try { if (sess != null) sess.s.close(); } catch (Throwable ignored) { }
@@ -73,6 +78,17 @@ public final class AdbShell {
                 }
             }
         }, "adb-panel").start();
+    }
+
+    /** volta a assumir o painel quando o usuário abre a SharkLab */
+    public static void resume() {
+        paused = false;
+        wake = true;
+    }
+
+    /** solta o painel: o laço para de mandar cmd 16 e a central volta ao original da BYD */
+    public static void stop() {
+        paused = true;
     }
 
     private static Sess connect(Context ctx) throws Exception {

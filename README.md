@@ -95,3 +95,9 @@ miniatura — a skin completa vem do pack Pro/motor do EvSound.
 
 `themes/evsound/dash/` guarda os assets extraídos do APK licenciado (backup pessoal, repo privado).
 Não entram no APK da SharkLab; para instalar no carro use `tools/import-evsound-assets.sh`.
+
+## Arranque
+
+Ao ligar o carro o painel volta ao layout original da BYD. A skin da SharkLab só assume o
+painel quando o app é aberto; ao desligar/dormir a central ela solta o painel de novo
+(`cmd 18`) e fecha a tela. `autostart` fica desligado por padrão.

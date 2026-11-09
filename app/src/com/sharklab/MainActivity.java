@@ -68,6 +68,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        registerReceiver(screenOff, new android.content.IntentFilter(Intent.ACTION_SCREEN_OFF));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         /* a tela central NÃO é tela cheia; só o overlay do painel é */
 
@@ -325,7 +326,15 @@ public class MainActivity extends Activity {
             bridge.clusterCast(16);
         }
 
+        if (getIntent() != null && getIntent().getBooleanExtra("release", false)) {
+            released = true;
+            PanelRelease.release();
+        }
+
         /* painel por shell ADB (chave da estação já autorizada, sem diálogo) */
+        if (!p.getBoolean("manual_v1", false)) {
+            p.edit().putBoolean("autostart", false).putBoolean("manual_v1", true).apply();
+        }
         startPanelKeep();
         AdbShell.start(this);
 
@@ -516,13 +525,43 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (released) return;
+        takePanel();
+    }
+
+    private boolean released;
+
+    private final android.content.BroadcastReceiver screenOff = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(android.content.Context c, Intent i) {
+            /* carro desligou/dormiu: solta o painel e fecha a skin; ao ligar, volta o original da BYD */
+            PanelRelease.release();
+            MainActivity.this.finishAndRemoveTask();
+        }
+    };
+
+    private void takePanel() {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
         ensureOverlay();
+        AdbShell.resume();
         if (p.getBoolean("cluster_cast", true) && !p.getBoolean("projection", false)) {
             bridge.clusterCast(16);
             ClusterOverlay.bringToFront();
             Log.i(TAG, "painel: tomado no onResume");
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null && intent.getBooleanExtra("release", false)) {
+            released = true;
+            PanelRelease.release();
+            return;
+        }
+        released = false;
+        takePanel();
     }
 
     @Override
@@ -564,6 +603,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        try { unregisterReceiver(screenOff); } catch (Throwable ignored) {}
+
         if (web != null) {
             web.loadUrl("about:blank");
             web.destroy();

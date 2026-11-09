@@ -16,13 +16,18 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context ctx, Intent intent) {
         if (intent == null) return;
         String a = intent.getAction();
+        if ("com.sharklab.RELEASE".equals(a) || "android.intent.action.ACTION_SHUTDOWN".equals(a)) {
+            PanelRelease.release();
+            return;
+        }
         if (!Intent.ACTION_BOOT_COMPLETED.equals(a)
                 && !"android.intent.action.QUICKBOOT_POWERON".equals(a)
                 && !"android.intent.action.HTC_QUICKBOOT_BOOT_COMPLETED".equals(a)
                 && !Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(a)
                 && !Intent.ACTION_USER_UNLOCKED.equals(a)
                 && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)) return;
-        /* a skin sobe junto com o carro por padrão; o usuário pode desligar em Ajustes */
+        /* no arranque o painel fica no original da BYD; a skin só entra quando o app abre */
+        PanelRelease.release();
         if (!ctx.getSharedPreferences("lab", Context.MODE_PRIVATE).getBoolean("autostart", false)) return;
         try {
             Intent i = new Intent(ctx, MainActivity.class);
