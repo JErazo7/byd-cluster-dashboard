@@ -113,7 +113,7 @@
   el('stop', { offset: '1', 'stop-color': '#050c15', 'stop-opacity': '0.96' }, gCard);
 
   var tyreClip = el('clipPath', { id: 'cTyre' }, defs);
-  el('rect', { x: 470, y: 330, width: 340, height: 116, rx: 18 }, tyreClip);
+  el('rect', { x: 470, y: 330, width: 340, height: 106, rx: 18 }, tyreClip);
 
   var safeMask = el('mask', { id: 'mSafe', maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: W, height: H }, defs);
   el('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }, safeMask);
@@ -139,11 +139,12 @@
   el('rect', { x: 102, y: 16, width: 1, height: 22, fill: '#2a3d52' });
   var outTxt = txt(118, 34, '', 22, 'dim', 'start');
 
-  for (var b = 0; b < 4; b++) {
-    el('rect', { x: 1168 + b * 8, y: 30 - (5 + b * 5), width: 5, height: 5 + b * 5, rx: 1.5, fill: '#dbe9f7', opacity: 0.55 });
-  }
-  el('path', { d: 'M1232 20 L1246 32 L1238 38 L1238 14 L1246 20 L1232 32', fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2, 'stroke-linejoin': 'round', opacity: 0.6 });
-  el('path', { d: 'M1262 18 L1272 30 L1266 31 L1272 44 L1252 30 Z', fill: '#dbe9f7', opacity: 0.65 });
+  /* à direita: odômetro total e o estado EV/HEV */
+  txt(1108, 18, 'ODO', 10, 'mut', 'end');
+  var odoTxt = txt(1108, 38, '', 19, 'num', 'end');
+  var evPill = rrect(1130, 17, 134, 28, 14, { fill: 'none', stroke: '#1b6fe0', 'stroke-width': 1.8, opacity: 0.55 });
+  var evTxt = txt(1197, 36, '', 15, 'num', null, 600);
+  evTxt.setAttribute('letter-spacing', '1.5');
 
   /* ---------- aros ---------- */
   var RING_Y = 202, R = 104, LX = 172, RX = W - 172;
@@ -187,29 +188,29 @@
   powLabel.setAttribute('letter-spacing', '1');
 
   /* ---------- centro: velocidade e caminhonete ---------- */
-  var spdNum = txt(640, 124, '0', 106, 'num');
+  var spdNum = txt(640, 136, '0', 100, 'num');
   spdNum.setAttribute('font-weight', 500);
-  var kmhTxt = txt(640, 148, T.kmh, 20, 'mut');
+  var kmhTxt = txt(640, 160, T.kmh, 20, 'mut');
   kmhTxt.setAttribute('paint-order', 'stroke');
   kmhTxt.setAttribute('stroke', 'rgba(3,8,16,0.75)');
   kmhTxt.setAttribute('stroke-width', '4');
   kmhTxt.setAttribute('stroke-linejoin', 'round');
   kmhTxt.setAttribute('fill', '#cfe4f6');
 
-  var TRUCK_W = 300, TRUCK_H = Math.round(TRUCK_W * 203 / 400);
-  el('ellipse', { cx: 640, cy: 308, rx: 176, ry: 15, fill: '#2f9df5', opacity: 0.16 });
-  el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 308 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
+  var TRUCK_W = 284, TRUCK_H = Math.round(TRUCK_W * 203 / 400);
+  el('ellipse', { cx: 640, cy: 318, rx: 168, ry: 14, fill: '#2f9df5', opacity: 0.16 });
+  el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 318 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
 
   /* paginação decorativa das telas, como no desenho */
-  el('circle', { cx: 626, cy: 318, r: 4, fill: '#eaf3ff' });
-  el('circle', { cx: 640, cy: 318, r: 3.4, fill: '#41546a' });
-  el('circle', { cx: 654, cy: 318, r: 3.4, fill: '#41546a' });
+  el('circle', { cx: 626, cy: 326, r: 4, fill: '#eaf3ff' });
+  el('circle', { cx: 640, cy: 326, r: 3.4, fill: '#41546a' });
+  el('circle', { cx: 654, cy: 326, r: 3.4, fill: '#41546a' });
 
   /* ---------- cartões ---------- */
   function card(x, w) {
     var g = el('g');
-    rrect(x, 330, w, 116, 18, { fill: 'url(#gCard)', stroke: '#1b6fe0', 'stroke-width': 1.3, 'stroke-opacity': 0.6 }, g);
-    rrect(x, 330, w, 116, 18, { fill: 'none', stroke: '#38cfff', 'stroke-width': 5, opacity: 0.05 }, g);
+    rrect(x, 330, w, 106, 18, { fill: 'url(#gCard)', stroke: '#1b6fe0', 'stroke-width': 1.3, 'stroke-opacity': 0.6 }, g);
+    rrect(x, 330, w, 106, 18, { fill: 'none', stroke: '#38cfff', 'stroke-width': 5, opacity: 0.05 }, g);
     return g;
   }
   function batteryIcon(x, y, parent) {
@@ -235,36 +236,36 @@
 
   /* cartão 1: bateria, combustível, autonomia */
   var c1 = card(14, 446);
-  batteryIcon(44, 348, c1);
-  var batNum = txt(74, 374, '--', 27, 'num', 'start');
+  batteryIcon(44, 342, c1);
+  var batNum = txt(74, 368, '--', 26, 'num', 'start');
   var batUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
   batUnit.textContent = '';
   batNum.appendChild(batUnit);
-  txt(74, 392, T.bat, 11, 'mut', 'start');
-  rrect(44, 404, 148, 6, 3, { fill: '#0e1d2c' }, c1);
-  var batBar = rrect(44, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
+  txt(74, 385, T.bat, 11, 'mut', 'start');
+  rrect(44, 396, 148, 6, 3, { fill: '#0e1d2c' }, c1);
+  var batBar = rrect(44, 396, 0, 6, 3, { fill: '#38cfff' }, c1);
 
-  pumpIcon(238, 348, c1);
-  var fuelNum = txt(288, 374, '--', 27, 'num', 'start');
+  pumpIcon(238, 342, c1);
+  var fuelNum = txt(288, 368, '--', 26, 'num', 'start');
   var fuelUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
   fuelUnit.textContent = '';
   fuelNum.appendChild(fuelUnit);
-  txt(288, 392, T.fuel, 11, 'mut', 'start');
-  rrect(238, 404, 158, 6, 3, { fill: '#0e1d2c' }, c1);
-  var fuelBar = rrect(238, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
+  txt(288, 385, T.fuel, 11, 'mut', 'start');
+  rrect(238, 396, 158, 6, 3, { fill: '#0e1d2c' }, c1);
+  var fuelBar = rrect(238, 396, 0, 6, 3, { fill: '#38cfff' }, c1);
 
-  el('rect', { x: 214, y: 344, width: 1, height: 60, fill: '#16283c' }, c1);
-  mountainIcon(56, 430, 11, c1);
-  txt(76, 436, T.range, 11, 'mut', 'start');
-  var rangeNum = txt(436, 438, '', 21, 'num', 'end');
+  el('rect', { x: 214, y: 340, width: 1, height: 58, fill: '#16283c' }, c1);
+  mountainIcon(56, 420, 11, c1);
+  txt(76, 426, T.range, 11, 'mut', 'start');
+  var rangeNum = txt(436, 428, '', 21, 'num', 'end');
 
   /* cartão 2: pressões, com o carro visto de cima */
   var c2 = card(470, 340);
   c2.firstChild.setAttribute('fill', '#04090f');
   /* a imagem inteira preenche o cartão; os números ficam em cima, onde as linhas terminam */
-  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 537, y: 330, width: 206, height: 116,
+  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 546, y: 330, width: 188, height: 106,
     preserveAspectRatio: 'xMidYMid meet' }, c2);
-  var TYRE = [['fl', 590, 358, 'end'], ['fr', 690, 358, 'start'], ['rl', 590, 423, 'end'], ['rr', 690, 423, 'start']];
+  var TYRE = [['fl', 590, 356, 'end'], ['fr', 690, 356, 'start'], ['rl', 590, 414, 'end'], ['rr', 690, 414, 'start']];
   var tyreNum = {};
   TYRE.forEach(function (t) {
     var n = txt(t[1], t[2], '--', 17, 'num', t[3]);
@@ -280,34 +281,25 @@
 
   /* cartão 3: modo de condução */
   var c3 = card(820, 446);
-  rrect(852, 362, 382, 54, 27, { fill: 'none', stroke: '#2f9df5', 'stroke-width': 2.6 }, c3);
-  rrect(852, 362, 382, 54, 27, { fill: 'none', stroke: '#38cfff', 'stroke-width': 9, opacity: 0.1 }, c3);
-  mountainIcon(944, 386, 13, c3);
-  var modeTxt = txt(1040, 396, '', 21, 'num', 'start', 500);
+  rrect(852, 357, 382, 52, 26, { fill: 'none', stroke: '#2f9df5', 'stroke-width': 2.6 }, c3);
+  rrect(852, 357, 382, 52, 26, { fill: 'none', stroke: '#38cfff', 'stroke-width': 9, opacity: 0.1 }, c3);
+  mountainIcon(944, 380, 13, c3);
+  var modeTxt = txt(1040, 390, '', 21, 'num', 'start', 500);
   modeTxt.setAttribute('letter-spacing', '1.5');
 
   /* ---------- barra inferior ---------- */
-  el('path', { d: 'M0 444 H1280', stroke: '#12233a', 'stroke-width': 1 });
-
-  /* odômetro total à esquerda */
-  txt(22, 456, 'ODO', 10, 'mut', 'start');
-  var odoTxt = txt(22, 472, '', 19, 'num', 'start');
+  el('path', { d: 'M0 442 H1280', stroke: '#12233a', 'stroke-width': 1 });
 
   /* P R N D como seletor de verdade, no centro */
   var SEL_ORDER = ['P', 'R', 'N', 'D'], gearCells = [];
   for (var gi = 0; gi < 4; gi++) {
-    var gx = 568 + gi * 37;
+    var gx = 562 + gi * 39;
     gearCells.push({
-      bg: rrect(gx, 448, 33, 28, 8, { fill: '#0b1826', stroke: '#16283c', 'stroke-width': 1 }),
-      tx: txt(gx + 16.5, 469, SEL_ORDER[gi], 19, 'mut', 'middle', 600)
+      bg: rrect(gx, 450, 35, 28, 8, { fill: '#0b1826', stroke: '#16283c', 'stroke-width': 1 }),
+      tx: txt(gx + 17.5, 471, SEL_ORDER[gi], 20, 'mut', 'middle', 600)
     });
   }
-
-  /* EV / HEV à direita */
-  var evPill = rrect(1130, 450, 128, 24, 12, { fill: 'none', stroke: '#1b6fe0', 'stroke-width': 1.8, opacity: 0.55 });
-  var evTxt = txt(1194, 467, '', 15, 'num', null, 600);
-  evTxt.setAttribute('letter-spacing', '1.5');
-  var warnTxt = txt(1112, 467, '', 12, 'or', 'end');
+  var warnTxt = txt(22, 470, '', 13, 'or', 'start');
 
   /* ---------- desenho ---------- */
   function fmt(v, dec) {
