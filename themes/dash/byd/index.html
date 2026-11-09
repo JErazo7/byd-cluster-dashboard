@@ -125,7 +125,12 @@
   /* ---------- fundo: paisagem ampliada (mais zoom que a foto original) ---------- */
   el('rect', { x: 0, y: 0, width: W, height: H, fill: '#04070c' });
   var gBg = el('g', { 'clip-path': 'url(#clipFrame)' });
-  el('image', { href: 'assets/bg.jpg', x: -306, y: -8, width: 1892, height: 340, preserveAspectRatio: 'xMidYMid slice' }, gBg);
+  var bgNormal = el('image', {
+    href: 'assets/bg.jpg', x: -306, y: -8, width: 1892, height: 340, preserveAspectRatio: 'xMidYMid slice'
+  }, gBg);
+  var bgSport = el('image', {
+    href: 'assets/bg-sport.jpg', x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice', opacity: 0
+  }, gBg);
   el('rect', { x: 0, y: 150, width: W, height: 230, fill: 'url(#gFade)' }, gBg);
   el('rect', { x: 0, y: 380, width: W, height: 100, fill: '#04070c' }, gBg);
 
@@ -209,7 +214,7 @@
   kmhTxt.setAttribute('fill', '#cfe4f6');
 
   var TRUCK_W = 284, TRUCK_H = Math.round(TRUCK_W * 203 / 400);
-  el('ellipse', { cx: 640, cy: 306, rx: 150, ry: 8, fill: '#2f9df5', opacity: 0.16 });
+  var truckGlow = el('ellipse', { cx: 640, cy: 306, rx: 150, ry: 8, fill: '#2f9df5', opacity: 0.16 });
   el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 306 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
 
   /* paginação decorativa das telas, como no desenho */
@@ -429,6 +434,12 @@
     var mode = (typeof d.drive === 'string' && d.drive) ? d.drive : (MODES[+d.dmode] || '');
     modeTxt.textContent = mode.toUpperCase();
     modeGlyph(mode);
+
+    /* SPORT troca a paisagem por uma cena de estrada em brasa */
+    var sport = /SPORT/i.test(mode);
+    bgSport.setAttribute('opacity', sport ? '0.92' : '0');
+    bgNormal.setAttribute('opacity', sport ? '0' : '1');
+    truckGlow.setAttribute('fill', sport ? '#ff7a3c' : '#2f9df5');
 
     var soc = pct(d.soc);
     batNum.firstChild.nodeValue = soc === null ? '--' : String(Math.round(soc));
