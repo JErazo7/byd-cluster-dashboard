@@ -154,10 +154,10 @@
     id: 'bgMountain', href: 'assets/bg-mountain.jpg', opacity: 0,
     x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice'
   }, gBg);
-  /* a cena de lodo é retrato 16:10: entra na largura cheia e sobe, deixando o barro no chão */
+  /* a cena de lodo entra na largura cheia; um pouco mais de zoom para o barro dominar */
   var bgMud = el('image', {
     id: 'bgMud', href: 'assets/bg-mud.jpg', opacity: 0,
-    x: 0, y: -234, width: 1280, height: 714, preserveAspectRatio: 'xMidYMid slice'
+    x: -110, y: -60, width: 1500, height: 563, preserveAspectRatio: 'xMidYMid slice'
   }, gBg);
   var bgSnow = el('image', {
     id: 'bgSnow', href: 'assets/bg-snow.jpg', opacity: 0,
@@ -471,7 +471,7 @@
     night: { img: bgNormal, accent: ['#0480ff', '#8ac6ff', '#2f4f6c', '#5ab6ff'], dim: 0 },
     sport: { img: bgSport, accent: ['#ff6a2b', '#ffc79a', '#6b4632', '#ff8a4d'], dim: 0.12 },
     mountain: { img: bgMountain, accent: ['#17d3a5', '#a9ffe8', '#2f6b5e', '#5fe8c4'], dim: 0.2 },
-    mud: { img: bgMud, accent: ['#ffb02e', '#ffe3a8', '#6b5732', '#ffc46b'], dim: 0.18 },
+    mud: { img: bgMud, accent: ['#ffb02e', '#ffe3a8', '#6b5732', '#ffc46b'], dim: 0.28 },
     snow: { img: bgSnow, accent: ['#35dcff', '#d8f8ff', '#2b5f78', '#7ce6ff'], dim: 0.2 },
     sand: { img: bgSand, accent: ['#ffc247', '#ffeec2', '#6f5326', '#ffd98a'], dim: 0.26 }
   };
