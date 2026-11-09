@@ -7,11 +7,11 @@
 <style>
   html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #04070c; }
   svg { display: block; }
-  /* a foto da caminhonete vem sobre preto puro: o blend screen deixa só o carro, sem recorte */
-  #truck { mix-blend-mode: screen; }
+  /* o carro do cartão de pressão vem sobre azul-escuro: o screen soma só o brilho */
+  #tyrecar { mix-blend-mode: screen; filter: brightness(1.35) saturate(1.15); }
   text { font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #eaf3ff; }
-  .dim { fill: #9fb6cc; }
-  .mut { fill: #5d7690; }
+  .dim { fill: #b9cfe2; }
+  .mut { fill: #6a8aa6; }
   .cy { fill: #38cfff; }
   .or { fill: #ff9a3c; }
   .num { font-weight: 500; }
@@ -22,11 +22,11 @@
      preserveAspectRatio="xMidYMid meet"></svg>
 <script>
 /*
- * BYD (SharkLab) — painel neon da caminhonete, desenhado na grelha das skins antigas
- * (1280×480, a mesma do shark): o SVG escala sozinho para o quadro do painel.
- * Dois aros nas pontas (pedal e potência), velocidade no centro sobre a caminhonete,
- * e três cartões embaixo: bateria/combustível/autonomia, pressões, modo de condução.
- * Os assets da foto ficam em assets/bg.jpg e assets/truck.jpg.
+ * BYD (SharkLab) — painel neon da caminhonete, na grelha das skins antigas (1280×480): o SVG
+ * escala sozinho para o quadro do painel. Dois aros grandes nas pontas (pedal e potência, com
+ * o arco de valor saindo do canto inferior esquerdo), velocidade no centro sobre a caminhonete
+ * e três cartões embaixo: bateria/combustível/autonomia, pressão dos pneus e modo de condução.
+ * Fotos em assets/: bg.jpg (paisagem), truck.png (caminhonete recortada com alfa) e tyre.jpg.
  */
 (function () {
   'use strict';
@@ -36,13 +36,13 @@
 
   var LANG = (/[#&]lang=(pt|es|en)/.exec(location.hash) || [])[1] || 'es';
   var T = ({
-    es: { thr: 'Acelerador', pow: 'Potencia', kmh: 'km/h', bat: 'Batería', fuel: 'Combustible', range: 'Autonomía Total', cons: 'Consumo', regen: 'Regeneración', ready: 'LISTO' },
-    pt: { thr: 'Acelerador', pow: 'Potência', kmh: 'km/h', bat: 'Bateria', fuel: 'Combustível', range: 'Autonomia Total', cons: 'Consumo', regen: 'Regeneração', ready: 'PRONTO' },
-    en: { thr: 'Throttle', pow: 'Power', kmh: 'mph', bat: 'Battery', fuel: 'Fuel', range: 'Total Range', cons: 'Consumption', regen: 'Regen', ready: 'READY' }
+    es: { thr: 'Acelerador', pow: 'Potencia', kmh: 'km/h', bat: 'Batería', fuel: 'Combustible', range: 'Autonomía Total', cons: 'Consumo', regen: 'Regeneración' },
+    pt: { thr: 'Acelerador', pow: 'Potência', kmh: 'km/h', bat: 'Bateria', fuel: 'Combustível', range: 'Autonomia Total', cons: 'Consumo', regen: 'Regeneração' },
+    en: { thr: 'Throttle', pow: 'Power', kmh: 'mph', bat: 'Battery', fuel: 'Fuel', range: 'Total Range', cons: 'Consumption', regen: 'Regen' }
   })[LANG] || {};
 
-  /* unidades do painel da BYD: 1 = métrico, 2 = imperial (o app manda km, km/h e kW) */
-  function pow(v) { return window.EvsPU === 2 ? v * 1.341 : v; }
+  /* unidades do painel BYD: 1 = métrico, 2 = imperial (o app manda km, km/h e kW) */
+  function powTo(v) { return window.EvsPU === 2 ? v * 1.341 : v; }
   function powU() { return window.EvsPU === 2 ? 'hp' : 'kW'; }
   function spd(v) { return window.EvsSU === 2 ? v / 1.609344 : v; }
   function dist(v) { return window.EvsDU === 2 ? v / 1.609344 : v; }
@@ -75,186 +75,198 @@
     return 'M' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) +
       'A' + r + ' ' + r + ' 0 ' + large + ' ' + sweep + ' ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2);
   }
-  function rrect(x, y, w, h, r, attrs) {
-    return el('rect', Object.assign({ x: x, y: y, width: w, height: h, rx: r }, attrs));
+  function rrect(x, y, w, h, r, attrs, parent) {
+    return el('rect', Object.assign({ x: x, y: y, width: w, height: h, rx: r }, attrs), parent);
   }
 
-  /* ---------- fundos ---------- */
+  /* ---------- gradientes ---------- */
   var defs = el('defs');
 
-  var gSpeed = el('linearGradient', { id: 'gSpeed', x1: '0', y1: '1', x2: '1', y2: '0' }, defs);
-  el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gSpeed);
-  el('stop', { offset: '1', 'stop-color': '#66e0ff' }, gSpeed);
+  var gThr = el('linearGradient', { id: 'gThr', x1: '0.2', y1: '1', x2: '0.8', y2: '0' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gThr);
+  el('stop', { offset: '0.55', 'stop-color': '#38cfff' }, gThr);
+  el('stop', { offset: '1', 'stop-color': '#9ef0ff' }, gThr);
 
-  var gPow = el('linearGradient', { id: 'gPow', x1: '0', y1: '1', x2: '1', y2: '0' }, defs);
+  var gPow = el('linearGradient', { id: 'gPow', x1: '0.2', y1: '1', x2: '0.8', y2: '0' }, defs);
   el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gPow);
-  el('stop', { offset: '0.55', 'stop-color': '#ff8a2b' }, gPow);
-  el('stop', { offset: '1', 'stop-color': '#ffc46b' }, gPow);
+  el('stop', { offset: '0.45', 'stop-color': '#2f9df5' }, gPow);
+  el('stop', { offset: '0.75', 'stop-color': '#ff8a2b' }, gPow);
+  el('stop', { offset: '1', 'stop-color': '#ffd08a' }, gPow);
 
   var gFade = el('linearGradient', { id: 'gFade', x1: '0', y1: '0', x2: '0', y2: '1' }, defs);
   el('stop', { offset: '0', 'stop-color': '#04070c', 'stop-opacity': '0' }, gFade);
+  el('stop', { offset: '0.55', 'stop-color': '#04070c', 'stop-opacity': '0.75' }, gFade);
   el('stop', { offset: '1', 'stop-color': '#04070c', 'stop-opacity': '1' }, gFade);
 
   var gCard = el('linearGradient', { id: 'gCard', x1: '0', y1: '0', x2: '0', y2: '1' }, defs);
-  el('stop', { offset: '0', 'stop-color': '#0b1a2b', 'stop-opacity': '0.92' }, gCard);
-  el('stop', { offset: '1', 'stop-color': '#050b14', 'stop-opacity': '0.95' }, gCard);
+  el('stop', { offset: '0', 'stop-color': '#0c1c2e', 'stop-opacity': '0.9' }, gCard);
+  el('stop', { offset: '1', 'stop-color': '#050c15', 'stop-opacity': '0.96' }, gCard);
 
-  /* paisagem: largura cheia, o pé some num degradê para o preto do painel */
+  var clip = el('clipPath', { id: 'clipFrame' }, defs);
+  el('rect', { x: 0, y: 0, width: W, height: H }, clip);
+
+  /* ---------- fundo: paisagem ampliada (mais zoom que a foto original) ---------- */
   el('rect', { x: 0, y: 0, width: W, height: H, fill: '#04070c' });
-  el('image', { href: 'assets/bg.jpg', x: 0, y: 0, width: W, height: 230, preserveAspectRatio: 'none', opacity: '0.95' });
-  el('rect', { x: 0, y: 150, width: W, height: 200, fill: 'url(#gFade)' });
+  var gBg = el('g', { 'clip-path': 'url(#clipFrame)' });
+  el('image', { href: 'assets/bg.jpg', x: -306, y: -8, width: 1892, height: 340, preserveAspectRatio: 'xMidYMid slice' }, gBg);
+  el('rect', { x: 0, y: 150, width: W, height: 230, fill: 'url(#gFade)' }, gBg);
+  el('rect', { x: 0, y: 380, width: W, height: 100, fill: '#04070c' }, gBg);
 
-  /* arco largo de fundo atrás da velocidade */
-  el('path', { d: arcPath(640, 330, 300, 205, 335), fill: 'none', stroke: '#2f9df5', 'stroke-width': 2.5, opacity: 0.22 });
-  el('path', { d: arcPath(640, 330, 288, 210, 330), fill: 'none', stroke: '#2f9df5', 'stroke-width': 1, opacity: 0.14 });
+  /* arco fino de fundo atrás da velocidade */
+  el('path', { d: arcPath(640, 336, 296, 208, 332), fill: 'none', stroke: '#38cfff', 'stroke-width': 2.5, opacity: 0.45 });
+  el('path', { d: arcPath(640, 336, 310, 214, 326), fill: 'none', stroke: '#38cfff', 'stroke-width': 1.2, opacity: 0.2 });
 
   /* ---------- topo ---------- */
-  var clockTxt = txt(24, 34, '', 20, 'num', 'start');
-  el('rect', { x: 88, y: 18, width: 1, height: 18, fill: '#2a3d52' });
-  var outTxt = txt(102, 34, '', 20, 'dim', 'start');
-  txt(640, 36, 'B Y D', 26, 'num', null, 700);
+  var clockTxt = txt(24, 34, '', 22, 'num', 'start');
+  el('rect', { x: 102, y: 16, width: 1, height: 22, fill: '#2a3d52' });
+  var outTxt = txt(118, 34, '', 22, 'dim', 'start');
+  txt(640, 38, 'B Y D', 27, 'num', null, 700);
 
-  /* ícones do topo à direita: sinal, bluetooth, posição */
   for (var b = 0; b < 4; b++) {
-    el('rect', { x: 1176 + b * 7, y: 34 - (4 + b * 5), width: 4, height: 4 + b * 5, rx: 1, fill: '#cfe6ff', opacity: 0.45 });
+    el('rect', { x: 1168 + b * 8, y: 30 - (5 + b * 5), width: 5, height: 5 + b * 5, rx: 1.5, fill: '#dbe9f7', opacity: 0.55 });
   }
-  el('path', {
-    d: 'M1234 24 L1246 36 L1239 41 L1239 19 L1246 24 L1234 36',
-    fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8, 'stroke-linejoin': 'round', opacity: 0.5
-  });
-  el('path', { d: 'M1258 20 L1266 30 L1262 31 L1266 42 L1250 30 Z', fill: '#cfe6ff', opacity: 0.5 });
+  el('path', { d: 'M1232 20 L1246 32 L1238 38 L1238 14 L1246 20 L1232 32', fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2, 'stroke-linejoin': 'round', opacity: 0.6 });
+  el('path', { d: 'M1262 18 L1272 30 L1266 31 L1272 44 L1252 30 Z', fill: '#dbe9f7', opacity: 0.65 });
 
   /* ---------- aros ---------- */
-  var LGY = 222, LGX = 146, RGX = W - 146, GR = 106;
-  var A_THR0 = 112, A_THR1 = 348;      /* abre para a direita */
-  var A_POW0 = 68, A_POW1 = -168;      /* abre para a esquerda */
+  var RING_Y = 226, R = 118, LX = 172, RX = W - 172;
+  var A_THR = 135, DIR_THR = 1;   /* esquerda: começa embaixo à esquerda e sobe pelo lado esquerdo */
+  var A_POW = 45, DIR_POW = -1;   /* direita: começa embaixo à direita e sobe pelo lado direito */
 
-  function guild(cx, a0, a1, grad) {
+  function ring(cx, grad, a0, dir) {
     var g = el('g');
-    el('path', { d: arcPath(cx, LGY, GR, a0, a1), fill: 'none', stroke: '#0f2033', 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
-    el('path', { d: arcPath(cx, LGY, GR, a0, a1), fill: 'none', stroke: grad, 'stroke-width': 14, 'stroke-linecap': 'round', opacity: 0.85 }, g);
-    el('path', { d: arcPath(cx, LGY, GR, a0, a1), fill: 'none', stroke: grad, 'stroke-width': 20, 'stroke-linecap': 'round', opacity: 0.16 }, g);
-    var dot = el('circle', { cx: cx, cy: LGY, r: 5, fill: '#eaf7ff' }, g);
-    return { dot: dot, cx: cx, a0: a0, a1: a1 };
+    el('circle', { cx: cx, cy: RING_Y, r: R, fill: 'none', stroke: '#22405c', 'stroke-width': 2.4 }, g);
+    el('circle', { cx: cx, cy: RING_Y, r: R - 9, fill: 'none', stroke: '#12253a', 'stroke-width': 1.2 }, g);
+    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 30, 'stroke-linecap': 'round', opacity: 0.14 }, g);
+    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 19, 'stroke-linecap': 'round' }, g);
+    return { glow: glow, val: val, cx: cx, a0: a0, dir: dir };
   }
-  var thrG = guild(LGX, A_THR0, A_THR1, 'url(#gSpeed)');
-  var powG = guild(RGX, A_POW0, A_POW1, 'url(#gPow)');
+  function setRing(rg, frac) {
+    var f = Math.max(0, Math.min(1, frac));
+    var d = f > 0.004 ? arcPath(rg.cx, RING_Y, R, rg.a0, rg.a0 + rg.dir * 360 * f) : '';
+    rg.val.setAttribute('d', d);
+    rg.glow.setAttribute('d', d);
+  }
+  var thrRing = ring(LX, 'url(#gThr)', A_THR, DIR_THR);
+  var powRing = ring(RX, 'url(#gPow)', A_POW, DIR_POW);
 
-  txt(LGX, 206, T.thr, 17, 'dim');
-  var thrNum = txt(LGX - 8, 252, '0', 58, 'num');
-  txt(LGX + 44, 252, '%', 20, 'dim');
+  txt(LX, 148, T.thr, 21, 'dim');
+  var thrNum = txt(LX - 14, 202, '0', 56, 'num');
+  txt(LX + 44, 202, '%', 22, 'dim');
 
-  txt(RGX, 186, T.pow, 17, 'dim');
-  var powNum = txt(RGX - 10, 240, '0', 46, 'num');
-  var powUnit = txt(RGX + 40, 240, powU(), 18, 'dim');
+  var bolt = el('path', { d: 'M' + (RX - 5) + ' 118 l10 -18 l-3 12 h9 l-11 19 l3 -13 z', fill: '#ff9a3c' });
+  txt(RX, 148, T.pow, 21, 'dim');
+  var powNum = txt(RX - 16, 202, '0', 56, 'num');
+  var powUnit = txt(RX + 52, 202, powU(), 22, 'dim');
+  var powLine = el('rect', { x: RX - 62, y: 214, width: 124, height: 2, rx: 1, fill: '#ff9a3c', opacity: 0.85 });
+  var powLabel = txt(RX, 232, '', 13, 'mut');
 
-  el('path', { d: 'M' + (RGX - 4) + ' 258 l8 -14 l-2 9 h7 l-9 15 l2 -10 z', fill: '#ff9a3c' });
-  var powLabel = txt(RGX, 286, T.cons, 13, 'mut');
-
-  /* ---------- centro: velocidade ---------- */
-  var spdNum = txt(640, 124, '0', 108, 'num');
+  /* ---------- centro: velocidade e caminhonete ---------- */
+  var spdNum = txt(640, 124, '0', 106, 'num');
   spdNum.setAttribute('font-weight', 500);
-  txt(640, 150, T.kmh, 18, 'mut');
+  txt(640, 148, T.kmh, 20, 'mut');
 
-  /* caminhonete sobre o piso */
-  var TRUCK_W = 330, TRUCK_H = Math.round(TRUCK_W * 393 / 790);
-  var pool = el('ellipse', { cx: 640, cy: 328, rx: 230, ry: 26, fill: '#2f9df5', opacity: 0.13 }, defs.parentNode);
-  var poolFade = el('radialGradient', { id: 'gPool' }, defs);
-  el('stop', { offset: '0', 'stop-color': '#7fdcff', 'stop-opacity': '0.5' }, poolFade);
-  el('stop', { offset: '1', 'stop-color': '#7fdcff', 'stop-opacity': '0' }, poolFade);
-  pool.setAttribute('fill', 'url(#gPool)');
-  el('image', { id: 'truck', href: 'assets/truck.jpg', x: 640 - TRUCK_W / 2, y: 332 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
+  var TRUCK_W = 322, TRUCK_H = Math.round(TRUCK_W * 345 / 680);
+  el('ellipse', { cx: 640, cy: 300, rx: 190, ry: 16, fill: '#2f9df5', opacity: 0.16 });
+  el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 300 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
+
+  /* paginação decorativa das telas, como no desenho */
+  el('circle', { cx: 626, cy: 318, r: 4, fill: '#eaf3ff' });
+  el('circle', { cx: 640, cy: 318, r: 3.4, fill: '#41546a' });
+  el('circle', { cx: 654, cy: 318, r: 3.4, fill: '#41546a' });
 
   /* ---------- cartões ---------- */
   function card(x, w) {
     var g = el('g');
-    rrect(x, 340, w, 104, 16, { fill: 'url(#gCard)', stroke: '#1b6fe0', 'stroke-width': 1.2, 'stroke-opacity': 0.55 }, g);
+    rrect(x, 330, w, 120, 18, { fill: 'url(#gCard)', stroke: '#1b6fe0', 'stroke-width': 1.3, 'stroke-opacity': 0.6 }, g);
+    rrect(x, 330, w, 120, 18, { fill: 'none', stroke: '#38cfff', 'stroke-width': 5, opacity: 0.05 }, g);
     return g;
   }
-  function batteryIcon(x, y) {
-    el('rect', { x: x, y: y, width: 17, height: 26, rx: 4, fill: 'none', stroke: '#38cfff', 'stroke-width': 2 });
-    el('rect', { x: x + 5, y: y - 3, width: 7, height: 3, rx: 1, fill: '#38cfff' });
-    return el('rect', { x: x + 3, y: y + 15, width: 11, height: 8, rx: 2, fill: '#38cfff' });
+  function batteryIcon(x, y, parent) {
+    el('rect', { x: x, y: y, width: 18, height: 28, rx: 4, fill: 'none', stroke: '#38cfff', 'stroke-width': 2 }, parent);
+    el('rect', { x: x + 5, y: y - 4, width: 8, height: 4, rx: 1, fill: '#38cfff' }, parent);
+    return el('rect', { x: x + 3, y: y + 15, width: 12, height: 10, rx: 2, fill: '#38cfff' }, parent);
   }
-  function pumpIcon(x, y) {
-    el('rect', { x: x, y: y, width: 13, height: 24, rx: 3, fill: 'none', stroke: '#38cfff', 'stroke-width': 2 });
-    /* mangueira: sai do bico à direita, desce e volta ao corpo */
+  function pumpIcon(x, y, parent) {
+    el('rect', { x: x, y: y, width: 15, height: 28, rx: 3, fill: 'none', stroke: '#38cfff', 'stroke-width': 2 }, parent);
     el('path', {
-      d: 'M' + (x + 13) + ' ' + (y + 6) + 'h5v8a3 3 0 0 0 6 0V' + (y + 4),
+      d: 'M' + (x + 15) + ' ' + (y + 6) + 'h6v10a3.5 3.5 0 0 0 7 0V' + (y + 4),
       fill: 'none', stroke: '#38cfff', 'stroke-width': 2, 'stroke-linecap': 'round'
-    });
-    return el('rect', { x: x + 3, y: y + 6, width: 7, height: 6, rx: 1, fill: '#38cfff' });
+    }, parent);
+    return el('rect', { x: x + 3, y: y + 6, width: 9, height: 7, rx: 1, fill: '#38cfff' }, parent);
   }
-  function mountainIcon(x, y, s, cls) {
+  function mountainIcon(x, y, s, parent) {
     return el('path', {
       d: 'M' + (x - s) + ' ' + (y + s * 0.6) + 'l' + (s * 0.55) + ' ' + (-s * 1.25) + 'l' + (s * 0.35) + ' ' + (s * 0.6) +
          'l' + (s * 0.28) + ' ' + (-s * 0.45) + 'l' + (s * 0.62) + ' ' + (s * 1.1) + 'z',
-      fill: cls ? undefined : 'none', class: cls || '', stroke: cls ? undefined : '#38cfff', 'stroke-width': 1.6,
-      'stroke-linejoin': 'round', opacity: 0.9
-    });
+      fill: '#eaf3ff', opacity: 0.9
+    }, parent);
   }
 
   /* cartão 1: bateria, combustível, autonomia */
   var c1 = card(14, 410);
-  batteryIcon(40, 356);
-  var batNum = txt(68, 380, '--', 26, 'num', 'start');
-  txt(68, 396, T.bat, 12, 'mut', 'start');
-  rrect(40, 404, 146, 6, 3, { fill: '#0e1d2c' }, c1);
-  var batBar = rrect(40, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
+  batteryIcon(44, 348, c1);
+  var batNum = txt(74, 374, '--', 27, 'num', 'start');
+  txt(74, 392, T.bat, 11, 'mut', 'start');
+  rrect(44, 404, 148, 6, 3, { fill: '#0e1d2c' }, c1);
+  var batBar = rrect(44, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
 
-  pumpIcon(228, 356);
-  var fuelNum = txt(268, 380, '--', 26, 'num', 'start');
-  txt(268, 396, T.fuel, 12, 'mut', 'start');
-  rrect(228, 404, 146, 6, 3, { fill: '#0e1d2c' }, c1);
-  var fuelBar = rrect(228, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
+  pumpIcon(222, 348, c1);
+  var fuelNum = txt(272, 374, '--', 27, 'num', 'start');
+  txt(272, 392, T.fuel, 11, 'mut', 'start');
+  rrect(222, 404, 148, 6, 3, { fill: '#0e1d2c' }, c1);
+  var fuelBar = rrect(222, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
 
-  el('rect', { x: 208, y: 354, width: 1, height: 60, fill: '#16283c' }, c1);
-  mountainIcon(52, 428, 11);
-  txt(70, 434, T.range, 12, 'mut', 'start');
-  var rangeNum = txt(396, 434, '', 20, 'num', 'end');
+  el('rect', { x: 202, y: 344, width: 1, height: 60, fill: '#16283c' }, c1);
+  mountainIcon(56, 430, 11, c1);
+  txt(76, 436, T.range, 11, 'mut', 'start');
+  var rangeNum = txt(396, 438, '', 21, 'num', 'end');
 
-  /* cartão 2: pressões com o carro visto de cima */
+  /* cartão 2: pressões, com o carro visto de cima */
   var c2 = card(434, 412);
-  el('rect', { x: 618, y: 348, width: 44, height: 80, rx: 15, fill: '#102030', stroke: '#38cfff', 'stroke-width': 1.6, opacity: 0.95 }, c2);
-  el('path', { d: 'M625 365h30M625 405h30', stroke: '#38cfff', 'stroke-width': 1.1, opacity: 0.5 }, c2);
-  [[606, 354], [664, 354], [606, 398], [664, 398]].forEach(function (w) {
-    el('rect', { x: w[0], y: w[1], width: 10, height: 20, rx: 4, fill: '#0a1420', stroke: '#9fb6cc', 'stroke-width': 1.3, opacity: 0.75 }, c2);
+  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 610, y: 334, width: 60, height: 112 }, c2);
+  [[566, 356, 608, 362, 1], [714, 356, 672, 362, -1], [566, 424, 608, 414, 1], [714, 424, 672, 414, -1]].forEach(function (l) {
+    el('path', {
+      d: 'M' + l[0] + ' ' + l[1] + ' L' + (l[2] + l[4] * 10) + ' ' + l[1] + ' L' + l[2] + ' ' + l[3],
+      fill: 'none', stroke: '#38cfff', 'stroke-width': 1.4, opacity: 0.55, 'stroke-linejoin': 'round'
+    }, c2);
   });
-  [[534, 370, 612, 364], [746, 370, 661, 364], [534, 420, 612, 402], [746, 420, 661, 402]].forEach(function (l) {
-    el('path', { d: 'M' + l[0] + ' ' + l[1] + ' L' + (l[2] + (l[0] < 640 ? 6 : -6)) + ' ' + l[1] + ' L' + l[2] + ' ' + l[3],
-      fill: 'none', stroke: '#38cfff', 'stroke-width': 1, opacity: 0.35 }, c2);
-  });
-  var TYRE = [['fl', 496, 374, 'start'], ['fr', 784, 374, 'end'], ['rl', 496, 424, 'start'], ['rr', 784, 424, 'end']];
+  var TYRE = [['fl', 486, 360, 'start'], ['fr', 794, 360, 'end'], ['rl', 486, 428, 'start'], ['rr', 794, 428, 'end']];
+  var TYRE_SHIFT = 30;   /* no lado direito o número fica à esquerda da unidade */
   var tyreNum = {}, tyreU = {};
   TYRE.forEach(function (t) {
-    tyreNum[t[0]] = txt(t[1], t[2], '--', 20, 'num', t[3]);
-    tyreU[t[0]] = txt(t[3] === 'end' ? t[1] - 38 : t[1] + 34, t[2], '', 11, 'mut', t[3]);
+    tyreNum[t[0]] = txt(t[3] === 'end' ? t[1] - TYRE_SHIFT : t[1], t[2], '--', 21, 'num', t[3]);
+    tyreU[t[0]] = txt(t[3] === 'end' ? t[1] : t[1] + 32, t[2], '', 11, 'mut', t[3]);
   });
 
   /* cartão 3: modo de condução */
   var c3 = card(856, 410);
-  rrect(888, 358, 346, 52, 26, { fill: 'none', stroke: '#2f9df5', 'stroke-width': 2.4 }, c3);
-  rrect(888, 358, 346, 52, 26, { fill: 'none', stroke: '#2f9df5', 'stroke-width': 7, opacity: 0.12 }, c3);
-  mountainIcon(958, 384, 12);
-  var modeTxt = txt(1050, 392, '', 20, 'num', 'start', 500);
+  rrect(888, 362, 346, 54, 27, { fill: 'none', stroke: '#2f9df5', 'stroke-width': 2.6 }, c3);
+  rrect(888, 362, 346, 54, 27, { fill: 'none', stroke: '#38cfff', 'stroke-width': 9, opacity: 0.1 }, c3);
+  mountainIcon(966, 386, 13, c3);
+  var modeTxt = txt(1064, 396, '', 21, 'num', 'start', 500);
   modeTxt.setAttribute('letter-spacing', '1.5');
 
   /* ---------- barra inferior ---------- */
   el('path', { d: 'M0 452 H1280', stroke: '#12233a', 'stroke-width': 1 });
   function navIcon(kind, x) {
-    var g = el('g', { transform: 'translate(' + x + ',466)', opacity: 0.75 });
-    if (kind === 'home') el('path', { d: 'M-11 2 L0 -9 L11 2 L7 2 L7 10 L-7 10 L-7 2 Z', fill: '#cfe6ff' }, g);
-    if (kind === 'car') el('path', { d: 'M-13 4 L-9 -4 L9 -4 L13 4 L13 8 L-13 8 Z M-8 8 A2.5 2.5 0 1 0 -3 8 M3 8 A2.5 2.5 0 1 0 8 8', fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8 }, g);
-    if (kind === 'adas') el('path', { d: 'M-12 6 L-4 -8 L0 0 L4 -4 L12 6 Z', fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8, 'stroke-linejoin': 'round' }, g);
+    var g = el('g', { transform: 'translate(' + x + ',466)', opacity: 0.8 });
+    if (kind === 'home') el('path', { d: 'M-11 -1 L0 -10 L11 -1 L8 -1 L8 9 L-8 9 L-8 -1 Z', fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
+    if (kind === 'car') {
+      el('path', { d: 'M-13 7 L-11 2 Q-10 -5 -2 -5 L2 -5 Q10 -5 11 2 L13 7 Z', fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
+      el('circle', { cx: -7.5, cy: 7.5, r: 2.2, fill: 'none', stroke: '#dbe9f7', 'stroke-width': 1.8 }, g);
+      el('circle', { cx: 7.5, cy: 7.5, r: 2.2, fill: 'none', stroke: '#dbe9f7', 'stroke-width': 1.8 }, g);
+    }
+    if (kind === 'adas') el('path', { d: 'M-13 6 L-5 -8 L0 0 L4 -4 L13 6 Z', fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
     if (kind === 'gear') {
-      el('circle', { cx: 0, cy: 0, r: 9, fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8 }, g);
-      el('circle', { cx: 0, cy: 0, r: 3.4, fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8 }, g);
-      el('path', { d: 'M0 -9v3.2M0 5.8V9M-9 0h3.2M5.8 0H9', stroke: '#cfe6ff', 'stroke-width': 1.8 }, g);
+      el('circle', { cx: 0, cy: 0, r: 9.5, fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2 }, g);
+      el('circle', { cx: 0, cy: 0, r: 3.5, fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2 }, g);
+      el('path', { d: 'M0 -9.5v3.4M0 6.1V9.5M-9.5 0h3.4M6.1 0H9.5', stroke: '#dbe9f7', 'stroke-width': 2 }, g);
     }
     return g;
   }
   navIcon('home', 62); navIcon('car', 200); navIcon('adas', 1080); navIcon('gear', 1218);
-  var gearTxt = txt(640, 474, 'P', 26, 'num', null, 600);
+  var gearTxt = txt(640, 470, 'P', 25, 'num', null, 600);
   var warnTxt = txt(800, 474, '', 12, 'or', 'start');
 
   /* ---------- desenho ---------- */
@@ -263,12 +275,6 @@
     return dec ? (+v).toFixed(dec) : String(Math.round(v));
   }
   function pct(v) { return (v === null || v === undefined || v === -999) ? null : Math.max(0, Math.min(100, v)); }
-  function dotAt(g, frac) {
-    var a = g.a0 + (g.a1 - g.a0) * Math.max(0, Math.min(1, frac));
-    var p = pt(g.cx, LGY, GR, a);
-    g.dot.setAttribute('cx', p[0].toFixed(2));
-    g.dot.setAttribute('cy', p[1].toFixed(2));
-  }
 
   var MODES = { 1: 'ECO', 2: 'NORMAL', 3: 'SPORT' };
 
@@ -278,14 +284,19 @@
 
     var tps = Math.max(0, Math.min(100, d.tps || 0));
     thrNum.textContent = String(Math.round(tps));
-    dotAt(thrG, tps / 100);
+    setRing(thrRing, tps / 100);
 
+    /* potência com sinal: negativo quando está regenerando */
     var kw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
-    powNum.textContent = String(Math.round(Math.abs(pow(kw))));
+    var p = Math.round(powTo(kw));
+    powNum.textContent = (p > 0 ? p : String(p));
     powUnit.textContent = powU();
-    dotAt(powG, Math.min(1, Math.abs(kw) / 200));
-    powLabel.textContent = kw < -1 ? T.regen : (kw < 1 ? '' : T.cons);
-    powLabel.setAttribute('class', kw < -1 ? 'cy' : 'mut');
+    setRing(powRing, Math.min(1, Math.abs(kw) / 200));
+    var regen = kw < -1;
+    powLabel.textContent = regen ? T.regen : (kw < 1 ? '' : T.cons);
+    powLabel.setAttribute('class', regen ? 'cy' : 'mut');
+    powLine.setAttribute('fill', regen ? '#38cfff' : '#ff9a3c');
+    bolt.setAttribute('fill', regen ? '#38cfff' : '#ff9a3c');
 
     /* o feed manda o modo como texto em `drive` e o código em `dmode` (2 = NORMAL) */
     var mode = (typeof d.drive === 'string' && d.drive) ? d.drive : (MODES[+d.dmode] || '');
@@ -293,11 +304,11 @@
 
     var soc = pct(d.soc);
     batNum.textContent = soc === null ? '--' : String(Math.round(soc));
-    batBar.setAttribute('width', soc === null ? 0 : (150 * soc / 100).toFixed(1));
+    batBar.setAttribute('width', soc === null ? 0 : (148 * soc / 100).toFixed(1));
 
     var fuel = pct(d.fuel);
     fuelNum.textContent = fuel === null ? '--' : String(Math.round(fuel));
-    fuelBar.setAttribute('width', fuel === null ? 0 : (150 * fuel / 100).toFixed(1));
+    fuelBar.setAttribute('width', fuel === null ? 0 : (148 * fuel / 100).toFixed(1));
 
     var rg = (d.range === -999 || d.range == null) ? null : d.range;
     rangeNum.textContent = rg === null ? '--' : (Math.round(dist(rg)) + ' ' + DIST_U);
@@ -318,13 +329,12 @@
     clockTxt.textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
     outTxt.textContent = (d.tout === -999 || d.tout == null) ? '' : Math.round(d.tout) + ' °C';
 
-    var w = (d.warn && d.warn.length) ? d.warn.join('  ') : '';
-    warnTxt.textContent = w;
+    warnTxt.textContent = (d.warn && d.warn.length) ? d.warn.join('  ') : '';
   }
 
   window.BrasaDriveUpdate = function (d) { if (d) draw(d); };
 
-  draw({ speed: 0, tps: 0, pw: 0, soc: -999, fuel: -999, range: -999, sel: 'P', ready: false, tout: -999 });
+  draw({ speed: 0, tps: 0, pw: 0, soc: -999, fuel: -999, range: -999, sel: 'P', tout: -999 });
 })();
 </script>
 </body>
