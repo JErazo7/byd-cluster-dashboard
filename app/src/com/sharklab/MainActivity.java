@@ -733,7 +733,19 @@ public class MainActivity extends Activity {
             }
         }
 
+        /** aplicar a skin sozinho quando o carro liga (padrão: não) */
         @JavascriptInterface
+        public boolean bootApplyGet() {
+            SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+            return p.getBoolean("bootApply", p.getBoolean("autostart", false));
+        }
+
+        @JavascriptInterface
+        public void bootApplySet(boolean on) {
+            getSharedPreferences("lab", MODE_PRIVATE).edit()
+                    .putBoolean("bootApply", on).putBoolean("autostart", on).apply();
+        }
+
         public boolean autostartGet() {
             return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("autostart", false);
         }

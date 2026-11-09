@@ -38,6 +38,10 @@
 <button id="proj" aria-pressed="false">PROYECTAR SKIN EN EL PANEL</button>
 <div class="hint" id="projInfo">—</div>
 
+<h2>Al encender el auto</h2>
+<button id="bootApply" aria-pressed="false">APLICAR LA SKIN AUTOMÁTICAMENTE</button>
+<div class="hint" id="bootInfo">—</div>
+
 <h2>Panel</h2>
 <div class="grid" id="skins"></div>
 
@@ -48,6 +52,24 @@
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
   var L = window.Lab || {};
+
+  /* ---------- aplicar ao ligar ---------- */
+  function bootPaint() {
+    var on = L.bootApplyGet ? L.bootApplyGet() : false;
+    $('bootApply').setAttribute('aria-pressed', String(on));
+    $('bootInfo').textContent = on
+      ? 'Al encender, la skin se aplica sola en el panel.'
+      : 'Al encender, el panel queda con la interfaz original de BYD. La skin solo entra desde aquí.';
+  }
+  var bootBtn = $('bootApply');
+  if (bootBtn) {
+    bootBtn.addEventListener('click', function () {
+      if (!L.bootApplySet) return;
+      L.bootApplySet(!(L.bootApplyGet ? L.bootApplyGet() : false));
+      bootPaint();
+    });
+    bootPaint();
+  }
 
   /* ---------- dados ---------- */
   function poll() {

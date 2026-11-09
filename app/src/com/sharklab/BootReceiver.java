@@ -26,9 +26,14 @@ public class BootReceiver extends BroadcastReceiver {
                 && !Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(a)
                 && !Intent.ACTION_USER_UNLOCKED.equals(a)
                 && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)) return;
-        /* no arranque o painel fica no original da BYD; a skin só entra quando o app abre */
+        /* no arranque o painel fica SEMPRE no original da BYD; aplicá-lo é uma escolha do
+           usuário em Ajustes (bootApply), e quando ela está desligada o app nem toma o painel
+           se for aberto pelo sistema */
+        android.content.SharedPreferences p = ctx.getSharedPreferences("lab", Context.MODE_PRIVATE);
+        boolean bootApply = p.getBoolean("bootApply", p.getBoolean("autostart", false));
+        if (!bootApply) p.edit().putBoolean("enabled", false).apply();
         PanelRelease.release();
-        if (!ctx.getSharedPreferences("lab", Context.MODE_PRIVATE).getBoolean("autostart", false)) return;
+        if (!bootApply) return;
         try {
             Intent i = new Intent(ctx, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
