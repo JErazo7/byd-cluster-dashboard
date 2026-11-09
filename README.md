@@ -17,8 +17,9 @@ Os tamanhos de referência — para as skins novas não ficarem sobredimensionad
 (herói 128 no centro), título 19–20, P R N D 26, READY 17, rodapé e odômetro 17, relógio 24,
 faixa das luzes da BYD em x 427–853, y 0–54.
 
-O `byd` é o único tema com foto: `themes/dash/byd/assets/bg.jpg` (paisagem) e `truck.jpg`
-(caminhonete sobre preto puro, composta com `mix-blend-mode: screen` — sem recorte).
+O `byd` é o único tema com foto, tudo em `themes/dash/byd/assets/`: `bg.jpg` (paisagem),
+`truck.png` (caminhonete recortada com alfa) e `tyre.jpg` (carro visto de cima no cartão de
+pressão, composto com `mix-blend-mode: screen`).
 
 ## Estado real de las funcionalidades
 
