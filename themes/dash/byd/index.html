@@ -8,7 +8,8 @@
   html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #04070c; }
   svg { display: block; }
   /* o carro do cartão de pressão vem sobre azul-escuro: o screen soma só o brilho */
-  #tyrecar { mix-blend-mode: screen; filter: brightness(1.35) saturate(1.15); }
+  /* a arte vem com um fundo azul-escuro: o screen soma o brilho e o contrast joga o fundo a zero */
+  #tyrecar { mix-blend-mode: screen; filter: contrast(1.55) brightness(1.22) saturate(1.1); }
   text { font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #eaf3ff; }
   .dim { fill: #b9cfe2; }
   .mut { fill: #6a8aa6; }
@@ -102,6 +103,9 @@
   el('stop', { offset: '0', 'stop-color': '#0c1c2e', 'stop-opacity': '0.9' }, gCard);
   el('stop', { offset: '1', 'stop-color': '#050c15', 'stop-opacity': '0.96' }, gCard);
 
+  var tyreClip = el('clipPath', { id: 'cTyre' }, defs);
+  el('rect', { x: 574, y: 331, width: 132, height: 120, rx: 12 }, tyreClip);
+
   var clip = el('clipPath', { id: 'clipFrame' }, defs);
   el('rect', { x: 0, y: 0, width: W, height: H }, clip);
 
@@ -129,7 +133,7 @@
   el('path', { d: 'M1262 18 L1272 30 L1266 31 L1272 44 L1252 30 Z', fill: '#dbe9f7', opacity: 0.65 });
 
   /* ---------- aros ---------- */
-  var RING_Y = 226, R = 118, LX = 172, RX = W - 172;
+  var RING_Y = 214, R = 104, LX = 172, RX = W - 172;
   var A_THR = 135, DIR_THR = 1;   /* esquerda: começa embaixo à esquerda e sobe pelo lado esquerdo */
   var A_POW = 45, DIR_POW = -1;   /* direita: começa embaixo à direita e sobe pelo lado direito */
 
@@ -137,12 +141,12 @@
     var g = el('g');
     el('circle', { cx: cx, cy: RING_Y, r: R, fill: 'none', stroke: '#22405c', 'stroke-width': 2.4 }, g);
     el('circle', { cx: cx, cy: RING_Y, r: R - 9, fill: 'none', stroke: '#12253a', 'stroke-width': 1.2 }, g);
-    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 30, 'stroke-linecap': 'round', opacity: 0.14 }, g);
-    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 19, 'stroke-linecap': 'round' }, g);
+    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 26, 'stroke-linecap': 'round', opacity: 0.14 }, g);
+    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 17, 'stroke-linecap': 'round' }, g);
     return { glow: glow, val: val, cx: cx, a0: a0, dir: dir };
   }
   function setRing(rg, frac) {
-    var f = Math.max(0, Math.min(1, frac));
+    var f = Math.max(0, Math.min(0.9995, frac));   /* 360° exatos não desenham nada em SVG */
     var d = f > 0.004 ? arcPath(rg.cx, RING_Y, R, rg.a0, rg.a0 + rg.dir * 360 * f) : '';
     rg.val.setAttribute('d', d);
     rg.glow.setAttribute('d', d);
@@ -150,25 +154,25 @@
   var thrRing = ring(LX, 'url(#gThr)', A_THR, DIR_THR);
   var powRing = ring(RX, 'url(#gPow)', A_POW, DIR_POW);
 
-  txt(LX, 148, T.thr, 21, 'dim');
-  var thrNum = txt(LX - 14, 202, '0', 56, 'num');
-  txt(LX + 44, 202, '%', 22, 'dim');
+  txt(LX, 144, T.thr, 20, 'dim');
+  var thrNum = txt(LX - 14, 196, '0', 54, 'num');
+  txt(LX + 42, 196, '%', 21, 'dim');
 
-  var bolt = el('path', { d: 'M' + (RX - 5) + ' 118 l10 -18 l-3 12 h9 l-11 19 l3 -13 z', fill: '#ff9a3c' });
-  txt(RX, 148, T.pow, 21, 'dim');
-  var powNum = txt(RX - 16, 202, '0', 56, 'num');
-  var powUnit = txt(RX + 52, 202, powU(), 22, 'dim');
-  var powLine = el('rect', { x: RX - 62, y: 214, width: 124, height: 2, rx: 1, fill: '#ff9a3c', opacity: 0.85 });
-  var powLabel = txt(RX, 232, '', 13, 'mut');
+  var bolt = el('path', { d: 'M' + (RX - 5) + ' 116 l10 -18 l-3 12 h9 l-11 19 l3 -13 z', fill: '#ff9a3c' });
+  txt(RX, 144, T.pow, 20, 'dim');
+  var powNum = txt(RX - 16, 196, '0', 54, 'num');
+  var powUnit = txt(RX + 50, 196, powU(), 21, 'dim');
+  var powLine = el('rect', { x: RX - 60, y: 208, width: 120, height: 2, rx: 1, fill: '#ff9a3c', opacity: 0.85 });
+  var powLabel = txt(RX, 226, '', 13, 'mut');
 
   /* ---------- centro: velocidade e caminhonete ---------- */
   var spdNum = txt(640, 124, '0', 106, 'num');
   spdNum.setAttribute('font-weight', 500);
   txt(640, 148, T.kmh, 20, 'mut');
 
-  var TRUCK_W = 322, TRUCK_H = Math.round(TRUCK_W * 345 / 680);
-  el('ellipse', { cx: 640, cy: 300, rx: 190, ry: 16, fill: '#2f9df5', opacity: 0.16 });
-  el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 300 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
+  var TRUCK_W = 300, TRUCK_H = Math.round(TRUCK_W * 203 / 400);
+  el('ellipse', { cx: 640, cy: 308, rx: 176, ry: 15, fill: '#2f9df5', opacity: 0.16 });
+  el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 308 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
 
   /* paginação decorativa das telas, como no desenho */
   el('circle', { cx: 626, cy: 318, r: 4, fill: '#eaf3ff' });
@@ -224,19 +228,16 @@
 
   /* cartão 2: pressões, com o carro visto de cima */
   var c2 = card(434, 412);
-  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 610, y: 334, width: 60, height: 112 }, c2);
-  [[566, 356, 608, 362, 1], [714, 356, 672, 362, -1], [566, 424, 608, 414, 1], [714, 424, 672, 414, -1]].forEach(function (l) {
-    el('path', {
-      d: 'M' + l[0] + ' ' + l[1] + ' L' + (l[2] + l[4] * 10) + ' ' + l[1] + ' L' + l[2] + ' ' + l[3],
-      fill: 'none', stroke: '#38cfff', 'stroke-width': 1.4, opacity: 0.55, 'stroke-linejoin': 'round'
-    }, c2);
-  });
-  var TYRE = [['fl', 486, 360, 'start'], ['fr', 794, 360, 'end'], ['rl', 486, 428, 'start'], ['rr', 794, 428, 'end']];
-  var TYRE_SHIFT = 30;   /* no lado direito o número fica à esquerda da unidade */
-  var tyreNum = {}, tyreU = {};
+  /* a arte do carro já traz as linhas que apontam para as rodas: as etiquetas encostam nelas */
+  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 579, y: 333, width: 122, height: 116, 'clip-path': 'url(#cTyre)' }, c2);
+  var TYRE = [['fl', 502, 356, 'start'], ['fr', 778, 356, 'end'], ['rl', 502, 434, 'start'], ['rr', 778, 434, 'end']];
+  var tyreNum = {};
   TYRE.forEach(function (t) {
-    tyreNum[t[0]] = txt(t[3] === 'end' ? t[1] - TYRE_SHIFT : t[1], t[2], '--', 21, 'num', t[3]);
-    tyreU[t[0]] = txt(t[3] === 'end' ? t[1] : t[1] + 32, t[2], '', 11, 'mut', t[3]);
+    var n = txt(t[1], t[2], '--', 21, 'num', t[3]);
+    var u = el('tspan', { 'font-size': 11, class: 'mut', dx: 4 });
+    u.textContent = '';
+    n.appendChild(u);
+    tyreNum[t[0]] = { num: n, unit: u };
   });
 
   /* cartão 3: modo de condução */
@@ -318,8 +319,9 @@
     if (y && y.fl != null) {
       var large = Math.max(+y.fl, +y.fr, +y.rl, +y.rr) > 10;
       TYRE.forEach(function (t) {
-        tyreNum[t[0]].textContent = fmt(y[t[0]], large ? 0 : 1);
-        tyreU[t[0]].textContent = large ? 'PSI' : 'bar';
+        var box = tyreNum[t[0]];
+        box.num.firstChild.nodeValue = fmt(y[t[0]], large ? 0 : 1);
+        box.unit.textContent = large ? 'PSI' : 'bar';
       });
     }
 
