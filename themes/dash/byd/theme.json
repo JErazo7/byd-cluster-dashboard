@@ -1,0 +1,8 @@
+{
+  "name": "BYD",
+  "desc": {
+    "pt": "Painel neon da própria caminhonete: dois aros nas pontas (pedal e potência), a velocidade grande no centro sobre a foto do Shark e três cartões embaixo com bateria, combustível e autonomia, pressão dos pneus e o modo de condução. O fundo e a caminhonete são imagens em assets/.",
+    "es": "Tablero neón de la propia camioneta: dos aros en las puntas (pedal y potencia), la velocidad grande en el centro sobre la foto del Shark y tres tarjetas abajo con batería, combustible y autonomía, presión de los neumáticos y el modo de conducción. El fondo y la camioneta son imágenes en assets/.",
+    "en": "Neon dashboard of the truck itself: two rings at the ends (throttle and power), a big speed in the middle over the Shark photo, and three cards below with battery, fuel and range, tyre pressure and the drive mode. The background and the truck are images under assets/."
+  }
+}

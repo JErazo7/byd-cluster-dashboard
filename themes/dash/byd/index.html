@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>BYD</title>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #04070c; }
+  svg { display: block; }
+  /* a foto da caminhonete vem sobre preto puro: o blend screen deixa só o carro, sem recorte */
+  #truck { mix-blend-mode: screen; }
+  text { font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #eaf3ff; }
+  .dim { fill: #9fb6cc; }
+  .mut { fill: #5d7690; }
+  .cy { fill: #38cfff; }
+  .or { fill: #ff9a3c; }
+  .num { font-weight: 500; }
+</style>
+</head>
+<body>
+<svg id="s" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1280 480"
+     preserveAspectRatio="xMidYMid meet"></svg>
+<script>
+/*
+ * BYD (SharkLab) — painel neon da caminhonete, desenhado na grelha das skins antigas
+ * (1280×480, a mesma do shark): o SVG escala sozinho para o quadro do painel.
+ * Dois aros nas pontas (pedal e potência), velocidade no centro sobre a caminhonete,
+ * e três cartões embaixo: bateria/combustível/autonomia, pressões, modo de condução.
+ * Os assets da foto ficam em assets/bg.jpg e assets/truck.jpg.
+ */
+(function () {
+  'use strict';
+  var NS = 'http://www.w3.org/2000/svg';
+  var W = 1280, H = 480;
+  var svg = document.getElementById('s');
+
+  var LANG = (/[#&]lang=(pt|es|en)/.exec(location.hash) || [])[1] || 'es';
+  var T = ({
+    es: { thr: 'Acelerador', pow: 'Potencia', kmh: 'km/h', bat: 'Batería', fuel: 'Combustible', range: 'Autonomía Total', cons: 'Consumo', regen: 'Regeneración', ready: 'LISTO' },
+    pt: { thr: 'Acelerador', pow: 'Potência', kmh: 'km/h', bat: 'Bateria', fuel: 'Combustível', range: 'Autonomia Total', cons: 'Consumo', regen: 'Regeneração', ready: 'PRONTO' },
+    en: { thr: 'Throttle', pow: 'Power', kmh: 'mph', bat: 'Battery', fuel: 'Fuel', range: 'Total Range', cons: 'Consumption', regen: 'Regen', ready: 'READY' }
+  })[LANG] || {};
+
+  /* unidades do painel da BYD: 1 = métrico, 2 = imperial (o app manda km, km/h e kW) */
+  function pow(v) { return window.EvsPU === 2 ? v * 1.341 : v; }
+  function powU() { return window.EvsPU === 2 ? 'hp' : 'kW'; }
+  function spd(v) { return window.EvsSU === 2 ? v / 1.609344 : v; }
+  function dist(v) { return window.EvsDU === 2 ? v / 1.609344 : v; }
+  var DIST_U = (window.EvsDU === 2) ? 'mi' : 'km';
+
+  function el(tag, attrs, parent) {
+    var n = document.createElementNS(NS, tag), k;
+    for (k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(n);
+    return n;
+  }
+  function txt(x, y, s, size, cls, anchor, weight) {
+    var t = el('text', {
+      x: x, y: y, 'font-size': size || 16, 'text-anchor': anchor || 'middle',
+      'font-weight': weight || 400, class: cls || ''
+    });
+    t.textContent = s == null ? '' : s;
+    return t;
+  }
+  function pt(cx, cy, r, a) {
+    var rad = a * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  }
+  /* arco de a0 a a1 (graus, 0 = leste, positivo no sentido horário); a1 < a0 vai anti-horário */
+  function arcPath(cx, cy, r, a0, a1) {
+    var d = a1 - a0;
+    if (Math.abs(d) < 0.05) return '';
+    var p0 = pt(cx, cy, r, a0), p1 = pt(cx, cy, r, a1);
+    var large = Math.abs(d) > 180 ? 1 : 0, sweep = d >= 0 ? 1 : 0;
+    return 'M' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) +
+      'A' + r + ' ' + r + ' 0 ' + large + ' ' + sweep + ' ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2);
+  }
+  function rrect(x, y, w, h, r, attrs) {
+    return el('rect', Object.assign({ x: x, y: y, width: w, height: h, rx: r }, attrs));
+  }
+
+  /* ---------- fundos ---------- */
+  var defs = el('defs');
+
+  var gSpeed = el('linearGradient', { id: 'gSpeed', x1: '0', y1: '1', x2: '1', y2: '0' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gSpeed);
+  el('stop', { offset: '1', 'stop-color': '#66e0ff' }, gSpeed);
+
+  var gPow = el('linearGradient', { id: 'gPow', x1: '0', y1: '1', x2: '1', y2: '0' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gPow);
+  el('stop', { offset: '0.55', 'stop-color': '#ff8a2b' }, gPow);
+  el('stop', { offset: '1', 'stop-color': '#ffc46b' }, gPow);
+
+  var gFade = el('linearGradient', { id: 'gFade', x1: '0', y1: '0', x2: '0', y2: '1' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#04070c', 'stop-opacity': '0' }, gFade);
+  el('stop', { offset: '1', 'stop-color': '#04070c', 'stop-opacity': '1' }, gFade);
+
+  var gCard = el('linearGradient', { id: 'gCard', x1: '0', y1: '0', x2: '0', y2: '1' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#0b1a2b', 'stop-opacity': '0.92' }, gCard);
+  el('stop', { offset: '1', 'stop-color': '#050b14', 'stop-opacity': '0.95' }, gCard);
+
+  /* paisagem: largura cheia, o pé some num degradê para o preto do painel */
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: '#04070c' });
+  el('image', { href: 'assets/bg.jpg', x: 0, y: 0, width: W, height: 230, preserveAspectRatio: 'none', opacity: '0.95' });
+  el('rect', { x: 0, y: 150, width: W, height: 200, fill: 'url(#gFade)' });
+
+  /* arco largo de fundo atrás da velocidade */
+  el('path', { d: arcPath(640, 330, 300, 205, 335), fill: 'none', stroke: '#2f9df5', 'stroke-width': 2.5, opacity: 0.22 });
+  el('path', { d: arcPath(640, 330, 288, 210, 330), fill: 'none', stroke: '#2f9df5', 'stroke-width': 1, opacity: 0.14 });
+
+  /* ---------- topo ---------- */
+  var clockTxt = txt(24, 34, '', 20, 'num', 'start');
+  el('rect', { x: 88, y: 18, width: 1, height: 18, fill: '#2a3d52' });
+  var outTxt = txt(102, 34, '', 20, 'dim', 'start');
+  txt(640, 36, 'B Y D', 26, 'num', null, 700);
+
+  /* ícones do topo à direita: sinal, bluetooth, posição */
+  for (var b = 0; b < 4; b++) {
+    el('rect', { x: 1176 + b * 7, y: 34 - (4 + b * 5), width: 4, height: 4 + b * 5, rx: 1, fill: '#cfe6ff', opacity: 0.45 });
+  }
+  el('path', {
+    d: 'M1234 24 L1246 36 L1239 41 L1239 19 L1246 24 L1234 36',
+    fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8, 'stroke-linejoin': 'round', opacity: 0.5
+  });
+  el('path', { d: 'M1258 20 L1266 30 L1262 31 L1266 42 L1250 30 Z', fill: '#cfe6ff', opacity: 0.5 });
+
+  /* ---------- aros ---------- */
+  var LGY = 222, LGX = 146, RGX = W - 146, GR = 106;
+  var A_THR0 = 112, A_THR1 = 348;      /* abre para a direita */
+  var A_POW0 = 68, A_POW1 = -168;      /* abre para a esquerda */
+
+  function guild(cx, a0, a1, grad) {
+    var g = el('g');
+    el('path', { d: arcPath(cx, LGY, GR, a0, a1), fill: 'none', stroke: '#0f2033', 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
+    el('path', { d: arcPath(cx, LGY, GR, a0, a1), fill: 'none', stroke: grad, 'stroke-width': 14, 'stroke-linecap': 'round', opacity: 0.85 }, g);
+    el('path', { d: arcPath(cx, LGY, GR, a0, a1), fill: 'none', stroke: grad, 'stroke-width': 20, 'stroke-linecap': 'round', opacity: 0.16 }, g);
+    var dot = el('circle', { cx: cx, cy: LGY, r: 5, fill: '#eaf7ff' }, g);
+    return { dot: dot, cx: cx, a0: a0, a1: a1 };
+  }
+  var thrG = guild(LGX, A_THR0, A_THR1, 'url(#gSpeed)');
+  var powG = guild(RGX, A_POW0, A_POW1, 'url(#gPow)');
+
+  txt(LGX, 206, T.thr, 17, 'dim');
+  var thrNum = txt(LGX - 8, 252, '0', 58, 'num');
+  txt(LGX + 44, 252, '%', 20, 'dim');
+
+  txt(RGX, 186, T.pow, 17, 'dim');
+  var powNum = txt(RGX - 10, 240, '0', 46, 'num');
+  var powUnit = txt(RGX + 40, 240, powU(), 18, 'dim');
+
+  el('path', { d: 'M' + (RGX - 4) + ' 258 l8 -14 l-2 9 h7 l-9 15 l2 -10 z', fill: '#ff9a3c' });
+  var powLabel = txt(RGX, 286, T.cons, 13, 'mut');
+
+  /* ---------- centro: velocidade ---------- */
+  var spdNum = txt(640, 124, '0', 108, 'num');
+  spdNum.setAttribute('font-weight', 500);
+  txt(640, 150, T.kmh, 18, 'mut');
+
+  /* caminhonete sobre o piso */
+  var TRUCK_W = 330, TRUCK_H = Math.round(TRUCK_W * 393 / 790);
+  var pool = el('ellipse', { cx: 640, cy: 328, rx: 230, ry: 26, fill: '#2f9df5', opacity: 0.13 }, defs.parentNode);
+  var poolFade = el('radialGradient', { id: 'gPool' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#7fdcff', 'stop-opacity': '0.5' }, poolFade);
+  el('stop', { offset: '1', 'stop-color': '#7fdcff', 'stop-opacity': '0' }, poolFade);
+  pool.setAttribute('fill', 'url(#gPool)');
+  el('image', { id: 'truck', href: 'assets/truck.jpg', x: 640 - TRUCK_W / 2, y: 332 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
+
+  /* ---------- cartões ---------- */
+  function card(x, w) {
+    var g = el('g');
+    rrect(x, 340, w, 104, 16, { fill: 'url(#gCard)', stroke: '#1b6fe0', 'stroke-width': 1.2, 'stroke-opacity': 0.55 }, g);
+    return g;
+  }
+  function batteryIcon(x, y) {
+    el('rect', { x: x, y: y, width: 17, height: 26, rx: 4, fill: 'none', stroke: '#38cfff', 'stroke-width': 2 });
+    el('rect', { x: x + 5, y: y - 3, width: 7, height: 3, rx: 1, fill: '#38cfff' });
+    return el('rect', { x: x + 3, y: y + 15, width: 11, height: 8, rx: 2, fill: '#38cfff' });
+  }
+  function pumpIcon(x, y) {
+    el('rect', { x: x, y: y, width: 13, height: 24, rx: 3, fill: 'none', stroke: '#38cfff', 'stroke-width': 2 });
+    /* mangueira: sai do bico à direita, desce e volta ao corpo */
+    el('path', {
+      d: 'M' + (x + 13) + ' ' + (y + 6) + 'h5v8a3 3 0 0 0 6 0V' + (y + 4),
+      fill: 'none', stroke: '#38cfff', 'stroke-width': 2, 'stroke-linecap': 'round'
+    });
+    return el('rect', { x: x + 3, y: y + 6, width: 7, height: 6, rx: 1, fill: '#38cfff' });
+  }
+  function mountainIcon(x, y, s, cls) {
+    return el('path', {
+      d: 'M' + (x - s) + ' ' + (y + s * 0.6) + 'l' + (s * 0.55) + ' ' + (-s * 1.25) + 'l' + (s * 0.35) + ' ' + (s * 0.6) +
+         'l' + (s * 0.28) + ' ' + (-s * 0.45) + 'l' + (s * 0.62) + ' ' + (s * 1.1) + 'z',
+      fill: cls ? undefined : 'none', class: cls || '', stroke: cls ? undefined : '#38cfff', 'stroke-width': 1.6,
+      'stroke-linejoin': 'round', opacity: 0.9
+    });
+  }
+
+  /* cartão 1: bateria, combustível, autonomia */
+  var c1 = card(14, 410);
+  batteryIcon(40, 356);
+  var batNum = txt(68, 380, '--', 26, 'num', 'start');
+  txt(68, 396, T.bat, 12, 'mut', 'start');
+  rrect(40, 404, 146, 6, 3, { fill: '#0e1d2c' }, c1);
+  var batBar = rrect(40, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
+
+  pumpIcon(228, 356);
+  var fuelNum = txt(268, 380, '--', 26, 'num', 'start');
+  txt(268, 396, T.fuel, 12, 'mut', 'start');
+  rrect(228, 404, 146, 6, 3, { fill: '#0e1d2c' }, c1);
+  var fuelBar = rrect(228, 404, 0, 6, 3, { fill: '#38cfff' }, c1);
+
+  el('rect', { x: 208, y: 354, width: 1, height: 60, fill: '#16283c' }, c1);
+  mountainIcon(52, 428, 11);
+  txt(70, 434, T.range, 12, 'mut', 'start');
+  var rangeNum = txt(396, 434, '', 20, 'num', 'end');
+
+  /* cartão 2: pressões com o carro visto de cima */
+  var c2 = card(434, 412);
+  el('rect', { x: 618, y: 348, width: 44, height: 80, rx: 15, fill: '#102030', stroke: '#38cfff', 'stroke-width': 1.6, opacity: 0.95 }, c2);
+  el('path', { d: 'M625 365h30M625 405h30', stroke: '#38cfff', 'stroke-width': 1.1, opacity: 0.5 }, c2);
+  [[606, 354], [664, 354], [606, 398], [664, 398]].forEach(function (w) {
+    el('rect', { x: w[0], y: w[1], width: 10, height: 20, rx: 4, fill: '#0a1420', stroke: '#9fb6cc', 'stroke-width': 1.3, opacity: 0.75 }, c2);
+  });
+  [[534, 370, 612, 364], [746, 370, 661, 364], [534, 420, 612, 402], [746, 420, 661, 402]].forEach(function (l) {
+    el('path', { d: 'M' + l[0] + ' ' + l[1] + ' L' + (l[2] + (l[0] < 640 ? 6 : -6)) + ' ' + l[1] + ' L' + l[2] + ' ' + l[3],
+      fill: 'none', stroke: '#38cfff', 'stroke-width': 1, opacity: 0.35 }, c2);
+  });
+  var TYRE = [['fl', 496, 374, 'start'], ['fr', 784, 374, 'end'], ['rl', 496, 424, 'start'], ['rr', 784, 424, 'end']];
+  var tyreNum = {}, tyreU = {};
+  TYRE.forEach(function (t) {
+    tyreNum[t[0]] = txt(t[1], t[2], '--', 20, 'num', t[3]);
+    tyreU[t[0]] = txt(t[3] === 'end' ? t[1] - 38 : t[1] + 34, t[2], '', 11, 'mut', t[3]);
+  });
+
+  /* cartão 3: modo de condução */
+  var c3 = card(856, 410);
+  rrect(888, 358, 346, 52, 26, { fill: 'none', stroke: '#2f9df5', 'stroke-width': 2.4 }, c3);
+  rrect(888, 358, 346, 52, 26, { fill: 'none', stroke: '#2f9df5', 'stroke-width': 7, opacity: 0.12 }, c3);
+  mountainIcon(958, 384, 12);
+  var modeTxt = txt(1050, 392, '', 20, 'num', 'start', 500);
+  modeTxt.setAttribute('letter-spacing', '1.5');
+
+  /* ---------- barra inferior ---------- */
+  el('path', { d: 'M0 452 H1280', stroke: '#12233a', 'stroke-width': 1 });
+  function navIcon(kind, x) {
+    var g = el('g', { transform: 'translate(' + x + ',466)', opacity: 0.75 });
+    if (kind === 'home') el('path', { d: 'M-11 2 L0 -9 L11 2 L7 2 L7 10 L-7 10 L-7 2 Z', fill: '#cfe6ff' }, g);
+    if (kind === 'car') el('path', { d: 'M-13 4 L-9 -4 L9 -4 L13 4 L13 8 L-13 8 Z M-8 8 A2.5 2.5 0 1 0 -3 8 M3 8 A2.5 2.5 0 1 0 8 8', fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8 }, g);
+    if (kind === 'adas') el('path', { d: 'M-12 6 L-4 -8 L0 0 L4 -4 L12 6 Z', fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8, 'stroke-linejoin': 'round' }, g);
+    if (kind === 'gear') {
+      el('circle', { cx: 0, cy: 0, r: 9, fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8 }, g);
+      el('circle', { cx: 0, cy: 0, r: 3.4, fill: 'none', stroke: '#cfe6ff', 'stroke-width': 1.8 }, g);
+      el('path', { d: 'M0 -9v3.2M0 5.8V9M-9 0h3.2M5.8 0H9', stroke: '#cfe6ff', 'stroke-width': 1.8 }, g);
+    }
+    return g;
+  }
+  navIcon('home', 62); navIcon('car', 200); navIcon('adas', 1080); navIcon('gear', 1218);
+  var gearTxt = txt(640, 474, 'P', 26, 'num', null, 600);
+  var warnTxt = txt(800, 474, '', 12, 'or', 'start');
+
+  /* ---------- desenho ---------- */
+  function fmt(v, dec) {
+    if (v === null || v === undefined || v === -999 || isNaN(v)) return '--';
+    return dec ? (+v).toFixed(dec) : String(Math.round(v));
+  }
+  function pct(v) { return (v === null || v === undefined || v === -999) ? null : Math.max(0, Math.min(100, v)); }
+  function dotAt(g, frac) {
+    var a = g.a0 + (g.a1 - g.a0) * Math.max(0, Math.min(1, frac));
+    var p = pt(g.cx, LGY, GR, a);
+    g.dot.setAttribute('cx', p[0].toFixed(2));
+    g.dot.setAttribute('cy', p[1].toFixed(2));
+  }
+
+  var MODES = { 1: 'ECO', 2: 'NORMAL', 3: 'SPORT' };
+
+  function draw(d) {
+    var kmh = Math.max(0, d.speed || 0);
+    spdNum.textContent = String(Math.round(spd(kmh)));
+
+    var tps = Math.max(0, Math.min(100, d.tps || 0));
+    thrNum.textContent = String(Math.round(tps));
+    dotAt(thrG, tps / 100);
+
+    var kw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
+    powNum.textContent = String(Math.round(Math.abs(pow(kw))));
+    powUnit.textContent = powU();
+    dotAt(powG, Math.min(1, Math.abs(kw) / 200));
+    powLabel.textContent = kw < -1 ? T.regen : (kw < 1 ? '' : T.cons);
+    powLabel.setAttribute('class', kw < -1 ? 'cy' : 'mut');
+
+    /* o feed manda o modo como texto em `drive` e o código em `dmode` (2 = NORMAL) */
+    var mode = (typeof d.drive === 'string' && d.drive) ? d.drive : (MODES[+d.dmode] || '');
+    modeTxt.textContent = mode.toUpperCase();
+
+    var soc = pct(d.soc);
+    batNum.textContent = soc === null ? '--' : String(Math.round(soc));
+    batBar.setAttribute('width', soc === null ? 0 : (150 * soc / 100).toFixed(1));
+
+    var fuel = pct(d.fuel);
+    fuelNum.textContent = fuel === null ? '--' : String(Math.round(fuel));
+    fuelBar.setAttribute('width', fuel === null ? 0 : (150 * fuel / 100).toFixed(1));
+
+    var rg = (d.range === -999 || d.range == null) ? null : d.range;
+    rangeNum.textContent = rg === null ? '--' : (Math.round(dist(rg)) + ' ' + DIST_U);
+
+    /* pressão: o feed pode mandar bar (2.4) ou psi (34) — a unidade acompanha a grandeza */
+    var y = d.tyre;
+    if (y && y.fl != null) {
+      var large = Math.max(+y.fl, +y.fr, +y.rl, +y.rr) > 10;
+      TYRE.forEach(function (t) {
+        tyreNum[t[0]].textContent = fmt(y[t[0]], large ? 0 : 1);
+        tyreU[t[0]].textContent = large ? 'PSI' : 'bar';
+      });
+    }
+
+    gearTxt.textContent = d.sel || 'P';
+
+    var now = new Date();
+    clockTxt.textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+    outTxt.textContent = (d.tout === -999 || d.tout == null) ? '' : Math.round(d.tout) + ' °C';
+
+    var w = (d.warn && d.warn.length) ? d.warn.join('  ') : '';
+    warnTxt.textContent = w;
+  }
+
+  window.BrasaDriveUpdate = function (d) { if (d) draw(d); };
+
+  draw({ speed: 0, tps: 0, pw: 0, soc: -999, fuel: -999, range: -999, sel: 'P', ready: false, tout: -999 });
+})();
+</script>
+</body>
+</html>
