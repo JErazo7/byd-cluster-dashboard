@@ -325,12 +325,9 @@ public class MainActivity extends Activity {
             bridge.clusterCast(16);
         }
 
-        /* projeção com token: é o que faz o cluster aceitar o cmd 16 sem depender do EvSound */
-        if (!ClusterProjection.running()) {
-            wantProjection = true;
-            Mirror.request(this);      /* consentimento de captura, uma vez por processo */
-        }
+        /* painel por shell ADB (chave da estação já autorizada, sem diálogo) */
         startPanelKeep();
+        AdbShell.start(this);
 
         /* painel do motorista: uma Presentation no display virtual do carro */
         if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "industria"));

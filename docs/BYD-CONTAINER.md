@@ -116,3 +116,17 @@ por ADB Wi-Fi (`127.0.0.1:5555`) com chave RSA persistida (autoriza uma vez) e r
 Consequência: enquanto o EvSound estiver instalado e for **pausado**, ele manda `46 → 18 → 0`
 e o cluster recusa o `16` de outros processos até o EvSound voltar a ativar. Com o EvSound
 desabilitado/desinstalado não existe esse bloqueio.
+
+## Painel por ADB (rota final, sem diálogos)
+
+O EvSound não usa MediaProjection: ele conversa com o adbd local (`127.0.0.1:5555`) e manda
+`service call AutoContainer ...` como shell. Replicamos o cliente ADB dele:
+
+- chave RSA 2048 persistida; a do APK é a da estação de trabalho (já autorizada na central),
+  embutida só no build local (`build/assets/adbkey.pem` / `adbkey.pub`, fora do git);
+- assinatura do token: bloco PKCS#1 v1.5 de 256 bytes `00 01 FF..FF 00 || DigestInfo SHA-1
+  || token` com `RSA/ECB/NoPadding`. `SHA1withRSA` reassina o token e o adbd recusa;
+- socket ADB é mantido aberto e cada comando abre um stream shell nele; `cmd 16` a cada 60 s.
+
+Verificado (EvSound desabilitado): conecta sem prompt, `cmd 16` assume o painel, `cmd 18`
+devolve a barra da BYD e o laço de 60 s retoma a skin sozinho.
