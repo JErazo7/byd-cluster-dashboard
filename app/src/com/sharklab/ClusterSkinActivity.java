@@ -149,6 +149,12 @@ public class ClusterSkinActivity extends Activity {
             return String.valueOf(v > -998 ? Math.round(v * 10) / 10.0 : -999);
         }
 
+        /** diagnóstico do TPMS, para a skin de sonda */
+        @android.webkit.JavascriptInterface
+        public String tyreInfo() {
+            return byd.tyreReport();
+        }
+
         @android.webkit.JavascriptInterface
         public String cars() {
             return "[{\"id\":\"v8\",\"name\":\"V8\",\"redline\":7000,\"turbo\":false,\"limiter\":8000,\"layout\":\"v\",\"cyl\":8,\"subtitle\":\"\",\"pro\":false}]";

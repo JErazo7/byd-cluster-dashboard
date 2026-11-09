@@ -293,6 +293,41 @@ public final class BydBridge {
         return born > NONE ? born : (hev > NONE ? hev : NONE);
     }
 
+    /** diagnóstico do TPMS: assinaturas do device e tentativas nas duas bases de índice */
+    public String tyreReport() {
+        StringBuilder sb = new StringBuilder("{\"methods\":[");
+        Object d = device(P + "tyre.BYDAutoTyreDevice");
+        if (d != null) {
+            Method[] ms = d.getClass().getMethods();
+            boolean firstOne = true;
+            for (Method m : ms) {
+                if (!m.getName().startsWith("get")) continue;
+                if (!firstOne) sb.append(',');
+                firstOne = false;
+                sb.append('"').append(m.getName()).append('(');
+                Class<?>[] ps = m.getParameterTypes();
+                for (int i = 0; i < ps.length; i++) {
+                    if (i > 0) sb.append(',');
+                    sb.append(ps[i].getSimpleName());
+                }
+                sb.append("):").append(m.getReturnType().getSimpleName()).append('"');
+            }
+        }
+        sb.append("],\"pressure\":{");
+        for (int i = 0; i <= 4; i++) {
+            if (i > 0) sb.append(',');
+            sb.append('"').append(i).append("\":").append(String.valueOf(numInt(P + "tyre.BYDAutoTyreDevice", "getTyrePressureValue", i)));
+        }
+        sb.append("},\"state\":{");
+        for (int i = 0; i <= 4; i++) {
+            if (i > 0) sb.append(',');
+            sb.append('"').append(i).append("\":").append(String.valueOf(numInt(P + "tyre.BYDAutoTyreDevice", "getTyrePressureState", i)));
+        }
+        sb.append("},\"signal\":").append(String.valueOf(num(P + "tyre.BYDAutoTyreDevice", "getTyreSignalState")));
+        sb.append(",\"system\":").append(String.valueOf(num(P + "tyre.BYDAutoTyreDevice", "getTyreSystemState")));
+        return sb.append('}').toString();
+    }
+
     /** pressão de um pneu; 1 = dianteiro esquerdo, 2 = dianteiro direito, 3/4 = traseiros */
     public double tyre(int n) {
         return numInt(P + "tyre.BYDAutoTyreDevice", "getTyrePressureValue", n);
