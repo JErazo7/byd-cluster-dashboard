@@ -411,24 +411,18 @@
   var modeTxt = txt(1054, 384, '', 20, 'num', null, 500);
   modeTxt.setAttribute('letter-spacing', '1.5');
 
-  /* marcha e tração no mesmo painel dos modos */
+  /* marchas centradas no painel dos modos (sem o selo EV/HEV, a BYD já o mostra na faixa) */
   var SEL_ORDER = ['P', 'R', 'N', 'D'], gearCells = [];
   for (var gi = 0; gi < 4; gi++) {
-    var gx = 872 + gi * 48;
-    el('circle', { cx: gx + 21, cy: 424, r: 16.5, fill: 'none', class: 'ring', 'stroke-width': 7, opacity: 0.06 }, c3);
-    var ringStroke = el('circle', { cx: gx + 21, cy: 424, r: 16.5, fill: 'none', class: 'ring', 'stroke-width': 1.3, opacity: 0.55 }, c3);
+    var gx = 951 + gi * 50;
+    el('circle', { cx: gx, cy: 424, r: 19, fill: 'none', class: 'ring', 'stroke-width': 7, opacity: 0.06 }, c3);
+    var ringStroke = el('circle', { cx: gx, cy: 424, r: 19, fill: 'none', class: 'ring', 'stroke-width': 1.3, opacity: 0.55 }, c3);
     gearCells.push({
-      bg: el('circle', { cx: gx + 21, cy: 424, r: 15, fill: 'rgba(11,24,38,0.9)' }, c3),
+      bg: el('circle', { cx: gx, cy: 424, r: 17, fill: 'rgba(11,24,38,0.9)' }, c3),
       ring: ringStroke,
-      tx: txt(gx + 21, 431, SEL_ORDER[gi], 19, 'mut', 'middle', 600, c3)
+      tx: txt(gx, 432, SEL_ORDER[gi], 21, 'mut', 'middle', 600, c3)
     });
   }
-
-  var evGlow = rrect(1074, 410, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.1 }, c3);
-  var evFill = rrect(1076, 412, 156, 24, 12, { fill: 'rgba(4,128,255,0.26)' }, c3);
-  var evPill = rrect(1074, 410, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 2.2, opacity: 0.75 }, c3);
-  var evTxt = txt(1154, 430, '', 15, 'num', null, 600, c3);
-  evTxt.setAttribute('letter-spacing', '1.5');
 
   var warnTxt = txt(240, 34, '', 14, 'or', 'start');
 
@@ -648,31 +642,6 @@
     });
 
     odoTxt.textContent = (d.odo === -999 || d.odo == null) ? '--' : (Math.round(dist(d.odo)) + ' ' + DIST_U);
-
-    /* EV ou HEV: `ev` do feed; sem ele, o painel não chuta */
-    var ev = d.ev;
-    if (typeof ev === 'string') ev = /^ev$/i.test(ev) ? 1 : (/hev/i.test(ev) ? 0 : null);
-    if (ev === 1 || ev === 0) {
-      evTxt.textContent = ev === 1 ? 'EV' : 'HEV';
-      var tint = ev === 1 ? pal[0] : '#ffb020';
-      evFill.setAttribute('fill', ev === 1 ? (scene === 'sport' ? 'rgba(255,106,43,0.26)'
-        : (scene === 'mountain' ? 'rgba(23,211,165,0.26)'
-        : (scene === 'mud' ? 'rgba(255,176,46,0.26)'
-        : (scene === 'snow' ? 'rgba(53,220,255,0.24)'
-        : (scene === 'sand' ? 'rgba(255,194,71,0.26)' : 'rgba(4,128,255,0.26)')))))
-        : 'rgba(255,176,32,0.22)');
-      evFill.setAttribute('opacity', '1');
-      evTxt.setAttribute('fill', ev === 1 ? pal[1] : '#ffcf80');
-      evPill.setAttribute('stroke', tint);
-      evGlow.setAttribute('stroke', tint);
-      evPill.setAttribute('opacity', '0.85');
-      evGlow.setAttribute('opacity', '0.09');
-    } else {
-      evTxt.textContent = '';
-      evPill.setAttribute('opacity', '0');
-      evGlow.setAttribute('opacity', '0');
-      evFill.setAttribute('opacity', '0');
-    }
 
     var now = new Date();
     clockTxt.textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
