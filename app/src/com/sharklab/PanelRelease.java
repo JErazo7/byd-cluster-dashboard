@@ -12,6 +12,7 @@ public final class PanelRelease {
 
     public static void release() {
         AdbShell.stop();
+        if (PanelCast.send(18)) return;
         try {
             Class<?> sm = Class.forName("android.os.ServiceManager");
             Object binder = sm.getMethod("getService", String.class).invoke(null, "AutoContainer");

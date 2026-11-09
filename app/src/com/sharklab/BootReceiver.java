@@ -31,14 +31,12 @@ public class BootReceiver extends BroadcastReceiver {
            se for aberto pelo sistema */
         android.content.SharedPreferences p = ctx.getSharedPreferences("lab", Context.MODE_PRIVATE);
         boolean bootApply = p.getBoolean("bootApply", p.getBoolean("autostart", false));
-        if (!bootApply) p.edit().putBoolean("enabled", false).apply();
-        PanelRelease.release();
-        if (!bootApply) return;
-        try {
-            Intent i = new Intent(ctx, MainActivity.class);
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            ctx.startActivity(i);
-        } catch (Throwable ignored) {
+        if (!bootApply) {
+            p.edit().putBoolean("enabled", false).apply();
+            PanelRelease.release();
+            return;
         }
+        /* ligado: aplica a skin no painel sem abrir a interface da central */
+        PanelBoot.apply(ctx);
     }
 }
