@@ -1,74 +1,114 @@
 <!DOCTYPE html>
-<!-- Pré-visualização do tema Shark fora do carro: abre no navegador do PC e mexe nos controles.
-     Os valores vão para a mesma função que o app chama (window.BrasaDriveUpdate). -->
+<!-- Pré-visualização das skins fora do carro: abre no navegador do PC ou do celular e mexe nos
+     controles. Os valores vão para a mesma função que o app chama (window.BrasaDriveUpdate). -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<title>Shark · preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SharkLab · preview dos temas</title>
 <style>
   body { margin: 0; background: #0b1016; color: #cfd8e3; font: 13px/1.4 system-ui, sans-serif; }
-  header { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 14px; align-items: center; border-bottom: 1px solid #1d2733; }
+  header { display: flex; gap: 12px; flex-wrap: wrap; padding: 10px 12px; align-items: flex-end; border-bottom: 1px solid #1d2733; }
   label { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: #7f8c9b; }
-  input[type=range] { width: 130px; }
-  select, button { background: #16202b; color: #cfd8e3; border: 1px solid #26333f; border-radius: 6px; padding: 5px 7px; }
-  .stage { position: relative; width: 1280px; height: 480px; margin: 12px auto; background: #04070c;
+  input[type=range] { width: 118px; }
+  select, button { background: #16202b; color: #cfd8e3; border: 1px solid #26333f; border-radius: 6px; padding: 6px 8px; font-size: 13px; }
+  #fit { position: relative; overflow: hidden; }
+  .stage { position: relative; width: 1280px; height: 480px; transform-origin: 0 0; background: #04070c;
            background-image: linear-gradient(#101820, #1d2a38); outline: 1px solid #1d2733; }
   .stage iframe { width: 1280px; height: 480px; border: 0; display: block; }
   .notch { position: absolute; left: 427px; top: 0; width: 426px; height: 54px; background: #243244; opacity: .9; }
   .notch span { display: block; margin: 16px 0 0 10px; font-size: 11px; color: #7f8c9b; }
   .hide { display: none; }
   code { color: #8fd6ff; }
+  @media (max-width: 700px) { header { gap: 8px; } input[type=range] { width: 88px; } }
 </style>
 </head>
 <body>
 <header>
-  <label>Velocidade <input id="speed" type="range" min="0" max="200" value="87"><span id="speedV">87</span></label>
+  <label>Skin <select id="theme">
+    <option value="shark">shark</option>
+    <option value="sharkmap">sharkmap</option>
+    <option value="muscle">muscle</option>
+    <option value="industria">industria</option>
+    <option value="byd">byd</option>
+  </select></label>
+  <label>Velocidade <input id="speed" type="range" min="0" max="220" value="87"><span id="speedV">87</span></label>
   <label>Potência kW <input id="pw" type="range" min="-120" max="220" value="64"><span id="pwV">64</span></label>
   <label>Bateria % <input id="soc" type="range" min="0" max="100" value="68"><span id="socV">68</span></label>
+  <label>Combustível % <input id="fuel" type="range" min="0" max="100" value="62"><span id="fuelV">62</span></label>
   <label>Pedal % <input id="tps" type="range" min="0" max="100" value="34"><span id="tpsV">34</span></label>
   <label>Marcha <select id="sel"><option>P</option><option>R</option><option>N</option><option selected>D</option></select></label>
-  <label>Modo <select id="drive"><option>ECO</option><option selected>NORMAL</option><option>SPORT</option></select></label>
+  <label>Modo <select id="drive"><option>ECO</option><option>NORMAL</option><option>MONTAÑA</option><option>NIEVE</option><option>ARENA</option><option>SPORT</option></select></label>
   <label>Setas <select id="turn"><option value="0">nenhuma</option><option value="1">esquerda</option><option value="2">direita</option></select></label>
-  <label>Tema <select id="variant">
+  <label>Parâmetros (shark) <select id="variant">
     <option value="">escuro</option><option value="#light=1">claro</option>
     <option value="#panel=1&full=1">painel inteiro</option><option value="#wide=1720">largo 1720</option>
   </select></label>
   <label><input id="notchOn" type="checkbox"> faixa das luzes da BYD</label>
 </header>
-<div class="stage" id="stage">
-  <iframe id="f" src="dash/shark/index.html#nopreview=1"></iframe>
-  <div class="notch hide" id="notch"><span>luzes da BYD (x 427–853, y 0–54)</span></div>
+<div id="fit">
+  <div class="stage" id="stage">
+    <iframe id="f" src="dash/shark/index.html#nopreview=1"></iframe>
+    <div class="notch hide" id="notch"><span>luzes da BYD (x 427–853, y 0–54)</span></div>
+  </div>
 </div>
 <script>
 (function () {
   var f = document.getElementById('f'), $ = function (id) { return document.getElementById(id); };
   var booted = false;
-  f.addEventListener('load', function () {
-    booted = true;
-    feed();
-  });
+  f.addEventListener('load', function () { booted = true; feed(); });
+
   function feed() {
     if (!booted || !f.contentWindow || !f.contentWindow.BrasaDriveUpdate) return;
     var turn = $('turn').value;
     f.contentWindow.EvsPU = 1; f.contentWindow.EvsDU = 1; f.contentWindow.EvsSU = 1;
     f.contentWindow.BrasaDriveUpdate({
       speed: +$('speed').value, rpm: 1800, gear: '3', tps: +$('tps').value, map: 1.2, boostBar: 0,
-      soc: +$('soc').value, lambda: 1, brake: 0, turnLeft: turn === '1' ? 1 : 0, turnRight: turn === '2' ? 1 : 0,
-      on: true, sel: $('sel').value, car: 'V8', pw: +$('pw').value, odo: 12843, range: 412, tout: 24, btemp: -999,
+      soc: +$('soc').value, fuel: +$('fuel').value, lambda: 1, brake: 0,
+      turnLeft: turn === '1' ? 1 : 0, turnRight: turn === '2' ? 1 : 0,
+      on: true, sel: $('sel').value, car: 'V8', pw: +$('pw').value, odo: 12843, range: 412, tout: 24, btemp: 32,
       dmode: 2, drive: $('drive').value, ready: 1, regen: 0, v12: 13.8, phone: -1, tt: {}, rhd: false, warn: [],
-      adas: {}, tyre: null, cam: null, nmv: null, ext: null, trip: { km: 12.4 },
+      adas: {}, tyre: { fl: 2.4, fr: 2.4, rl: 2.3, rr: 2.3 }, cam: null,
+      nmv: { text: 'Gire a la derecha en 200 m' }, ext: null, trip: { km: 12.4 },
       media: { title: 'Highway to Hell', artist: 'AC/DC' }
     });
   }
-  ['speed', 'pw', 'soc', 'tps'].forEach(function (id) {
+
+  /* ?skin=byd&variant=... deixa abrir direto num tema (útil no celular, bookmark) */
+  var q = new URLSearchParams(location.search);
+  if (q.get('skin')) {
+    var opt = document.createElement('option');
+    opt.value = q.get('skin');
+    if (!document.querySelector('#theme option[value="' + opt.value + '"]')) $('theme').appendChild(opt);
+    $('theme').value = q.get('skin');
+  }
+  if (q.get('variant')) $('variant').value = q.get('variant');
+
+  function load() {
+    booted = false;
+    var v = $('variant').value;
+    f.src = 'dash/' + $('theme').value + '/index.html' + (v ? v : '#nopreview=1') + (v ? '&' : '') + 'v=' + Date.now();
+  }
+
+  ['speed', 'pw', 'soc', 'fuel', 'tps'].forEach(function (id) {
     $(id).addEventListener('input', function () { $(id + 'V').textContent = this.value; feed(); });
   });
   ['sel', 'drive', 'turn'].forEach(function (id) { $(id).addEventListener('change', feed); });
-  $('variant').addEventListener('change', function () {
-    booted = false;
-    f.src = 'dash/shark/index.html' + this.value + (this.value ? '&' : '#') + 'v=' + Date.now();
-  });
+  $('theme').addEventListener('change', load);
+  $('variant').addEventListener('change', load);
   $('notchOn').addEventListener('change', function () { $('notch').classList.toggle('hide', !this.checked); });
+
+  /* o quadro é 1280×480: no celular cabe na largura e o dedo ainda alcança os controles */
+  var stage = $('stage'), fit = $('fit');
+  function resize() {
+    var k = Math.min(1, (document.documentElement.clientWidth - 16) / 1280);
+    stage.style.transform = 'scale(' + k.toFixed(4) + ')';
+    stage.style.margin = '8px 0 0 8px';
+    fit.style.height = (480 * k + 16) + 'px';
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  load();
 })();
 </script>
 </body>
