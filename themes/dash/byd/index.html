@@ -195,21 +195,21 @@
   kmhTxt.setAttribute('fill', '#cfe4f6');
 
   var TRUCK_W = 284, TRUCK_H = Math.round(TRUCK_W * 203 / 400);
-  el('ellipse', { cx: 640, cy: 318, rx: 168, ry: 14, fill: '#2f9df5', opacity: 0.16 });
-  el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 318 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
+  el('ellipse', { cx: 640, cy: 306, rx: 150, ry: 8, fill: '#2f9df5', opacity: 0.16 });
+  el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 306 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
 
   /* paginação decorativa das telas, como no desenho */
-  el('circle', { cx: 626, cy: 326, r: 4, fill: '#eaf3ff' });
-  el('circle', { cx: 640, cy: 326, r: 3.4, fill: '#41546a' });
-  el('circle', { cx: 654, cy: 326, r: 3.4, fill: '#41546a' });
 
   /* ---------- cartões ---------- */
   /* aro neon: halo largo + traço médio + núcleo claro, igual às linhas da imagem de pressão */
+  var NEON = '#0480ff';                 /* medida nas linhas da imagem de pressão */
+  var NEON_CORE = '#8ac6ff';
+  var ICON = '#5ab6ff';
   function neon(parent, x, y, w, h, r, k) {
     var f = k || 1;
-    rrect(x, y, w, h, r, { fill: 'none', stroke: '#38cfff', 'stroke-width': 9 * f, opacity: 0.07 }, parent);
-    rrect(x, y, w, h, r, { fill: 'none', stroke: '#38cfff', 'stroke-width': 2.6 * f, opacity: 0.55 }, parent);
-    return rrect(x, y, w, h, r, { fill: 'none', stroke: '#b6f2ff', 'stroke-width': 1.1 * f, opacity: 0.9 }, parent);
+    rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 10 * f, opacity: 0.1 }, parent);
+    rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 2.8 * f, opacity: 0.7 }, parent);
+    return rrect(x, y, w, h, r, { fill: 'none', stroke: NEON_CORE, 'stroke-width': 1.1 * f, opacity: 0.85 }, parent);
   }
   function card(x, w) {
     var g = el('g');
@@ -223,12 +223,12 @@
     return el('rect', { x: x + 3, y: y + 15, width: 12, height: 10, rx: 2, fill: '#38cfff' }, parent);
   }
   function pumpIcon(x, y, parent) {
-    el('rect', { x: x, y: y, width: 15, height: 28, rx: 3, fill: 'none', stroke: '#38cfff', 'stroke-width': 2 }, parent);
+    el('rect', { x: x, y: y, width: 15, height: 28, rx: 3, fill: 'none', stroke: ICON, 'stroke-width': 2 }, parent);
     el('path', {
       d: 'M' + (x + 15) + ' ' + (y + 6) + 'h6v10a3.5 3.5 0 0 0 7 0V' + (y + 4),
-      fill: 'none', stroke: '#38cfff', 'stroke-width': 2, 'stroke-linecap': 'round'
+      fill: 'none', stroke: ICON, 'stroke-width': 2, 'stroke-linecap': 'round'
     }, parent);
-    return el('rect', { x: x + 3, y: y + 6, width: 9, height: 7, rx: 1, fill: '#38cfff' }, parent);
+    return el('rect', { x: x + 3, y: y + 6, width: 9, height: 7, rx: 1, fill: ICON }, parent);
   }
   function mountainIcon(x, y, s, parent) {
     return el('path', {
@@ -240,28 +240,31 @@
 
   /* cartão 1: bateria, combustível, autonomia */
   var c1 = card(14, 446);
-  batteryIcon(44, 350, c1);
-  var batNum = txt(74, 378, '--', 27, 'num', 'start');
+  batteryIcon(60, 350, c1);
+  var batNum = txt(92, 378, '--', 27, 'num', 'start');
   var batUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
   batUnit.textContent = '';
   batNum.appendChild(batUnit);
-  txt(74, 396, T.bat, 11, 'mut', 'start');
-  rrect(44, 410, 148, 6, 3, { fill: '#0e1d2c' }, c1);
-  var batBar = rrect(44, 410, 0, 6, 3, { fill: '#38cfff' }, c1);
+  txt(92, 396, T.bat, 11, 'mut', 'start');
+  rrect(60, 410, 148, 6, 3, { fill: '#0e1d2c' }, c1);
+  var batBar = rrect(60, 410, 0, 6, 3, { fill: NEON }, c1);
 
-  pumpIcon(238, 350, c1);
-  var fuelNum = txt(288, 378, '--', 27, 'num', 'start');
+  pumpIcon(254, 350, c1);
+  var fuelNum = txt(306, 378, '--', 27, 'num', 'start');
   var fuelUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
   fuelUnit.textContent = '';
   fuelNum.appendChild(fuelUnit);
-  txt(288, 396, T.fuel, 11, 'mut', 'start');
-  rrect(238, 410, 158, 6, 3, { fill: '#0e1d2c' }, c1);
-  var fuelBar = rrect(238, 410, 0, 6, 3, { fill: '#38cfff' }, c1);
+  txt(306, 396, T.fuel, 11, 'mut', 'start');
+  rrect(254, 410, 148, 6, 3, { fill: '#0e1d2c' }, c1);
+  var fuelBar = rrect(254, 410, 0, 6, 3, { fill: NEON }, c1);
 
-  el('rect', { x: 214, y: 344, width: 1, height: 66, fill: '#16283c' }, c1);
-  mountainIcon(56, 446, 11, c1);
-  txt(76, 452, T.range, 11, 'mut', 'start');
-  var rangeNum = txt(436, 454, '', 22, 'num', 'end');
+  el('rect', { x: 231, y: 344, width: 1, height: 58, fill: '#16283c' }, c1);
+
+  /* autonomia numa linha só, centrada no cartão */
+  el('rect', { x: 40, y: 428, width: 394, height: 1, fill: '#16283c' }, c1);
+  mountainIcon(147, 449, 10, c1);
+  var rangeNum = txt(177, 454, '', 22, 'num', 'start');
+  txt(258, 454, T.range, 11, 'mut', 'start');
 
   /* cartão 2: pressões, com o carro visto de cima */
   var c2 = card(470, 340);
@@ -301,8 +304,8 @@
     });
   }
 
-  var evGlow = rrect(1074, 393, 160, 28, 14, { fill: 'none', stroke: '#38cfff', 'stroke-width': 6, opacity: 0.07 }, c3);
-  var evPill = rrect(1074, 393, 160, 28, 14, { fill: 'none', stroke: '#38cfff', 'stroke-width': 2, opacity: 0.6 }, c3);
+  var evGlow = rrect(1074, 393, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.1 }, c3);
+  var evPill = rrect(1074, 393, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 2.2, opacity: 0.75 }, c3);
   var evTxt = txt(1154, 413, '', 15, 'num', null, 600, c3);
   evTxt.setAttribute('letter-spacing', '1.5');
 
@@ -408,8 +411,8 @@
     if (typeof ev === 'string') ev = /^ev$/i.test(ev) ? 1 : (/hev/i.test(ev) ? 0 : null);
     if (ev === 1 || ev === 0) {
       evTxt.textContent = ev === 1 ? 'EV' : 'HEV';
-      var tint = ev === 1 ? '#38cfff' : '#ffb020';
-      evTxt.setAttribute('fill', ev === 1 ? '#a8f0ff' : '#ffcf80');
+      var tint = ev === 1 ? NEON : '#ffb020';
+      evTxt.setAttribute('fill', ev === 1 ? NEON_CORE : '#ffcf80');
       evPill.setAttribute('stroke', tint);
       evGlow.setAttribute('stroke', tint);
       evPill.setAttribute('opacity', '0.85');
