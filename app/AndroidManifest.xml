@@ -23,7 +23,6 @@
     <uses-permission android:name="android.permission.BYDAUTO_MULTIMEDIA_COMMON" />
     <uses-permission android:name="android.permission.BYDAUTO_TIME_COMMON" />
     <uses-permission android:name="android.permission.BYDAUTO_PANORAMA_COMMON" />
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -84,6 +83,10 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <service
+            android:name=".PanelService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"

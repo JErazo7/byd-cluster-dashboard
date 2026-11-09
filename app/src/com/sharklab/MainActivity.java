@@ -331,7 +331,6 @@ public class MainActivity extends Activity {
             Mirror.request(this);      /* consentimento de captura, uma vez por processo */
         }
         startPanelKeep();
-        AdbShell.start(this);
 
         /* painel do motorista: uma Presentation no display virtual do carro */
         if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "industria"));
@@ -549,6 +548,7 @@ public class MainActivity extends Activity {
                     ClusterProjection.startWithProjection(this, mp, bridge,
                             urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria"), true, false));
                     bridge.clusterCast(16);
+                    startService(new Intent(this, PanelService.class));
                 } catch (Throwable t) {
                     Log.w(TAG, "projeção com token falhou", t);
                 }
@@ -837,6 +837,7 @@ public class MainActivity extends Activity {
         public String projStop() {
             getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("projection", false).apply();
             ClusterProjection.stop();
+            stopService(new Intent(MainActivity.this, PanelService.class));
             return projState();
         }
 
