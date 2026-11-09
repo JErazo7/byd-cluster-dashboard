@@ -20,7 +20,7 @@ faixa das luzes da BYD em x 427–853, y 0–54.
 O `byd` é o único tema com foto, tudo em `themes/dash/byd/assets/`: `bg.jpg` (paisagem),
 `bg-sport.jpg` (estrada em brasa, modo SPORT), `bg-mountain.jpg` (serra verde, modo
 MONTAÑA), `bg-mud.jpg` (estrada na selva, modo LODO), `bg-snow.jpg` (serra nevada com aurora, modo
-NIEVE), `truck.png`
+NIEVE), `bg-sand.jpg` (deserto com dunas, modo ARENA), `truck.png`
 (caminhonete recortada com alfa) e `tyre.jpg` (carro visto de cima no cartão de pressão,
 composto com `mix-blend-mode: screen`).
 
