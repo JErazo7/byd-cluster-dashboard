@@ -154,10 +154,18 @@
     var full = arcPath(cx, RING_Y, R, a0, a0 + dir * SWEEP);
     /* trilha do aro, aro de marcas pontilhadas e o arco de valor */
     el('path', { d: full, fill: 'none', stroke: '#22405c', 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
-    el('path', {
-      d: arcPath(cx, RING_Y, R - 15, a0, a0 + dir * SWEEP), fill: 'none', stroke: '#2f4f6c',
-      'stroke-width': 6, 'stroke-dasharray': '2 15', 'stroke-linecap': 'round', opacity: 0.9
-    }, g);
+    /* marcas radiais curtas ao longo do arco */
+    var TICKS = 25;
+    for (var t = 0; t < TICKS; t++) {
+      var ta = a0 + dir * SWEEP * (t / (TICKS - 1));
+      var major = t % 6 === 0;
+      var p0 = pt(cx, RING_Y, R - 11, ta), p1 = pt(cx, RING_Y, R - (major ? 27 : 20), ta);
+      el('line', {
+        x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1],
+        stroke: major ? '#4d7595' : '#2f4f6c', 'stroke-width': major ? 2.4 : 1.5,
+        'stroke-linecap': 'butt', opacity: major ? 0.95 : 0.7
+      }, g);
+    }
     var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 30, 'stroke-linecap': 'round', opacity: 0.16 }, g);
     var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
     return { glow: glow, val: val, cx: cx, a0: a0, dir: dir };
@@ -306,28 +314,28 @@
 
   /* cartão 3: modo de condução */
   var c3 = card(820, 446);
-  neon(c3, 852, 340, 382, 42, 21, 0.85);
-  mountainIcon(980, 361, 12, c3);
-  var modeTxt = txt(1054, 369, '', 20, 'num', null, 500);
+  neon(c3, 852, 355, 382, 42, 21, 0.85);
+  mountainIcon(980, 376, 12, c3);
+  var modeTxt = txt(1054, 384, '', 20, 'num', null, 500);
   modeTxt.setAttribute('letter-spacing', '1.5');
 
   /* marcha e tração no mesmo painel dos modos */
   var SEL_ORDER = ['P', 'R', 'N', 'D'], gearCells = [];
   for (var gi = 0; gi < 4; gi++) {
     var gx = 872 + gi * 48;
-    el('circle', { cx: gx + 21, cy: 407, r: 16.5, fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.06 }, c3);
-    var ringStroke = el('circle', { cx: gx + 21, cy: 407, r: 16.5, fill: 'none', stroke: NEON, 'stroke-width': 1.3, opacity: 0.55 }, c3);
+    el('circle', { cx: gx + 21, cy: 424, r: 16.5, fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.06 }, c3);
+    var ringStroke = el('circle', { cx: gx + 21, cy: 424, r: 16.5, fill: 'none', stroke: NEON, 'stroke-width': 1.3, opacity: 0.55 }, c3);
     gearCells.push({
-      bg: el('circle', { cx: gx + 21, cy: 407, r: 15, fill: 'rgba(11,24,38,0.9)' }, c3),
+      bg: el('circle', { cx: gx + 21, cy: 424, r: 15, fill: 'rgba(11,24,38,0.9)' }, c3),
       ring: ringStroke,
-      tx: txt(gx + 21, 414, SEL_ORDER[gi], 19, 'mut', 'middle', 600, c3)
+      tx: txt(gx + 21, 431, SEL_ORDER[gi], 19, 'mut', 'middle', 600, c3)
     });
   }
 
-  var evGlow = rrect(1074, 393, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.1 }, c3);
-  var evFill = rrect(1076, 395, 156, 24, 12, { fill: 'rgba(4,128,255,0.26)' }, c3);
-  var evPill = rrect(1074, 393, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 2.2, opacity: 0.75 }, c3);
-  var evTxt = txt(1154, 413, '', 15, 'num', null, 600, c3);
+  var evGlow = rrect(1074, 410, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.1 }, c3);
+  var evFill = rrect(1076, 412, 156, 24, 12, { fill: 'rgba(4,128,255,0.26)' }, c3);
+  var evPill = rrect(1074, 410, 160, 28, 14, { fill: 'none', stroke: NEON, 'stroke-width': 2.2, opacity: 0.75 }, c3);
+  var evTxt = txt(1154, 430, '', 15, 'num', null, 600, c3);
   evTxt.setAttribute('letter-spacing', '1.5');
 
   var warnTxt = txt(240, 34, '', 14, 'or', 'start');
