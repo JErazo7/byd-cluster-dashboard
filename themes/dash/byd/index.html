@@ -12,6 +12,8 @@
   #tyrecar { mix-blend-mode: screen; filter: contrast(1.55) brightness(1.22) saturate(1.1); }
   /* no SPORT a arte azul do carro acompanha o calor da cena */
   #tyrecar.warm { filter: contrast(1.55) brightness(1.1) sepia(0.6) hue-rotate(-25deg) saturate(1.7); }
+  /* na serra o desenho das pressões ganha o verde da cena */
+  #tyrecar.cool { filter: contrast(1.45) brightness(1.06) hue-rotate(-115deg) saturate(0.55); }
   text { font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #eaf3ff; }
   /* as cores de destaque vêm de variáveis: trocar de modo muda tudo de uma vez */
   svg { --accent: #0480ff; --accent-core: #8ac6ff; --accent-soft: #2f4f6c; --accent-icon: #5ab6ff; }
@@ -537,7 +539,7 @@
     svg.style.setProperty('--accent-core', pal[1]);
     svg.style.setProperty('--accent-soft', pal[2]);
     svg.style.setProperty('--accent-icon', pal[3]);
-    tyrecarImg.setAttribute('class', scene === 'sport' ? 'warm' : '');
+    tyrecarImg.setAttribute('class', scene === 'sport' ? 'warm' : (scene === 'mountain' ? 'cool' : ''));
 
   /* no SPORT os aros ficam mais grossos, com halo forte e zona vermelha no fim */
   [thrRing, powRing].forEach(function (rg) {
