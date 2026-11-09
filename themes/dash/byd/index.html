@@ -84,10 +84,11 @@
   var defs = el('defs');
 
   var gThr = el('linearGradient', { id: 'gThr', x1: '0.2', y1: '1', x2: '0.8', y2: '0' }, defs);
+  /* mesma paleta do aro da potência; o laranja entra mais cedo conforme o pedal afunda */
   var thrStop = [
     el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gThr),
-    el('stop', { offset: '0.55', 'stop-color': '#38cfff' }, gThr),
-    el('stop', { offset: '1', 'stop-color': '#9ef0ff' }, gThr)
+    el('stop', { offset: '0.5', 'stop-color': '#2f9df5' }, gThr),
+    el('stop', { offset: '1', 'stop-color': '#ff8a2b' }, gThr)
   ];
 
   var gPow = el('linearGradient', { id: 'gPow', x1: '0.2', y1: '1', x2: '0.8', y2: '0' }, defs);
@@ -111,7 +112,7 @@
   el('stop', { offset: '1', 'stop-color': '#050c15', 'stop-opacity': '0.96' }, gCard);
 
   var tyreClip = el('clipPath', { id: 'cTyre' }, defs);
-  el('rect', { x: 470, y: 330, width: 340, height: 120, rx: 18 }, tyreClip);
+  el('rect', { x: 470, y: 330, width: 340, height: 116, rx: 18 }, tyreClip);
 
   var clip = el('clipPath', { id: 'clipFrame' }, defs);
   el('rect', { x: 0, y: 0, width: W, height: H }, clip);
@@ -201,8 +202,8 @@
   /* ---------- cartões ---------- */
   function card(x, w) {
     var g = el('g');
-    rrect(x, 330, w, 120, 18, { fill: 'url(#gCard)', stroke: '#1b6fe0', 'stroke-width': 1.3, 'stroke-opacity': 0.6 }, g);
-    rrect(x, 330, w, 120, 18, { fill: 'none', stroke: '#38cfff', 'stroke-width': 5, opacity: 0.05 }, g);
+    rrect(x, 330, w, 116, 18, { fill: 'url(#gCard)', stroke: '#1b6fe0', 'stroke-width': 1.3, 'stroke-opacity': 0.6 }, g);
+    rrect(x, 330, w, 116, 18, { fill: 'none', stroke: '#38cfff', 'stroke-width': 5, opacity: 0.05 }, g);
     return g;
   }
   function batteryIcon(x, y, parent) {
@@ -255,9 +256,9 @@
   var c2 = card(470, 340);
   c2.firstChild.setAttribute('fill', '#04090f');
   /* a imagem inteira preenche o cartão; os números ficam em cima, onde as linhas terminam */
-  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 533, y: 330, width: 213, height: 120,
+  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 537, y: 330, width: 206, height: 116,
     preserveAspectRatio: 'xMidYMid meet' }, c2);
-  var TYRE = [['fl', 590, 358, 'end'], ['fr', 690, 358, 'start'], ['rl', 590, 424, 'end'], ['rr', 690, 424, 'start']];
+  var TYRE = [['fl', 590, 358, 'end'], ['fr', 690, 358, 'start'], ['rl', 590, 423, 'end'], ['rr', 690, 423, 'start']];
   var tyreNum = {};
   TYRE.forEach(function (t) {
     var n = txt(t[1], t[2], '--', 17, 'num', t[3]);
@@ -280,26 +281,27 @@
   modeTxt.setAttribute('letter-spacing', '1.5');
 
   /* ---------- barra inferior ---------- */
-  el('path', { d: 'M0 452 H1280', stroke: '#12233a', 'stroke-width': 1 });
-  function navIcon(kind, x) {
-    var g = el('g', { transform: 'translate(' + x + ',466)', opacity: 0.8 });
-    if (kind === 'home') el('path', { d: 'M-11 -1 L0 -10 L11 -1 L8 -1 L8 9 L-8 9 L-8 -1 Z', fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
-    if (kind === 'car') {
-      el('path', { d: 'M-13 7 L-11 2 Q-10 -5 -2 -5 L2 -5 Q10 -5 11 2 L13 7 Z', fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
-      el('circle', { cx: -7.5, cy: 7.5, r: 2.2, fill: 'none', stroke: '#dbe9f7', 'stroke-width': 1.8 }, g);
-      el('circle', { cx: 7.5, cy: 7.5, r: 2.2, fill: 'none', stroke: '#dbe9f7', 'stroke-width': 1.8 }, g);
-    }
-    if (kind === 'adas') el('path', { d: 'M-13 6 L-5 -8 L0 0 L4 -4 L13 6 Z', fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
-    if (kind === 'gear') {
-      el('circle', { cx: 0, cy: 0, r: 9.5, fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2 }, g);
-      el('circle', { cx: 0, cy: 0, r: 3.5, fill: 'none', stroke: '#dbe9f7', 'stroke-width': 2 }, g);
-      el('path', { d: 'M0 -9.5v3.4M0 6.1V9.5M-9.5 0h3.4M6.1 0H9.5', stroke: '#dbe9f7', 'stroke-width': 2 }, g);
-    }
-    return g;
+  el('path', { d: 'M0 444 H1280', stroke: '#12233a', 'stroke-width': 1 });
+
+  /* odômetro total à esquerda */
+  txt(22, 456, 'ODO', 10, 'mut', 'start');
+  var odoTxt = txt(22, 472, '', 19, 'num', 'start');
+
+  /* P R N D como seletor de verdade, no centro */
+  var SEL_ORDER = ['P', 'R', 'N', 'D'], gearCells = [];
+  for (var gi = 0; gi < 4; gi++) {
+    var gx = 568 + gi * 37;
+    gearCells.push({
+      bg: rrect(gx, 448, 33, 28, 8, { fill: '#0b1826', stroke: '#16283c', 'stroke-width': 1 }),
+      tx: txt(gx + 16.5, 469, SEL_ORDER[gi], 19, 'mut', 'middle', 600)
+    });
   }
-  navIcon('home', 62); navIcon('car', 200); navIcon('adas', 1080); navIcon('gear', 1218);
-  var gearTxt = txt(640, 470, 'P', 25, 'num', null, 600);
-  var warnTxt = txt(800, 474, '', 12, 'or', 'start');
+
+  /* EV / HEV à direita */
+  var evPill = rrect(1130, 450, 128, 24, 12, { fill: 'none', stroke: '#1b6fe0', 'stroke-width': 1.8, opacity: 0.55 });
+  var evTxt = txt(1194, 467, '', 15, 'num', null, 600);
+  evTxt.setAttribute('letter-spacing', '1.5');
+  var warnTxt = txt(1112, 467, '', 12, 'or', 'end');
 
   /* ---------- desenho ---------- */
   function fmt(v, dec) {
@@ -310,28 +312,17 @@
 
   var MODES = { 1: 'ECO', 2: 'NORMAL', 3: 'SPORT' };
 
-  function rgb(hex) {
-    var n = parseInt(hex.slice(1), 16);
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  }
-  function mix(a, b, t) {
-    var x = typeof a === 'string' ? rgb(a) : a, y = typeof b === 'string' ? rgb(b) : b;
-    return 'rgb(' + Math.round(x[0] + (y[0] - x[0]) * t) + ',' +
-      Math.round(x[1] + (y[1] - x[1]) * t) + ',' +
-      Math.round(x[2] + (y[2] - x[2]) * t) + ')';
-  }
-  /* pedal: azul até metade, âmbar a partir de 50% e vermelho no fim do curso */
-  function pedalColour(f) {
-    if (f <= 0.32) return mix('#1b6fe0', '#38cfff', f / 0.32);
-    if (f <= 0.55) return mix('#38cfff', '#5ce0ff', (f - 0.32) / 0.23);
-    if (f <= 0.75) return mix('#5ce0ff', '#ffbe3d', (f - 0.55) / 0.20);
-    return mix('#ffbe3d', '#ff4b3e', (f - 0.75) / 0.25);
+  /* pedal: mesma paleta da potência, só a ponta do aro esquenta conforme o curso */
+  function mixRgb(a, b, t) {
+    var x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
+    var r = ((x >> 16) & 255) + (((y >> 16) & 255) - ((x >> 16) & 255)) * t;
+    var g = ((x >> 8) & 255) + (((y >> 8) & 255) - ((x >> 8) & 255)) * t;
+    var bl = (x & 255) + ((y & 255) - (x & 255)) * t;
+    return 'rgb(' + Math.round(r) + ',' + Math.round(g) + ',' + Math.round(bl) + ')';
   }
   function tintThrottle(f) {
-    var c = pedalColour(f);
-    thrStop[0].setAttribute('stop-color', mix(c, '#04121f', 0.35));
-    thrStop[1].setAttribute('stop-color', c);
-    thrStop[2].setAttribute('stop-color', mix(c, '#ffffff', 0.45));
+    var heat = Math.max(0, Math.min(1, (f - 0.25) / 0.75));
+    thrStop[2].setAttribute('stop-color', mixRgb('#2f9df5', '#ff8a2b', heat));
     thrRing.glow.setAttribute('opacity', (0.12 + 0.3 * f).toFixed(2));
   }
 
@@ -396,7 +387,30 @@
       });
     }
 
-    gearTxt.textContent = d.sel || 'P';
+    /* seletor: a marcha ativa acende */
+    var sel = d.sel || 'P';
+    gearCells.forEach(function (c, i) {
+      var on = SEL_ORDER[i] === sel;
+      c.bg.setAttribute('fill', on ? '#1b6fe0' : '#0b1826');
+      c.bg.setAttribute('stroke', on ? '#7fd6ff' : '#16283c');
+      c.tx.setAttribute('class', on ? 'num' : 'mut');
+      c.tx.setAttribute('fill', on ? '#eaf7ff' : '#5d7891');
+    });
+
+    odoTxt.textContent = (d.odo === -999 || d.odo == null) ? '--' : (Math.round(dist(d.odo)) + ' ' + DIST_U);
+
+    /* EV ou HEV: `ev` do feed; sem ele, o painel não chuta */
+    var ev = d.ev;
+    if (typeof ev === 'string') ev = /^ev$/i.test(ev) ? 1 : (/hev/i.test(ev) ? 0 : null);
+    if (ev === 1 || ev === 0) {
+      evTxt.textContent = ev === 1 ? 'EV' : 'HEV';
+      evTxt.setAttribute('fill', ev === 1 ? '#7fe6ff' : '#ffb020');
+      evPill.setAttribute('stroke', ev === 1 ? '#38cfff' : '#ffb020');
+      evPill.setAttribute('opacity', '0.9');
+    } else {
+      evTxt.textContent = '';
+      evPill.setAttribute('opacity', '0');
+    }
 
     var now = new Date();
     clockTxt.textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
