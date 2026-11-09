@@ -11,7 +11,7 @@
   /* a arte vem com um fundo azul-escuro: o screen soma o brilho e o contrast joga o fundo a zero */
   #tyrecar { mix-blend-mode: screen; filter: contrast(1.55) brightness(1.22) saturate(1.1); }
   /* no SPORT a arte azul do carro acompanha o calor da cena */
-  #tyrecar.warm { filter: contrast(1.5) brightness(1.25) sepia(1) hue-rotate(-30deg) saturate(2.6); }
+  #tyrecar.warm { filter: contrast(1.55) brightness(1.1) sepia(0.6) hue-rotate(-25deg) saturate(1.7); }
   text { font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #eaf3ff; }
   /* as cores de destaque vêm de variáveis: trocar de modo muda tudo de uma vez */
   svg { --accent: #0480ff; --accent-core: #8ac6ff; --accent-soft: #2f4f6c; --accent-icon: #5ab6ff; }
@@ -159,7 +159,7 @@
   /* ---------- topo ---------- */
   var clockTxt = txt(24, 34, '', 22, 'num', 'start');
   el('rect', { x: 102, y: 16, width: 1, height: 22, fill: '#2a3d52' });
-  var outTxt = txt(118, 34, '', 22, 'dim', 'start');
+  var outTxt = txt(118, 34, '', 22, 'num', 'start');
 
   /* à direita: odômetro total e o estado EV/HEV */
   txt(1264, 18, 'ODO', 10, 'mut', 'end');
