@@ -148,6 +148,10 @@
     id: 'bgSport', href: 'assets/bg-sport.jpg', opacity: 0,
     x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice'
   }, gBg);
+  var bgMountain = el('image', {
+    id: 'bgMountain', href: 'assets/bg-mountain.jpg', opacity: 0,
+    x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice'
+  }, gBg);
   el('rect', { x: 0, y: 150, width: W, height: 230, fill: 'url(#gFade)' }, gBg);
   el('rect', { x: 0, y: 380, width: W, height: 100, fill: '#04070c' }, gBg);
 
@@ -426,52 +430,70 @@
     var bl = (x & 255) + ((y & 255) - (x & 255)) * t;
     return 'rgb(' + Math.round(r) + ',' + Math.round(g) + ',' + Math.round(bl) + ')';
   }
-  function tintThrottle(f, warm) {
+  var THR_RAMP = {
+    night: ['#1b6fe0', '#2f9df5', '#2f9df5', '#ff8a2b'],
+    sport: ['#ff2d12', '#ff6a1f', '#ff8a2b', '#ffe680'],
+    mountain: ['#0b7f6b', '#17d3a5', '#17d3a5', '#d9fff2']
+  };
+  function tintThrottle(f, scene) {
     var heat = Math.max(0, Math.min(1, (f - 0.25) / 0.75));
-    if (warm) {
-      thrStop[0].setAttribute('stop-color', '#ff2d12');
-      thrStop[1].setAttribute('stop-color', '#ff6a1f');
-      thrStop[2].setAttribute('stop-color', mixRgb('#ff8a2b', '#ffe680', heat));
-      thrRing.glow.setAttribute('opacity', (0.22 + 0.34 * f).toFixed(2));
-    } else {
-      thrStop[0].setAttribute('stop-color', '#1b6fe0');
-      thrStop[1].setAttribute('stop-color', '#2f9df5');
-      thrStop[2].setAttribute('stop-color', mixRgb('#2f9df5', '#ff8a2b', heat));
-      thrRing.glow.setAttribute('opacity', (0.12 + 0.3 * f).toFixed(2));
-    }
+    var r = THR_RAMP[scene] || THR_RAMP.night;
+    thrStop[0].setAttribute('stop-color', r[0]);
+    thrStop[1].setAttribute('stop-color', r[1]);
+    thrStop[2].setAttribute('stop-color', mixRgb(r[2], r[3], heat));
+    thrRing.glow.setAttribute('opacity', ((scene === 'sport' ? 0.22 : 0.12) + (scene === 'sport' ? 0.34 : 0.3) * f).toFixed(2));
   }
 
   var MODES = { 1: 'ECO', 2: 'NORMAL', 3: 'SPORT' };
 
-  /* cross-fade da paisagem com zoom. Usa temporizador (e não CSS/rAF): roda igual no WebView
-     do painel e no preview, e o estado final é sempre exato. */
-  var bgState = { on: null, timer: 0 };
-  function fadeBackground(toSport) {
-    if (bgState.on === toSport) return;
-    bgState.on = toSport;
+  /* cenas: cada modo escolhe uma paisagem e a paleta de destaque que combina com ela */
+  var SCENES = {
+    night: { img: bgNormal, accent: ['#0480ff', '#8ac6ff', '#2f4f6c', '#5ab6ff'] },
+    sport: { img: bgSport, accent: ['#ff6a2b', '#ffc79a', '#6b4632', '#ff8a4d'] },
+    mountain: { img: bgMountain, accent: ['#17d3a5', '#a9ffe8', '#2f6b5e', '#5fe8c4'] }
+  };
+  var bgState = { scene: null, timer: 0 };
+
+  /* cross-fade com zoom entre paisagens. Temporizador (e não CSS/rAF) para rodar igual no
+     WebView do painel e no preview, sempre com o estado final exato. */
+  function fadeBackground(name) {
+    if (bgState.scene === name) return;
+    bgState.scene = name;
     if (bgState.timer) clearTimeout(bgState.timer);
-    var fromNight = +bgNormal.getAttribute('opacity');
-    var fromSport = +bgSport.getAttribute('opacity');
-    var toNight = toSport ? 0 : 1, toSportV = toSport ? 1 : 0;
+    var keys = Object.keys(SCENES), from = {}, to = {}, mid = {};
+    keys.forEach(function (k) {
+      from[k] = +SCENES[k].img.getAttribute('opacity');
+      to[k] = (k === name) ? 1 : 0;
+      mid[k] = SCENES[k].img.getAttribute('transform') || '';
+    });
     var STEP = 30, DUR = 750, t = 0;
     function frame() {
       t += STEP;
       var k = Math.min(1, t / DUR);
       var e = k * k * (3 - 2 * k);
-      bgNormal.setAttribute('opacity', (fromNight + (toNight - fromNight) * e).toFixed(3));
-      bgSport.setAttribute('opacity', (fromSport + (toSportV - fromSport) * e).toFixed(3));
+      keys.forEach(function (key) {
+        SCENES[key].img.setAttribute('opacity', (from[key] + (to[key] - from[key]) * e).toFixed(3));
+      });
       var z = 1 + 0.08 * (1 - e);
-      bgSport.setAttribute('transform',
+      SCENES[name].img.setAttribute('transform',
         'translate(640 240) scale(' + z.toFixed(4) + ') translate(-640 -240)');
       if (k < 1) bgState.timer = setTimeout(frame, STEP);
       else {
         bgState.timer = 0;
-        bgNormal.setAttribute('opacity', toNight);
-        bgSport.setAttribute('opacity', toSportV);
-        bgSport.setAttribute('transform', '');
+        keys.forEach(function (key) {
+          SCENES[key].img.setAttribute('opacity', to[key]);
+          if (key !== name) SCENES[key].img.setAttribute('transform', '');
+        });
+        SCENES[name].img.setAttribute('transform', '');
       }
     }
     frame();
+  }
+
+  function sceneFor(mode) {
+    if (/SPORT/i.test(mode)) return 'sport';
+    if (/MONTA|HILL|OFF|TRAIL|TRAIL/i.test(mode)) return 'mountain';
+    return 'night';
   }
 
   function draw(d) {
@@ -482,8 +504,9 @@
     var tps = Math.max(0, Math.min(100, d.tps || 0));
     thrNum.firstChild.nodeValue = String(Math.round(tps));
     var sport = /SPORT/i.test(mode0);
+    var scene = sceneFor(mode0);
     setRing(thrRing, tps / 100);
-    tintThrottle(tps / 100, sport);
+    tintThrottle(tps / 100, scene);
 
     /* potência com sinal: negativo quando está regenerando */
     var kw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
@@ -505,16 +528,16 @@
     modeTxt.textContent = mode.toUpperCase();
     modeGlyph(mode);
 
-    /* SPORT troca a paisagem por uma cena de estrada em brasa, com cross-fade e zoom */
-    fadeBackground(sport);
-    truckGlow.setAttribute('fill', sport ? '#ff7a3c' : '#2f9df5');
-
-    /* o destaque dos painéis acompanha o modo: quente no SPORT, azul nos outros */
-    svg.style.setProperty('--accent', sport ? '#ff6a2b' : '#0480ff');
-    svg.style.setProperty('--accent-core', sport ? '#ffc79a' : '#8ac6ff');
-    svg.style.setProperty('--accent-soft', sport ? '#6b4632' : '#2f4f6c');
-    svg.style.setProperty('--accent-icon', sport ? '#ff8a4d' : '#5ab6ff');
-  tyrecarImg.setAttribute('class', sport ? 'warm' : '');
+    /* a paisagem e a paleta de destaque seguem o modo */
+    scene = sceneFor(mode);
+    fadeBackground(scene);
+    var pal = SCENES[scene].accent;
+    truckGlow.setAttribute('fill', scene === 'sport' ? '#ff7a3c' : (scene === 'mountain' ? '#17d3a5' : '#2f9df5'));
+    svg.style.setProperty('--accent', pal[0]);
+    svg.style.setProperty('--accent-core', pal[1]);
+    svg.style.setProperty('--accent-soft', pal[2]);
+    svg.style.setProperty('--accent-icon', pal[3]);
+    tyrecarImg.setAttribute('class', scene === 'sport' ? 'warm' : '');
 
   /* no SPORT os aros ficam mais grossos, com halo forte e zona vermelha no fim */
   [thrRing, powRing].forEach(function (rg) {
@@ -522,12 +545,19 @@
     rg.glow.setAttribute('stroke-width', sport ? 40 : 30);
     rg.red.setAttribute('stroke-width', sport ? 19 : 14);
     rg.red.setAttribute('opacity', sport ? '0.9' : '0');
-    rg.track.setAttribute('stroke', sport ? '#3a1f1a' : '#22405c');
+    rg.track.setAttribute('stroke',
+      scene === 'sport' ? '#3a1f1a' : (scene === 'mountain' ? '#1e4b42' : '#22405c'));
   });
-  powStop[0].setAttribute('stop-color', sport ? '#ff2d12' : '#1b6fe0');
-  powStop[1].setAttribute('stop-color', sport ? '#ff5a1f' : '#2f9df5');
-  powStop[2].setAttribute('stop-color', sport ? '#ffb020' : '#ff8a2b');
-  powStop[3].setAttribute('stop-color', sport ? '#ffe9a8' : '#ffd08a');
+  var POW_RAMP = {
+    night: ['#1b6fe0', '#2f9df5', '#ff8a2b', '#ffd08a'],
+    sport: ['#ff2d12', '#ff5a1f', '#ffb020', '#ffe9a8'],
+    mountain: ['#0b7f6b', '#17d3a5', '#7dffd6', '#e4fff7']
+  };
+  var pr = POW_RAMP[scene] || POW_RAMP.night;
+  powStop[0].setAttribute('stop-color', pr[0]);
+  powStop[1].setAttribute('stop-color', pr[1]);
+  powStop[2].setAttribute('stop-color', pr[2]);
+  powStop[3].setAttribute('stop-color', pr[3]);
 
     var soc = pct(d.soc);
     batNum.firstChild.nodeValue = soc === null ? '--' : String(Math.round(soc));
@@ -581,10 +611,11 @@
     if (typeof ev === 'string') ev = /^ev$/i.test(ev) ? 1 : (/hev/i.test(ev) ? 0 : null);
     if (ev === 1 || ev === 0) {
       evTxt.textContent = ev === 1 ? 'EV' : 'HEV';
-      var tint = ev === 1 ? (sport ? '#ff6a2b' : NEON) : '#ffb020';
-      evFill.setAttribute('fill', ev === 1 ? (sport ? 'rgba(255,106,43,0.26)' : 'rgba(4,128,255,0.26)') : 'rgba(255,176,32,0.22)');
+      var tint = ev === 1 ? pal[0] : '#ffb020';
+      evFill.setAttribute('fill', ev === 1 ? (scene === 'sport' ? 'rgba(255,106,43,0.26)'
+        : (scene === 'mountain' ? 'rgba(23,211,165,0.26)' : 'rgba(4,128,255,0.26)')) : 'rgba(255,176,32,0.22)');
       evFill.setAttribute('opacity', '1');
-      evTxt.setAttribute('fill', ev === 1 ? (sport ? '#ffc79a' : NEON_CORE) : '#ffcf80');
+      evTxt.setAttribute('fill', ev === 1 ? pal[1] : '#ffcf80');
       evPill.setAttribute('stroke', tint);
       evGlow.setAttribute('stroke', tint);
       evPill.setAttribute('opacity', '0.85');
