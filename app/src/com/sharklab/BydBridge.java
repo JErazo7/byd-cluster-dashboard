@@ -102,6 +102,19 @@ public final class BydBridge {
     private static final String[][] DRIVE_CONFIG = {
             {P + "setting.BYDAutoSettingDevice", "getDriveConfig"}
     };
+    /* as quatro luzes de modo do painel: a que estiver acesa é o modo ativo */
+    private static final String[][] M_NORMAL = {
+            {P + "instrument.BYDAutoInstrumentDevice", "get2in1FaultNormalIndicator"}
+    };
+    private static final String[][] M_MUD = {
+            {P + "instrument.BYDAutoInstrumentDevice", "get2in1FaultMuddyIndicator"}
+    };
+    private static final String[][] M_SAND = {
+            {P + "instrument.BYDAutoInstrumentDevice", "get2in1FaultSandIndicator"}
+    };
+    private static final String[][] M_GRASS = {
+            {P + "instrument.BYDAutoInstrumentDevice", "get2in1FaultGrassIndicator"}
+    };
 
     /* ADAS: só estados e distâncias do radar da BYD — nada de câmera nem modelo */
     private static final String[][] BSD = {{P + "adas.BYDAutoADASDevice", "getBSDState"}};
@@ -308,7 +321,11 @@ public final class BydBridge {
                 first(ENGINE_SPEED),                    /* 15 rpm do motor */
                 first(ENERGY_MODE),                     /* 16 modo de energia (cru) */
                 first(ROAD_SURFACE),                    /* 17 tipo de piso (cru) */
-                first(DRIVE_CONFIG)                     /* 18 config de condução (cru) */
+                first(DRIVE_CONFIG),                    /* 18 config de condução (cru) */
+                first(M_NORMAL),                        /* 19 luz do modo normal */
+                first(M_MUD),                           /* 20 luz do modo lama */
+                first(M_SAND),                          /* 21 luz do modo areia */
+                first(M_GRASS)                          /* 22 luz do modo grama/neve */
         };
     }
 }

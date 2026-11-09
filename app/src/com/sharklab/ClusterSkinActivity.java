@@ -97,14 +97,32 @@ public class ClusterSkinActivity extends Activity {
                     + ",\"odo\":" + (b[8] > -998 ? (int) b[8] : -999)
                     + ",\"range\":" + (b[4] > -998 ? (int) b[4] : -999)
                     + ",\"tout\":" + (b[7] > -998 ? (int) b[7] : -999)
-                    + ",\"btemp\":-999,\"dmode\":2,\"drive\":\"NORMAL\",\"ready\":1,\"regen\":0"
+                    + ",\"btemp\":-999,\"dmode\":2,\"drive\":\"" + driveName(b) + "\",\"ready\":1,\"regen\":0"
                     + ",\"fuel\":" + num(b[13]) + ",\"fuelKm\":" + num(b[14])
                     + ",\"ev\":" + evState(b)
                     + ",\"tyre\":" + tyres()
                     + ",\"dcfg\":" + num(b[18]) + ",\"surf\":" + num(b[17]) + ",\"emode\":" + num(b[16])
+                    + ",\"mNormal\":" + num(b[19]) + ",\"mMud\":" + num(b[20])
+                    + ",\"mSand\":" + num(b[21]) + ",\"mGrass\":" + num(b[22])
                     + ",\"v12\":" + (b[9] > -998 ? b[9] : 13.8)
                     + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"adas\":" + byd.adasJson()
                     + ",\"tyre\":null,\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":null}";
+        }
+
+        /** modo ativo: as luzes do painel (lama/areia/grama) mandam, `dcfg` cobre eco/sport */
+        private String driveName(double[] b) {
+            if (lit(b[20])) return "LODO";
+            if (lit(b[21])) return "ARENA";
+            if (lit(b[22])) return "NIEVE";
+            int cfg = b[18] > -998 ? (int) b[18] : -1;
+            if (cfg == 1) return "ECO";
+            if (cfg == 3) return "SPORT";
+            return "NORMAL";
+        }
+
+        /** luz acesa: 1/true; 65535 e negativos são sentinela */
+        private boolean lit(double v) {
+            return v > 0.5 && v < 65000;
         }
 
         /** número inteiro ou -999 (o contrato das skins usa -999 como "sem leitura") */
