@@ -60,11 +60,15 @@ public final class BydBridge {
             {P + "statistic.BYDAutoStatisticDevice", "getOutCarTemperature"},
             {P + "speed.BYDAutoSpeedDevice", "getOutCarTemperature"}
     };
-    private static final String[][] ODO = {
-            {P + "statistic.BYDAutoStatisticDevice", "getEVMileageValue"},
-            {P + "statistic.BYDAutoStatisticDevice", "getHEVMileageValue"},
+    private static final String[][] ODO_TOTAL = {
             {P + "setting.BYDAutoSettingDevice", "getTotalMileageValue"},
             {P + "instrument.BYDAutoInstrumentDevice", "getTotalMileageValue"}
+    };
+    private static final String[][] ODO_EV = {
+            {P + "statistic.BYDAutoStatisticDevice", "getEVMileageValue"}
+    };
+    private static final String[][] ODO_HEV = {
+            {P + "statistic.BYDAutoStatisticDevice", "getHEVMileageValue"}
     };
     private static final String[][] V12 = {
             {P + "ota.BYDAutoOtaDevice", "getBatteryPowerVoltage"}
@@ -185,8 +189,8 @@ public final class BydBridge {
     /** o que respondeu nesta central (para o diagnóstico) */
     public String report() {
         StringBuilder sb = new StringBuilder("{");
-        String[][] all = concat(SPEED, GEAR, POWER, SOC, RANGE, PEDAL, BRAKE, OUT_TEMP, ODO, V12, TURN,
-                BSD, LKS, TJA, ACC, LINE, RADAR);
+        String[][] all = concat(SPEED, GEAR, POWER, SOC, RANGE, PEDAL, BRAKE, OUT_TEMP, ODO_TOTAL, ODO_EV,
+                ODO_HEV, V12, TURN, FUEL, FUEL_KM, ENGINE_SPEED, BSD, LKS, TJA, ACC, LINE, RADAR);
         for (String[] c : all) {
             String key = c[0].substring(c[0].lastIndexOf('.') + 1) + "." + c[1];
             if (probed.containsKey(key)) continue;
@@ -267,6 +271,15 @@ public final class BydBridge {
         return v;
     }
 
+    /** odômetro total: o getter do total e, se ele não responder, EV + HEV */
+    private double odoTotal() {
+        double total = first(ODO_TOTAL);
+        if (total > NONE) return total;
+        double born = first(ODO_EV), hev = first(ODO_HEV);
+        if (born > NONE && hev > NONE) return born + hev;
+        return born > NONE ? born : (hev > NONE ? hev : NONE);
+    }
+
     /** pressão de um pneu; 1 = dianteiro esquerdo, 2 = dianteiro direito, 3/4 = traseiros */
     public double tyre(int n) {
         return numInt(P + "tyre.BYDAutoTyreDevice", "getTyrePressureValue", n);
@@ -285,7 +298,7 @@ public final class BydBridge {
                 first(PEDAL),                           /* 5 % pedal */
                 first(BRAKE),                           /* 6 % freio */
                 first(OUT_TEMP),                        /* 7 °C */
-                first(ODO),                             /* 8 km */
+                odoTotal(),                             /* 8 km */
                 first(V12),                             /* 9 V */
                 first(TURN),                            /* 10 pisca */
                 first(PWR_UNIT),                        /* 11 1 kW / 2 hp */
