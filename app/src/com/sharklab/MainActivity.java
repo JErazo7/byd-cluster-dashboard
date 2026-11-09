@@ -662,7 +662,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public boolean autostartGet() {
-            return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("autostart", true);
+            return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("autostart", false);
         }
 
         @JavascriptInterface

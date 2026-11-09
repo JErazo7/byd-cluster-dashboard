@@ -23,7 +23,7 @@ public class BootReceiver extends BroadcastReceiver {
                 && !Intent.ACTION_USER_UNLOCKED.equals(a)
                 && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)) return;
         /* a skin sobe junto com o carro por padrão; o usuário pode desligar em Ajustes */
-        if (!ctx.getSharedPreferences("lab", Context.MODE_PRIVATE).getBoolean("autostart", true)) return;
+        if (!ctx.getSharedPreferences("lab", Context.MODE_PRIVATE).getBoolean("autostart", false)) return;
         try {
             Intent i = new Intent(ctx, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
