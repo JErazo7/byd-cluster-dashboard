@@ -377,7 +377,8 @@ public class MainActivity extends Activity {
         ui.post(new Runnable() {
             public void run() {
                 try {
-                    if (ClusterProjection.running()) {
+                    if (ClusterProjection.running()
+                            && getSharedPreferences("lab", MODE_PRIVATE).getBoolean("enabled", true)) {
                         bridge.clusterCast(16);
                     }
                 } catch (Throwable ignored) {
@@ -542,6 +543,10 @@ public class MainActivity extends Activity {
 
     private void takePanel() {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+        if (!p.getBoolean("enabled", true)) {
+            Log.i(TAG, "painel: desligado pelo usuário, não retoma");
+            return;
+        }
         ensureOverlay();
         AdbShell.resume();
         if (p.getBoolean("cluster_cast", true) && !p.getBoolean("projection", false)) {
@@ -877,7 +882,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String projStart() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-            p.edit().putBoolean("projection", true).apply();
+            p.edit().putBoolean("projection", true).putBoolean("enabled", true).apply();
             /* precisa do token de captura: PUBLIC sem ele é recusado pelo sistema */
             wantProjection = true;
             Mirror.request(MainActivity.this);
@@ -886,9 +891,16 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String projStop() {
-            getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("projection", false).apply();
+            /* desligar é desligar: marca a preferência, para o laço ADB (era ele que reenviava o
+               cmd 16 a cada 60 s) e devolve o painel ao layout da BYD */
+            getSharedPreferences("lab", MODE_PRIVATE).edit()
+                    .putBoolean("projection", false)
+                    .putBoolean("enabled", false)
+                    .apply();
             ClusterProjection.stop();
             stopService(new Intent(MainActivity.this, PanelService.class));
+            ClusterOverlay.hide();
+            PanelRelease.release();
             return projState();
         }
 

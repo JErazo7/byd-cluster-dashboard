@@ -63,7 +63,9 @@ public final class AdbShell {
                 while (true) {
                     try {
                         if (sess == null) sess = connect(ctx);
-                        if (!paused) {
+                        /* respeita o botão do app: desligado pelo usuário, nada de cmd 16 */
+                        boolean on = ctx.getSharedPreferences("lab", 0).getBoolean("enabled", true);
+                        if (!paused && on) {
                             String out = exec(sess, "service call AutoContainer 2 i32 1000 i32 16 s16 null", id++);
                             Log.i(TAG, "adb: 16 -> " + (out == null ? "null" : out.trim()));
                         }
