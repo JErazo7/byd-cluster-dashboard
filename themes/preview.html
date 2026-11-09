@@ -38,6 +38,7 @@
   <label>Depósito % <input id="fuel" type="range" min="0" max="100" value="62"><span id="fuelV">62</span></label>
   <label>Combustível km <input id="fuelKm" type="range" min="0" max="950" step="10" value="640"><span id="fuelKmV">640</span></label>
   <label>Pedal % <input id="tps" type="range" min="0" max="100" value="34"><span id="tpsV">34</span></label>
+  <label>Tracción <select id="ev"><option value="">—</option><option value="1" selected>EV</option><option value="0">HEV</option></select></label>
   <label>Marcha <select id="sel"><option>P</option><option>R</option><option>N</option><option selected>D</option></select></label>
   <label>Modo <select id="drive"><option>ECO</option><option selected>NORMAL</option><option>MONTAÑA</option><option>NIEVE</option><option>ARENA</option><option>LODO</option><option>SPORT</option></select></label>
   <label>Setas <select id="turn"><option value="0">nenhuma</option><option value="1">esquerda</option><option value="2">direita</option></select></label>
@@ -67,7 +68,7 @@
       speed: +$('speed').value, rpm: 1800, gear: '3', tps: +$('tps').value, map: 1.2, boostBar: 0,
       soc: +$('soc').value, fuel: +$('fuel').value, fuelKm: +$('fuelKm').value, lambda: 1, brake: 0,
       turnLeft: turn === '1' ? 1 : 0, turnRight: turn === '2' ? 1 : 0,
-      on: true, sel: $('sel').value, car: 'V8', pw: +$('pw').value, odo: 12843, range: 412, tout: 24, btemp: 32,
+      on: true, sel: $('sel').value, ev: $('ev').value === '' ? null : +$('ev').value, car: 'V8', pw: +$('pw').value, odo: 12843, range: 412, tout: 24, btemp: 32,
       dmode: 2, drive: $('drive').value, ready: 1, regen: 0, v12: 13.8, phone: -1, tt: {}, rhd: false, warn: [],
       adas: {}, tyre: { fl: 2.4, fr: 2.4, rl: 2.3, rr: 2.3 }, cam: null,
       nmv: { text: 'Gire a la derecha en 200 m' }, ext: null, trip: { km: 12.4 },
@@ -94,7 +95,7 @@
   ['speed', 'pw', 'soc', 'fuel', 'fuelKm', 'tps'].forEach(function (id) {
     $(id).addEventListener('input', function () { $(id + 'V').textContent = this.value; feed(); });
   });
-  ['sel', 'drive', 'turn'].forEach(function (id) { $(id).addEventListener('change', feed); });
+  ['sel', 'drive', 'turn', 'ev'].forEach(function (id) { $(id).addEventListener('change', feed); });
   $('theme').addEventListener('change', load);
   $('variant').addEventListener('change', load);
   $('notchOn').addEventListener('change', function () { $('notch').classList.toggle('hide', !this.checked); });
