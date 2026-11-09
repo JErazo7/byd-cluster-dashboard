@@ -7,7 +7,7 @@ texto y una app Android que las pinta en la pantalla central y en el panel detr�
 | Carpeta | Qué es | Estado |
 |---|---|---|
 | `app/` | SharkLab: app Android que pinta la skin (APK 36 KB, sin Gradle) | **compila y firma** |
-| `themes/` | Temas `shark`, `sharkmap`, `muscle`, `industria` + preview con sliders | funcionando |
+| `themes/` | Temas `shark`, `sharkmap`, `muscle`, `industria`, `byd` + preview con sliders | funcionando |
 | `tools/` | Reempaquetador para meter tus temas en el EvSound que ya compraste | funcionando |
 
 **Grelha das skins:** todas desenham em **1280×480** (a mesma do `shark`): o SVG leva
@@ -16,6 +16,9 @@ Os tamanhos de referência — para as skins novas não ficarem sobredimensionad
 `shark`: aros de raio 108 com traço 12 e centros em x 262/1018, y 250; número do mostrador 58
 (herói 128 no centro), título 19–20, P R N D 26, READY 17, rodapé e odômetro 17, relógio 24,
 faixa das luzes da BYD em x 427–853, y 0–54.
+
+O `byd` é o único tema com foto: `themes/dash/byd/assets/bg.jpg` (paisagem) e `truck.jpg`
+(caminhonete sobre preto puro, composta com `mix-blend-mode: screen` — sem recorte).
 
 ## Estado real de las funcionalidades
 
