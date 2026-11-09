@@ -154,6 +154,12 @@
     id: 'bgMountain', href: 'assets/bg-mountain.jpg', opacity: 0,
     x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice'
   }, gBg);
+  var bgMud = el('image', {
+    id: 'bgMud', href: 'assets/bg-mud.jpg', opacity: 0,
+    x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice'
+  }, gBg);
+  /* véu escuro por cena: as fotos claras precisam dele para o texto branco respirar */
+  var sceneDim = el('rect', { x: 0, y: 0, width: W, height: H, fill: '#04070c', opacity: 0 }, gBg);
   el('rect', { x: 0, y: 150, width: W, height: 230, fill: 'url(#gFade)' }, gBg);
   el('rect', { x: 0, y: 380, width: W, height: 100, fill: '#04070c' }, gBg);
 
@@ -435,7 +441,8 @@
   var THR_RAMP = {
     night: ['#1b6fe0', '#2f9df5', '#2f9df5', '#ff8a2b'],
     sport: ['#ff2d12', '#ff6a1f', '#ff8a2b', '#ffe680'],
-    mountain: ['#0b7f6b', '#17d3a5', '#17d3a5', '#d9fff2']
+    mountain: ['#0b7f6b', '#17d3a5', '#17d3a5', '#d9fff2'],
+    mud: ['#8a5a12', '#ffb02e', '#ffb02e', '#fff0c9']
   };
   function tintThrottle(f, scene) {
     var heat = Math.max(0, Math.min(1, (f - 0.25) / 0.75));
@@ -450,9 +457,10 @@
 
   /* cenas: cada modo escolhe uma paisagem e a paleta de destaque que combina com ela */
   var SCENES = {
-    night: { img: bgNormal, accent: ['#0480ff', '#8ac6ff', '#2f4f6c', '#5ab6ff'] },
-    sport: { img: bgSport, accent: ['#ff6a2b', '#ffc79a', '#6b4632', '#ff8a4d'] },
-    mountain: { img: bgMountain, accent: ['#17d3a5', '#a9ffe8', '#2f6b5e', '#5fe8c4'] }
+    night: { img: bgNormal, accent: ['#0480ff', '#8ac6ff', '#2f4f6c', '#5ab6ff'], dim: 0 },
+    sport: { img: bgSport, accent: ['#ff6a2b', '#ffc79a', '#6b4632', '#ff8a4d'], dim: 0.12 },
+    mountain: { img: bgMountain, accent: ['#17d3a5', '#a9ffe8', '#2f6b5e', '#5fe8c4'], dim: 0.2 },
+    mud: { img: bgMud, accent: ['#ffb02e', '#ffe3a8', '#6b5732', '#ffc46b'], dim: 0.42 }
   };
   var bgState = { scene: null, timer: 0 };
 
@@ -494,7 +502,8 @@
 
   function sceneFor(mode) {
     if (/SPORT/i.test(mode)) return 'sport';
-    if (/MONTA|HILL|OFF|TRAIL|TRAIL/i.test(mode)) return 'mountain';
+    if (/LODO|MUD|BARRO|TIERRA/i.test(mode)) return 'mud';
+    if (/MONTA|HILL|OFF|TRAIL/i.test(mode)) return 'mountain';
     return 'night';
   }
 
@@ -534,12 +543,15 @@
     scene = sceneFor(mode);
     fadeBackground(scene);
     var pal = SCENES[scene].accent;
-    truckGlow.setAttribute('fill', scene === 'sport' ? '#ff7a3c' : (scene === 'mountain' ? '#17d3a5' : '#2f9df5'));
+    sceneDim.setAttribute('opacity', SCENES[scene].dim || 0);
+    truckGlow.setAttribute('fill',
+      scene === 'sport' ? '#ff7a3c' : (scene === 'mountain' ? '#17d3a5' : (scene === 'mud' ? '#ffb02e' : '#2f9df5')));
     svg.style.setProperty('--accent', pal[0]);
     svg.style.setProperty('--accent-core', pal[1]);
     svg.style.setProperty('--accent-soft', pal[2]);
     svg.style.setProperty('--accent-icon', pal[3]);
-    tyrecarImg.setAttribute('class', scene === 'sport' ? 'warm' : (scene === 'mountain' ? 'cool' : ''));
+    tyrecarImg.setAttribute('class',
+      (scene === 'sport' || scene === 'mud') ? 'warm' : (scene === 'mountain' ? 'cool' : ''));
 
   /* no SPORT os aros ficam mais grossos, com halo forte e zona vermelha no fim */
   [thrRing, powRing].forEach(function (rg) {
@@ -548,12 +560,14 @@
     rg.red.setAttribute('stroke-width', sport ? 19 : 14);
     rg.red.setAttribute('opacity', sport ? '0.9' : '0');
     rg.track.setAttribute('stroke',
-      scene === 'sport' ? '#3a1f1a' : (scene === 'mountain' ? '#1e4b42' : '#22405c'));
+      scene === 'sport' ? '#3a1f1a' : (scene === 'mountain' ? '#1e4b42'
+        : (scene === 'mud' ? '#4a3a1c' : '#22405c')));
   });
   var POW_RAMP = {
     night: ['#1b6fe0', '#2f9df5', '#ff8a2b', '#ffd08a'],
     sport: ['#ff2d12', '#ff5a1f', '#ffb020', '#ffe9a8'],
-    mountain: ['#0b7f6b', '#17d3a5', '#7dffd6', '#e4fff7']
+    mountain: ['#0b7f6b', '#17d3a5', '#7dffd6', '#e4fff7'],
+    mud: ['#8a5a12', '#ffb02e', '#ffd166', '#fff3d1']
   };
   var pr = POW_RAMP[scene] || POW_RAMP.night;
   powStop[0].setAttribute('stop-color', pr[0]);
@@ -615,7 +629,9 @@
       evTxt.textContent = ev === 1 ? 'EV' : 'HEV';
       var tint = ev === 1 ? pal[0] : '#ffb020';
       evFill.setAttribute('fill', ev === 1 ? (scene === 'sport' ? 'rgba(255,106,43,0.26)'
-        : (scene === 'mountain' ? 'rgba(23,211,165,0.26)' : 'rgba(4,128,255,0.26)')) : 'rgba(255,176,32,0.22)');
+        : (scene === 'mountain' ? 'rgba(23,211,165,0.26)'
+        : (scene === 'mud' ? 'rgba(255,176,46,0.26)' : 'rgba(4,128,255,0.26)')))
+        : 'rgba(255,176,32,0.22)');
       evFill.setAttribute('opacity', '1');
       evTxt.setAttribute('fill', ev === 1 ? pal[1] : '#ffcf80');
       evPill.setAttribute('stroke', tint);
