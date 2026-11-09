@@ -9,8 +9,28 @@
   svg { display: block; }
   /* o carro do cartão de pressão vem sobre azul-escuro: o screen soma só o brilho */
   /* a arte vem com um fundo azul-escuro: o screen soma o brilho e o contrast joga o fundo a zero */
-  #tyrecar { mix-blend-mode: screen; filter: contrast(1.55) brightness(1.22) saturate(1.1); }
+  #tyrecar { mix-blend-mode: screen; filter: contrast(1.55) brightness(1.22) saturate(1.1);
+             transition: filter 0.6s ease; }
+  /* no SPORT a arte azul do carro acompanha o calor da cena */
+  #tyrecar.warm { filter: contrast(1.55) brightness(1.1) sepia(0.6) hue-rotate(-25deg) saturate(1.7); }
   text { font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #eaf3ff; }
+  /* as cores de destaque vêm de variáveis: trocar de modo muda tudo de uma vez */
+  svg { --accent: #0480ff; --accent-core: #8ac6ff; --accent-soft: #2f4f6c; --accent-icon: #5ab6ff; }
+  .edge-halo, .edge-mid, .edge-core, .ring, .tick, .icon, .bar-lit {
+    transition: stroke 0.55s ease, fill 0.55s ease;
+  }
+  .edge-halo { stroke: var(--accent); }
+  .edge-mid { stroke: var(--accent); }
+  .edge-core { stroke: var(--accent-core); }
+  .ring { stroke: var(--accent); }
+  .ring.on { stroke: var(--accent-core); }
+  .tick { stroke: var(--accent-soft); }
+  .icon { stroke: var(--accent-icon); }
+  .bar-lit, .icon-fill { fill: var(--accent); transition: fill 0.55s ease; }
+  /* troca de paisagem: cross-fade com um leve zoom de aproximação */
+  .bg { opacity: 0; transform: scale(1.06); transform-box: view-box; transform-origin: 50% 50%;
+        transition: opacity 0.75s ease, transform 1.4s cubic-bezier(.2,.7,.2,1); }
+  .bg.in { opacity: 1; transform: none; }
   .dim { fill: #b9cfe2; }
   .mut { fill: #6a8aa6; }
   .cy { fill: #38cfff; }
@@ -126,10 +146,12 @@
   el('rect', { x: 0, y: 0, width: W, height: H, fill: '#04070c' });
   var gBg = el('g', { 'clip-path': 'url(#clipFrame)' });
   var bgNormal = el('image', {
-    href: 'assets/bg.jpg', x: -306, y: -8, width: 1892, height: 340, preserveAspectRatio: 'xMidYMid slice'
+    id: 'bgNight', class: 'bg in', href: 'assets/bg.jpg',
+    x: -306, y: -8, width: 1892, height: 340, preserveAspectRatio: 'xMidYMid slice'
   }, gBg);
   var bgSport = el('image', {
-    href: 'assets/bg-sport.jpg', x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice', opacity: 0
+    id: 'bgSport', class: 'bg out', href: 'assets/bg-sport.jpg',
+    x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice'
   }, gBg);
   el('rect', { x: 0, y: 150, width: W, height: 230, fill: 'url(#gFade)' }, gBg);
   el('rect', { x: 0, y: 380, width: W, height: 100, fill: '#04070c' }, gBg);
@@ -167,7 +189,7 @@
       var p0 = pt(cx, RING_Y, R - 11, ta), p1 = pt(cx, RING_Y, R - (major ? 27 : 20), ta);
       el('line', {
         x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1],
-        stroke: major ? '#4d7595' : '#2f4f6c', 'stroke-width': major ? 2.4 : 1.5,
+        class: 'tick', 'stroke-width': major ? 2.4 : 1.5,
         'stroke-linecap': 'butt', opacity: major ? 0.95 : 0.7
       }, g);
     }
@@ -226,9 +248,9 @@
   var ICON = '#5ab6ff';
   function neon(parent, x, y, w, h, r, k) {
     var f = k || 1;
-    rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 9 * f, opacity: 0.08 }, parent);
-    rrect(x + 3, y + 3, w - 6, h - 6, Math.max(2, r - 3), { fill: 'none', stroke: NEON_CORE, 'stroke-width': 1, opacity: 0.18 }, parent);
-    return rrect(x, y, w, h, r, { fill: 'none', stroke: NEON, 'stroke-width': 1.5 * f, opacity: 0.65 }, parent);
+    rrect(x, y, w, h, r, { class: 'edge-halo', fill: 'none', 'stroke-width': 9 * f, opacity: 0.08 }, parent);
+    rrect(x + 3, y + 3, w - 6, h - 6, Math.max(2, r - 3), { class: 'edge-core', fill: 'none', 'stroke-width': 1, opacity: 0.18 }, parent);
+    return rrect(x, y, w, h, r, { class: 'edge-mid', fill: 'none', 'stroke-width': 1.5 * f, opacity: 0.65 }, parent);
   }
   function card(x, w) {
     var g = el('g');
@@ -242,12 +264,12 @@
     return el('rect', { x: x + 3, y: y + 15, width: 12, height: 10, rx: 2, fill: '#38cfff' }, parent);
   }
   function pumpIcon(x, y, parent) {
-    el('rect', { x: x, y: y, width: 15, height: 28, rx: 3, fill: 'none', stroke: ICON, 'stroke-width': 2 }, parent);
+    el('rect', { x: x, y: y, width: 15, height: 28, rx: 3, fill: 'none', class: 'icon', 'stroke-width': 2 }, parent);
     el('path', {
       d: 'M' + (x + 15) + ' ' + (y + 6) + 'h6v10a3.5 3.5 0 0 0 7 0V' + (y + 4),
-      fill: 'none', stroke: ICON, 'stroke-width': 2, 'stroke-linecap': 'round'
+      fill: 'none', class: 'icon', 'stroke-width': 2, 'stroke-linecap': 'round'
     }, parent);
-    return el('rect', { x: x + 3, y: y + 6, width: 9, height: 7, rx: 1, fill: ICON }, parent);
+    return el('rect', { x: x + 3, y: y + 6, width: 9, height: 7, rx: 1, class: 'icon-fill' }, parent);
   }
   /* barra de nível em blocos, como no desenho */
   function segBar(parent, x, y, w, h, n) {
@@ -260,7 +282,13 @@
   function drawSegBar(cells, frac) {
     var lit = Math.round(Math.max(0, Math.min(1, frac)) * cells.length);
     cells.forEach(function (r, i) {
-      r.setAttribute('fill', i < lit ? NEON : '#0e1d2c');
+      if (i < lit) {
+        r.setAttribute('class', 'bar-lit');
+        r.removeAttribute('fill');
+      } else {
+        r.setAttribute('class', '');
+        r.setAttribute('fill', '#0e1d2c');
+      }
     });
   }
   function mountainIcon(x, y, s, parent) {
@@ -301,7 +329,7 @@
   var c2 = card(470, 340);
   c2.firstChild.setAttribute('fill', '#04090f');
   /* a imagem inteira preenche o cartão; os números ficam em cima, onde as linhas terminam */
-  el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 519, y: 330, width: 242, height: 136,
+  var tyrecarImg = el('image', { id: 'tyrecar', href: 'assets/tyre.jpg', x: 519, y: 330, width: 242, height: 136,
     preserveAspectRatio: 'xMidYMid meet' }, c2);
   var TYRE = [['fl', 590, 366, 'end'], ['fr', 690, 366, 'start'], ['rl', 590, 438, 'end'], ['rr', 690, 438, 'start']];
   var tyreNum = {};
@@ -366,8 +394,8 @@
   var SEL_ORDER = ['P', 'R', 'N', 'D'], gearCells = [];
   for (var gi = 0; gi < 4; gi++) {
     var gx = 872 + gi * 48;
-    el('circle', { cx: gx + 21, cy: 424, r: 16.5, fill: 'none', stroke: NEON, 'stroke-width': 7, opacity: 0.06 }, c3);
-    var ringStroke = el('circle', { cx: gx + 21, cy: 424, r: 16.5, fill: 'none', stroke: NEON, 'stroke-width': 1.3, opacity: 0.55 }, c3);
+    el('circle', { cx: gx + 21, cy: 424, r: 16.5, fill: 'none', class: 'ring', 'stroke-width': 7, opacity: 0.06 }, c3);
+    var ringStroke = el('circle', { cx: gx + 21, cy: 424, r: 16.5, fill: 'none', class: 'ring', 'stroke-width': 1.3, opacity: 0.55 }, c3);
     gearCells.push({
       bg: el('circle', { cx: gx + 21, cy: 424, r: 15, fill: 'rgba(11,24,38,0.9)' }, c3),
       ring: ringStroke,
@@ -435,11 +463,18 @@
     modeTxt.textContent = mode.toUpperCase();
     modeGlyph(mode);
 
-    /* SPORT troca a paisagem por uma cena de estrada em brasa */
+    /* SPORT troca a paisagem por uma cena de estrada em brasa, com cross-fade e zoom */
     var sport = /SPORT/i.test(mode);
-    bgSport.setAttribute('opacity', sport ? '0.92' : '0');
-    bgNormal.setAttribute('opacity', sport ? '0' : '1');
+    bgSport.setAttribute('class', sport ? 'bg in' : 'bg out');
+    bgNormal.setAttribute('class', sport ? 'bg out' : 'bg in');
     truckGlow.setAttribute('fill', sport ? '#ff7a3c' : '#2f9df5');
+
+    /* o destaque dos painéis acompanha o modo: quente no SPORT, azul nos outros */
+    svg.style.setProperty('--accent', sport ? '#ff6a2b' : '#0480ff');
+    svg.style.setProperty('--accent-core', sport ? '#ffc79a' : '#8ac6ff');
+    svg.style.setProperty('--accent-soft', sport ? '#6b4632' : '#2f4f6c');
+    svg.style.setProperty('--accent-icon', sport ? '#ff8a4d' : '#5ab6ff');
+  tyrecarImg.setAttribute('class', sport ? 'warm' : '');
 
     var soc = pct(d.soc);
     batNum.firstChild.nodeValue = soc === null ? '--' : String(Math.round(soc));
@@ -479,7 +514,7 @@
     gearCells.forEach(function (c, i) {
       var on = SEL_ORDER[i] === sel;
       c.bg.setAttribute('fill', on ? 'rgba(4,128,255,0.3)' : 'rgba(11,24,38,0.9)');
-      c.ring.setAttribute('stroke', on ? NEON_CORE : NEON);
+      c.ring.setAttribute('class', on ? 'ring on' : 'ring');
       c.ring.setAttribute('opacity', on ? '1' : '0.55');
       c.ring.setAttribute('stroke-width', on ? '2' : '1.3');
       c.tx.setAttribute('class', on ? 'num' : 'mut');
