@@ -90,3 +90,8 @@ Isso descompacta o APK licenciado e copia `dash/<tema>/` para
 `/sdcard/Android/data/com.xdja.clusterdemo/files/dash/`, que a SharkLab carrega. No APK
 gratuito só `pilot`, `muscle` e `vision` trazem `index.html`; os outros temas têm apenas a
 miniatura — a skin completa vem do pack Pro/motor do EvSound.
+
+## Backup dos temas do EvSound
+
+`themes/evsound/dash/` guarda os assets extraídos do APK licenciado (backup pessoal, repo privado).
+Não entram no APK da SharkLab; para instalar no carro use `tools/import-evsound-assets.sh`.

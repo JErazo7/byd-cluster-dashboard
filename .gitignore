@@ -8,4 +8,3 @@ build/
 demos/
 *.wav
 .DS_Store
-themes/evsound/
