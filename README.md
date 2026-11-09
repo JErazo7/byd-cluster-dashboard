@@ -18,7 +18,8 @@ Os tamanhos de referência — para as skins novas não ficarem sobredimensionad
 faixa das luzes da BYD em x 427–853, y 0–54.
 
 O `byd` é o único tema com foto, tudo em `themes/dash/byd/assets/`: `bg.jpg` (paisagem),
-`bg-sport.jpg` (cena de estrada em brasa, entra quando o modo é SPORT), `truck.png`
+`bg-sport.jpg` (estrada em brasa, modo SPORT), `bg-mountain.jpg` (serra verde, modo
+MONTAÑA), `truck.png`
 (caminhonete recortada com alfa) e `tyre.jpg` (carro visto de cima no cartão de pressão,
 composto com `mix-blend-mode: screen`).
 
