@@ -17,18 +17,19 @@
 </style>
 </head>
 <body>
-<svg id="s" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1920 720" preserveAspectRatio="xMidYMid meet"></svg>
+<svg id="s" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1280 480" preserveAspectRatio="xMidYMid meet"></svg>
 <script>
 /*
- * Muscle Digital (SharkLab) — desenhado NATIVAMENTE em 1920×720, o tamanho exacto do painel.
- * Sem escala, sem meta viewport: o que aparece aqui é pixel a pixel o quadro do clúster.
+ * Muscle Digital (SharkLab) — desenhado na grelha das skins antigas (1280×480, a mesma do
+ * shark e do sharkmap): o SVG escala sozinho para o quadro do painel, então o tamanho dos
+ * aros, dos números e do rodapé é o mesmo das outras skins.
  * Inspirado nos painéis digitais de muscle car (dois arcos em degradê, velocidade grande,
  * marcha, shift lights), com código próprio.
  */
 (function () {
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
-  var W = 1920, H = 720;
+  var W = 1280, H = 480;
   var svg = document.getElementById('s');
 
   var LANG = (/[#&]lang=(pt|es|en)/.exec(location.hash) || [])[1] || 'es';
@@ -74,50 +75,53 @@
   el('rect', { x: 0, y: 0, width: W, height: H, fill: '#05070a' });
 
   var A0 = 150, SWEEP = 240;
-  var CY = 375, R = 215;          /* raio dos aros */
-  var SPX = 360, RPX = W - 360;   /* centros */
+  var CY = 250, R = 108;          /* aros no mesmo raio das skins antigas */
+  var SPX = 262, RPX = W - 262;   /* centros */
 
   /* velocímetro (esquerda) */
-  el('path', { d: arc(SPX, CY, R, A0, A0 + SWEEP), fill: 'none', stroke: '#111a24', 'stroke-width': 26, 'stroke-linecap': 'round' });
-  var spFill = el('path', { d: '', fill: 'none', stroke: gSpeed, 'stroke-width': 26, 'stroke-linecap': 'round' });
-  var spNum = txt(SPX, CY + 26, '0', 140, 'num');
+  el('path', { d: arc(SPX, CY, R, A0, A0 + SWEEP), fill: 'none', stroke: '#111a24', 'stroke-width': 12, 'stroke-linecap': 'round' });
+  var spFill = el('path', { d: '', fill: 'none', stroke: gSpeed, 'stroke-width': 12, 'stroke-linecap': 'round' });
+  var spNum = txt(SPX, CY + 30, '0', 96, 'num');
   spNum.setAttribute('font-weight', 500);
-  var spUnit = txt(SPX, CY + 82, T.speed, 28, 'dim');
-  var gearTxt = txt(SPX, CY + 150, 'P', 44, 'accent');
+  var spUnit = txt(SPX, CY + 62, T.speed, 18, 'dim');
+  var gearTxt = txt(SPX, CY + 96, 'P', 28, 'accent');
 
   /* potência (direita) */
-  el('path', { d: arc(RPX, CY, R, A0, A0 + SWEEP), fill: 'none', stroke: '#111a24', 'stroke-width': 26, 'stroke-linecap': 'round' });
-  var rpFill = el('path', { d: '', fill: 'none', stroke: gRpm, 'stroke-width': 26, 'stroke-linecap': 'round' });
-  var rpNum = txt(RPX, CY + 26, '0', 112, 'num');
-  var rpUnit = txt(RPX, CY + 80, T.power, 26, 'dim');
-  var batTxt = txt(RPX, CY + 146, '', 28, 'dim');
+  el('path', { d: arc(RPX, CY, R, A0, A0 + SWEEP), fill: 'none', stroke: '#111a24', 'stroke-width': 12, 'stroke-linecap': 'round' });
+  var rpFill = el('path', { d: '', fill: 'none', stroke: gRpm, 'stroke-width': 12, 'stroke-linecap': 'round' });
+  var rpNum = txt(RPX, CY + 26, '0', 76, 'num');
+  var rpUnit = txt(RPX, CY + 58, T.power, 18, 'dim');
+  var batTxt = txt(RPX, CY + 92, '', 18, 'dim');
 
   /* centro */
-  var modeTxt = txt(W / 2, 108, '', 28, 'accent');
-  var readyTxt = txt(W / 2, 618, T.ready, 22, 'good');
-  readyTxt.setAttribute('letter-spacing', '4');
+  var modeTxt = txt(W / 2, 112, '', 20, 'accent');
+  var readyTxt = txt(W / 2, 406, T.ready, 15, 'good');
+  readyTxt.setAttribute('letter-spacing', '3');
 
   var SEL = ['P', 'R', 'N', 'D'], selEls = [];
-  for (var i = 0; i < 4; i++) selEls.push(txt(W / 2 - 81 + i * 54, 558, SEL[i], 36, 'dim'));
+  for (var i = 0; i < 4; i++) selEls.push(txt(W / 2 - 51 + i * 34, 372, SEL[i], 24, 'dim'));
 
   /* shift lights */
   var shift = [];
   for (var k = 0; k < 8; k++) {
-    shift.push(el('rect', { x: W / 2 - 138 + k * 36, y: 144, width: 24, height: 9, rx: 4, fill: '#16212c' }));
+    shift.push(el('rect', { x: W / 2 - 115 + k * 30, y: 132, width: 20, height: 7, rx: 3, fill: '#16212c' }));
   }
 
   /* pedal */
-  el('rect', { x: W / 2 - 210, y: 648, width: 420, height: 8, rx: 4, fill: '#16212c' });
-  var pedalFill = el('rect', { x: W / 2 - 210, y: 648, width: 0, height: 8, rx: 4, fill: '#38cfff' });
-  var pedalTxt = txt(W / 2, 638, '', 18, 'dim');
+  el('rect', { x: W / 2 - 130, y: 436, width: 260, height: 6, rx: 3, fill: '#16212c' });
+  var pedalFill = el('rect', { x: W / 2 - 130, y: 436, width: 0, height: 6, rx: 3, fill: '#38cfff' });
+  var pedalTxt = txt(W / 2, 428, '', 15, 'dim');
 
   /* rodapé */
-  var odoTxt = txt(42, H - 26, '', 26, 'dim', 'start');
-  var tripTxt = txt(W - 42, H - 26, '', 26, 'dim', 'end');
-  var clockTxt = txt(W / 2, H - 26, '', 26, 'dim');
+  var odoTxt = txt(20, H - 16, '', 17, 'dim', 'start');
+  var tripTxt = txt(W - 20, H - 16, '', 17, 'dim', 'end');
+  var clockTxt = txt(W / 2, H - 16, '', 20, 'dim');
 
-  /* faixa reservada às luzes da BYD (x 640–1280, y 0–81 em 1920×720) */
-  el('rect', { x: 640, y: 0, width: 640, height: 81, rx: 14, fill: '#05070a' });
+  /* faixa reservada às luzes da BYD (x 427–853, y 0–54 em 1280×480): só no painel inteiro,
+     onde as luzes da BYD entram por cima; fora dele a faixa ficaria um remendo no fundo */
+  if (/[#&](panel|full)=1/.test(location.hash)) {
+    el('rect', { x: 427, y: 0, width: 426, height: 54, rx: 10, fill: '#05070a' });
+  }
 
   function fmt(v) { return (v === null || v === undefined || v === -999) ? '--' : String(Math.round(v)); }
 
@@ -147,7 +151,7 @@
     }
 
     var tps = Math.max(0, Math.min(100, d.tps || 0));
-    pedalFill.setAttribute('width', (420 * tps / 100).toFixed(0));
+    pedalFill.setAttribute('width', (260 * tps / 100).toFixed(0));
     pedalTxt.textContent = tps > 0 ? Math.round(tps) + '%' : '';
 
     odoTxt.textContent = d.odo === -999 ? '' : T.odo + ' ' + fmt(d.odo) + ' km';
