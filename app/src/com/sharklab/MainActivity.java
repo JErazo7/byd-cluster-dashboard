@@ -173,6 +173,26 @@ public class MainActivity extends Activity {
 
         startGps();
 
+        if (getIntent() != null && getIntent().hasExtra("festate")) {
+            final int v = getIntent().getIntExtra("festate", -1);
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        Class<?> stub = Class.forName("android.view.IMagicWindowManager$Stub");
+                        Object binder = Class.forName("android.os.ServiceManager")
+                                .getMethod("getService", String.class).invoke(null, "magicwindow");
+                        Object svc = stub.getMethod("asInterface", android.os.IBinder.class).invoke(null, binder);
+                        Object before = svc.getClass().getMethod("getFeatureState").invoke(svc);
+                        Object r = svc.getClass().getMethod("setFeatureState", int.class).invoke(svc, v);
+                        Object after = svc.getClass().getMethod("getFeatureState").invoke(svc);
+                        Log.i(TAG, "festate: antes=" + before + " set=" + v + " r=" + r + " depois=" + after);
+                    } catch (Throwable t) {
+                        Log.w(TAG, "festate falhou", t);
+                    }
+                }
+            }).start();
+        }
+
         if (getIntent() != null && getIntent().getBooleanExtra("magic", false)) {
             new Thread(new Runnable() {
                 public void run() {

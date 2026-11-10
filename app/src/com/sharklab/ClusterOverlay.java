@@ -118,10 +118,17 @@ public final class ClusterOverlay {
                     Build.VERSION.SDK_INT >= 26
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT,
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    /* TRANSLUCENT: com RGBA_8888 explícito o container não compôs a camada e o
-                       painel voltou à interface da BYD. A cor trocada que apareceu antes era
-                       render velho do WebView, não o formato da janela. */
+                    /* as MESMAS flags da janela do EvSound no painel, lidas no dumpsys
+                       (NOT_FOCUSABLE|NOT_TOUCHABLE|KEEP_SCREEN_ON|LAYOUT_IN_SCREEN|
+                       LAYOUT_NO_LIMITS|FULLSCREEN|HARDWARE_ACCELERATED): é essa combinação
+                       que deixa a skin por cima dos widgets nativos da BYD */
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                            | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                            | WindowManager.LayoutParams.FLAG_FULLSCREEN
+                            | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                     PixelFormat.TRANSLUCENT);
             lp.gravity = Gravity.TOP | Gravity.START;
             lp.x = 0;
