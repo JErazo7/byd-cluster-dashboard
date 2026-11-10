@@ -969,6 +969,16 @@ public class MainActivity extends Activity {
                do 46 fica no display antigo e o 45 mostra o layout nativo da BYD. */
             final SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             p.edit().putBoolean("applied", true).apply();
+            /* o serviço é quem escuta SCREEN_OFF: sem ele o tema fica no quadro quando o carro
+               apaga e a BYD acende a alerta de porta aberta */
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 26) {
+                    startForegroundService(new Intent(MainActivity.this, PanelService.class));
+                } else {
+                    startService(new Intent(MainActivity.this, PanelService.class));
+                }
+            } catch (Throwable ignored) {
+            }
             final String sk = p.getString("skin", "byd");
             ClusterOverlay.hide();
             new Thread(new Runnable() {
