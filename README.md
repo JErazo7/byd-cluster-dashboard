@@ -15,10 +15,14 @@ e `width/height="100%"`, então escala sozinho. Aros laterais com raio ~200 e tr
 em x 300/1620 e y 400; número do mostrador 96 (herói 120 no centro); cartões da faixa de baixo
 em y 560–700; faixa das luzes da BYD em x 700–1220, y 0–60.
 
-O cartão de pressão usa `assets/tyre-car.png` (vista de cima com alfa, 651×1560) desenhado
-com **conectores vetoriais** em coordenadas do cartão: cada número tem um traço com halo que
-sai do texto, cai a 45° e entra na roda com um trecho horizontal curto. Sem foto de fundo,
-tudo controlado pixel a pixel no `index.html`.
+O cartão de pressão usa `assets/tyre-car.png` (vista de cima com alfa, 651×1560) com o
+overlay `byd_shark_tire_connectors.svg` **embutido inline** (`<script type="text/plain"
+id="tireHudSrc">`): os quatro módulos HUD ficam nas rodas, com as cores da cena
+(`--tire-color/--tire-bright/--tire-dim`) e **por baixo da carroceria** — o `<image>` do carro
+entra depois no DOM. Os números (2.5 bar) ficam nas pontas e cada um chega à sua roda por um
+traço fino.
+Layout da faixa de baixo: bateria (40..434), **modos no meio** (470..810) e **pressões à
+direita** (820..1266), todos com o mesmo fundo `gCard`.
 
 O `byd` é o único tema com foto, tudo em `themes/dash/byd/assets/`: `bg.jpg` (paisagem),
 `bg-sport.jpg` (estrada em brasa, modo SPORT), `bg-mountain.jpg` (serra verde, modo

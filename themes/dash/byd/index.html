@@ -11,11 +11,10 @@
   #tyrecar { filter: brightness(1.16) contrast(1.06); }
   #tyrecar.warm { filter: brightness(1.02) contrast(1.1) saturate(1.15); }
   #tyrecar.cool { filter: brightness(1.06) contrast(1.05) hue-rotate(-8deg); }
-  /* conectores do cartão de pressão: traço com halo, como no desenho de referência */
-  .tyre-line { fill: none; stroke: url(#gTyreLine); stroke-width: 2.2; stroke-linecap: round;
-               stroke-linejoin: round; }
-  .tyre-line-thin { fill: none; stroke: var(--accent-core); stroke-width: 1.1; opacity: .5;
-                    stroke-linecap: round; }
+  /* cores do overlay HUD de pressão: acompanham a cena, como o resto do painel */
+  svg { --tire-color: #16c8ff; --tire-bright: #a8f4ff; --tire-dim: #087bce; }
+  .tyre-link { fill: none; stroke: var(--tire-dim); stroke-width: 1.2; opacity: .75;
+               stroke-linecap: round; }
   text { font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #eaf3ff; }
   /* as cores de destaque vêm de variáveis: trocar de modo muda tudo de uma vez */
   svg { --accent: #0480ff; --accent-core: #8ac6ff; --accent-soft: #2f4f6c; --accent-icon: #5ab6ff; }
@@ -38,6 +37,81 @@
 <body>
 <svg id="s" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1280 480"
      preserveAspectRatio="xMidYMid meet"></svg>
+<!-- overlay HUD de pressão do pacote, inline: herda as variáveis CSS do tema -->
+<script type="text/plain" id="tireHudSrc">
+<defs>
+    <linearGradient id="tireConnector" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" style="stop-color:var(--tire-dim)" stop-opacity=".18"/>
+      <stop offset=".52" style="stop-color:var(--tire-color)"/>
+      <stop offset="1" style="stop-color:var(--tire-bright)"/>
+    </linearGradient>
+    <radialGradient id="tireHub" cx="50%" cy="50%" r="55%">
+      <stop offset="0" style="stop-color:var(--tire-color)" stop-opacity=".22"/>
+      <stop offset=".68" style="stop-color:var(--tire-color)" stop-opacity=".07"/>
+      <stop offset="1" style="stop-color:var(--tire-color)" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="tireSoftGlow" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tireTightGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <g id="tireWheelModule">
+      <!-- Soft halo -->
+      <circle r="44" fill="url(#tireHub)"/>
+      <!-- Outer segmented ring -->
+      <circle r="35" fill="none" style="stroke:var(--tire-dim)" stroke-width="2" opacity=".65"
+              stroke-dasharray="42 8 18 8 42 8 18 8"/>
+      <circle r="29" fill="none" stroke="url(#tireConnector)" stroke-width="2.8"
+              stroke-dasharray="48 8 20 8 48 8 20 8" filter="url(#tireSoftGlow)"/>
+      <circle r="22" fill="none" style="stroke:var(--tire-bright)" stroke-width="1.5"
+              opacity=".8" stroke-dasharray="3 5"/>
+      <!-- Four small locator ticks -->
+      <g style="stroke:var(--tire-bright)" stroke-width="2.5" stroke-linecap="round" filter="url(#tireTightGlow)">
+        <path d="M0 -42 V-35 M42 0 H35 M0 42 V35 M-42 0 H-35"/>
+      </g>
+      <!-- Small bright nodes -->
+      <g style="fill:var(--tire-bright)" filter="url(#tireTightGlow)">
+        <circle cx="0" cy="-35" r="2.8"/>
+        <circle cx="35" cy="0" r="2.8"/>
+        <circle cx="0" cy="35" r="2.8"/>
+        <circle cx="-35" cy="0" r="2.8"/>
+      </g>
+      <circle r="5" style="fill:var(--tire-color)" opacity=".85" filter="url(#tireTightGlow)"/>
+    </g>
+  </defs>
+
+  <!-- FRONT LEFT: module centered near the front axle -->
+  <g id="front-left" transform="translate(75 485)">
+    <use href="#tireWheelModule" xlink:href="#tireWheelModule"/>
+    <path d="M-39 0 H-58 L-77 -18 H-113" fill="none" stroke="url(#tireConnector)" stroke-width="3"
+          stroke-linecap="round" stroke-linejoin="round" filter="url(#tireTightGlow)"/>
+    <path d="M-77 -18 H-104" fill="none" style="stroke:var(--tire-bright)" stroke-width="1.2" opacity=".85"/>
+  </g>
+  <!-- FRONT RIGHT -->
+  <g id="front-right" transform="translate(576 485)">
+    <use href="#tireWheelModule" xlink:href="#tireWheelModule"/>
+    <path d="M39 0 H58 L77 -18 H113" fill="none" stroke="url(#tireConnector)" stroke-width="3"
+          stroke-linecap="round" stroke-linejoin="round" filter="url(#tireTightGlow)"/>
+    <path d="M77 -18 H104" fill="none" style="stroke:var(--tire-bright)" stroke-width="1.2" opacity=".85"/>
+  </g>
+  <!-- REAR LEFT -->
+  <g id="rear-left" transform="translate(75 1040)">
+    <use href="#tireWheelModule" xlink:href="#tireWheelModule"/>
+    <path d="M-39 0 H-58 L-77 18 H-113" fill="none" stroke="url(#tireConnector)" stroke-width="3"
+          stroke-linecap="round" stroke-linejoin="round" filter="url(#tireTightGlow)"/>
+    <path d="M-77 18 H-104" fill="none" style="stroke:var(--tire-bright)" stroke-width="1.2" opacity=".85"/>
+  </g>
+  <!-- REAR RIGHT -->
+  <g id="rear-right" transform="translate(576 1040)">
+    <use href="#tireWheelModule" xlink:href="#tireWheelModule"/>
+    <path d="M39 0 H58 L77 18 H113" fill="none" stroke="url(#tireConnector)" stroke-width="3"
+          stroke-linecap="round" stroke-linejoin="round" filter="url(#tireTightGlow)"/>
+    <path d="M77 18 H104" fill="none" style="stroke:var(--tire-bright)" stroke-width="1.2" opacity=".85"/>
+  </g>
+</script>
 <script>
 /*
  * BYD (SharkLab) — painel neon da caminhonete, na grelha das skins antigas (1280×480): o SVG
@@ -132,17 +206,6 @@
   el('stop', { offset: '0', 'stop-color': '#0c1c2e', 'stop-opacity': '0.9' }, gCard);
   el('stop', { offset: '1', 'stop-color': '#050c15', 'stop-opacity': '0.96' }, gCard);
 
-  /* traço dos conectores: azul na ponta, claro no meio (mesma leitura do desenho de referência) */
-  var gTyreLine = el('linearGradient', { id: 'gTyreLine', x1: '0', y1: '0', x2: '1', y2: '0' }, defs);
-  el('stop', { offset: '0', 'stop-color': '#0876c8' }, gTyreLine);
-  el('stop', { offset: '0.5', 'stop-color': '#00c8ff' }, gTyreLine);
-  el('stop', { offset: '1', 'stop-color': '#0876c8' }, gTyreLine);
-
-  var tyreGlow = el('filter', { id: 'fTyreGlow', x: '-40%', y: '-100%', width: '180%', height: '300%' }, defs);
-  el('feGaussianBlur', { stdDeviation: '3.2', result: 'b' }, tyreGlow);
-  var gm = el('feMerge', {}, tyreGlow);
-  el('feMergeNode', { in: 'b' }, gm);
-  el('feMergeNode', { in: 'SourceGraphic' }, gm);
 
   var safeMask = el('mask', { id: 'mSafe', maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: W, height: H }, defs);
   el('rect', { x: 0, y: 0, width: W, height: H, fill: '#fff' }, safeMask);
@@ -358,58 +421,12 @@
   var rangeNum = txt(177, 454, '', 22, 'num', 'start');
   txt(258, 454, T.range, 11, 'mut', 'start');
 
-  /* cartão 2: pressões, com o carro visto de cima */
-  var c2 = card(470, 340);
-  c2.firstChild.setAttribute('fill', '#04090f');
-  /* carro visto de cima, PNG 651x1560 com alfa: 124 de altura dão 51,7 de largura, centrado */
-  var CAR = { w: 52, h: 124, cx: 640, top: 336 };
-  /* rodas dianteira/traseira no desenho (proporção medida no PNG) */
-  var WHEEL = { front: CAR.top + 37, rear: CAR.top + 89, half: CAR.w / 2 - 3 };
-  /* conectores em coordenadas do cartão: reta curta do número e diagonal até a roda */
-  var tyreLines = el('g', {}, c2);
-  /* reta do número → 45° → entrada horizontal curta na roda (mesma leitura da referência) */
-  function tyrePath(sx, sy, wheelX, wheelY) {
-    var dir = wheelX > sx ? 1 : -1;
-    var knee = wheelX - dir * 22;
-    return 'M ' + sx + ' ' + sy + ' H ' + knee
-      + ' L ' + (wheelX - dir * 8) + ' ' + wheelY
-      + ' H ' + wheelX;
-  }
-  [
-    /* [x do número, y, lado] — o número fica ancorado fora do traço */
-    [582, 352, -1, WHEEL.front],
-    [698, 352, 1, WHEEL.front],
-    [582, 458, -1, WHEEL.rear],
-    [698, 458, 1, WHEEL.rear]
-  ].forEach(function (t) {
-    var wheelX = CAR.cx + t[2] * WHEEL.half;
-    el('path', { d: tyrePath(t[0], t[1] - 4, wheelX, t[3] - 5), class: 'tyre-line-thin' }, tyreLines);
-    el('path', { d: tyrePath(t[0], t[1], wheelX, t[3]), class: 'tyre-line' }, tyreLines);
-    el('circle', { cx: wheelX, cy: t[3], r: 2.6, fill: 'var(--accent-core)', opacity: '0.55' }, tyreLines);
-  });
-  var tyrecarImg = el('image', { id: 'tyrecar', href: 'assets/tyre-car.png',
-    x: CAR.cx - CAR.w / 2, y: CAR.top, width: CAR.w, height: CAR.h,
-    preserveAspectRatio: 'xMidYMid meet' }, c2);
-  /* posição/âncora de cada número: as linhas terminam na roda, o texto fica na ponta */
-  var TYRE = [['fl', 572, 356, 'end'], ['fr', 708, 356, 'start'],
-              ['rl', 572, 460, 'end'], ['rr', 708, 460, 'start']];
-  var tyreNum = {};
-  TYRE.forEach(function (t) {
-    var n = txt(t[1], t[2], '--', 21, 'num', t[3]);
-    n.setAttribute('paint-order', 'stroke');
-    n.setAttribute('stroke', 'rgba(2,6,14,0.8)');
-    n.setAttribute('stroke-width', '4.5');
-    n.setAttribute('stroke-linejoin', 'round');
-    var u = el('tspan', { 'font-size': 11, class: 'mut', dx: 3 });
-    u.textContent = '';
-    n.appendChild(u);
-    tyreNum[t[0]] = { num: n, unit: u };
-  });
-
-  /* cartão 3: modo de condução */
-  var c3 = card(820, 446);
-  neon(c3, 852, 355, 382, 42, 21, 0.85);
-  var modeIcon = el('g', { transform: 'translate(978,376)' }, c3);
+  /* cartão 2 (meio): modo de condução — layout recalculado para 340 de largura */
+  var MCARD = { x: 470, w: 340, cx: 470 + 170 };
+  var c3 = card(MCARD.x, MCARD.w);
+  var pill = { x: MCARD.x + 30, y: 355, w: MCARD.w - 60, h: 42, r: 21 };
+  neon(c3, pill.x, pill.y, pill.w, pill.h, pill.r, 0.85);
+  var modeIcon = el('g', { transform: 'translate(' + (pill.x + 48) + ' 376)' }, c3);
   /* um ícone por modo: estrada, folha, chevrons, montanha, floco, dunas ou gota */
   function modeGlyph(mode) {
     var m = (mode || '').toUpperCase();
@@ -448,13 +465,13 @@
       p('M-6 6A6 6 0 1 1 6 6A6 6 0 1 1 -6 6Z');
     }
   }
-  var modeTxt = txt(1054, 384, '', 20, 'num', null, 500);
+  var modeTxt = txt(MCARD.cx, 384, '', 20, 'num', 'middle', 500);
   modeTxt.setAttribute('letter-spacing', '1.5');
 
   /* marchas centradas no painel dos modos (sem o selo EV/HEV, a BYD já o mostra na faixa) */
   var SEL_ORDER = ['P', 'R', 'N', 'D'], gearCells = [];
   for (var gi = 0; gi < 4; gi++) {
-    var gx = 951 + gi * 50;
+    var gx = MCARD.cx - 84 + gi * 56;
     el('circle', { cx: gx, cy: 424, r: 19, fill: 'none', class: 'ring', 'stroke-width': 7, opacity: 0.06 }, c3);
     var ringStroke = el('circle', { cx: gx, cy: 424, r: 19, fill: 'none', class: 'ring', 'stroke-width': 1.3, opacity: 0.55 }, c3);
     gearCells.push({
@@ -463,6 +480,60 @@
       tx: txt(gx, 432, SEL_ORDER[gi], 21, 'mut', 'middle', 600, c3)
     });
   }
+
+  /* cartão 3 (direita): pressões — 446 de largura, carro no centro do cartão */
+  var TYRES = { x: 820, w: 446 };
+  var c2 = card(TYRES.x, TYRES.w);
+  var CAR = { w: 52, h: 124, cx: TYRES.x + TYRES.w / 2, top: 336 };
+  var CAR_SCALE = CAR.h / 1560;               /* 0.0795 */
+  var carW = 651 * CAR_SCALE;                 /* 51,7 */
+  var carX = CAR.cx - carW / 2;
+
+  /* mesmos módulos e conectores do pacote, com a cor da cena */
+  var tireHud = el('g', { id: 'tireHud',
+    transform: 'translate(' + carX + ' ' + CAR.top + ') scale(' + CAR_SCALE + ')' }, c2);
+  tireHud.innerHTML = document.getElementById('tireHudSrc').textContent;
+
+  /* medidas do pacote: rodas a 485 e 1040 no viewBox 1560, escaladas para o cartão */
+  var WHEEL = { front: CAR.top + 485 * CAR_SCALE, rear: CAR.top + 1040 * CAR_SCALE,
+                half: carW / 2 - 2 };
+  var NUM = { xl: TYRES.x + 58, xr: TYRES.x + TYRES.w - 58, yf: 356, yr: 460 };
+
+  /* as linhas de cada número até o módulo da roda, no tracejado da referência */
+  var tyreLinks = el('g', { class: 'tyre-links' }, c2);
+  [
+    [NUM.xl, NUM.yf, -1, WHEEL.front],
+    [NUM.xr, NUM.yf, 1, WHEEL.front],
+    [NUM.xl, NUM.yr, -1, WHEEL.rear],
+    [NUM.xr, NUM.yr, 1, WHEEL.rear]
+  ].forEach(function (t) {
+    var wheelX = CAR.cx + t[2] * WHEEL.half;
+    var knee = t[0] + t[2] * 30;              /* sai reto do número, como na referência */
+    var inner = wheelX - t[2] * 10;
+    el('path', { d: 'M ' + t[0] + ' ' + t[1] + ' H ' + knee
+      + ' L ' + inner + ' ' + t[3] + ' H ' + wheelX, class: 'tyre-link' }, tyreLinks);
+  });
+
+  /* o carro entra por último: conectores e módulos passam por baixo da carroceria */
+  var tyrecarImg = el('image', { id: 'tyrecar', href: 'assets/tyre-car.png',
+    x: carX, y: CAR.top, width: carW, height: CAR.h,
+    preserveAspectRatio: 'xMidYMid meet' }, c2);
+
+  /* posição/âncora de cada número: as linhas terminam na roda, o texto fica na ponta */
+  var TYRE = [['fl', NUM.xl, NUM.yf, 'end'], ['fr', NUM.xr, NUM.yf, 'start'],
+              ['rl', NUM.xl, NUM.yr, 'end'], ['rr', NUM.xr, NUM.yr, 'start']];
+  var tyreNum = {};
+  TYRE.forEach(function (t) {
+    var n = txt(t[1], t[2], '--', 21, 'num', t[3]);
+    n.setAttribute('paint-order', 'stroke');
+    n.setAttribute('stroke', 'rgba(2,6,14,0.8)');
+    n.setAttribute('stroke-width', '4.5');
+    n.setAttribute('stroke-linejoin', 'round');
+    var u = el('tspan', { 'font-size': 11, class: 'mut', dx: 3 });
+    u.textContent = '';
+    n.appendChild(u);
+    tyreNum[t[0]] = { num: n, unit: u };
+  });
 
   var warnTxt = txt(240, 34, '', 14, 'or', 'start');
 
