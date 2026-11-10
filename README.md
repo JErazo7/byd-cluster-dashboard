@@ -15,6 +15,11 @@ e `width/height="100%"`, então escala sozinho. Aros laterais com raio ~200 e tr
 em x 300/1620 e y 400; número do mostrador 96 (herói 120 no centro); cartões da faixa de baixo
 em y 560–700; faixa das luzes da BYD em x 700–1220, y 0–60.
 
+O cartão de pressão usa `assets/tyre-car.png` (vista de cima com alfa, 651×1560) desenhado
+com **conectores vetoriais** em coordenadas do cartão: cada número tem um traço com halo que
+sai do texto, cai a 45° e entra na roda com um trecho horizontal curto. Sem foto de fundo,
+tudo controlado pixel a pixel no `index.html`.
+
 O `byd` é o único tema com foto, tudo em `themes/dash/byd/assets/`: `bg.jpg` (paisagem),
 `bg-sport.jpg` (estrada em brasa, modo SPORT), `bg-mountain.jpg` (serra verde, modo
 MONTAÑA), `bg-mud.jpg` (estrada na selva, modo LODO), `bg-snow.jpg` (serra nevada com aurora, modo
@@ -64,6 +69,10 @@ datos simulados (`Lab.state()`), igual que el feed de referencia.
 No hay ajustes, galería, logbook ni menús: se borraron `settings.html`, `skins.html`,
 `lab-logbook.js` y `lab-ui.js`, y con ellos los temas `industria`, `muscle`, `shark` y
 `sharkmap`.
+
+El panel lee la copia editable en `files/dash/<id>/`; si el APK es más nuevo que esa copia,
+`ThemeSync` la reemplaza por la del APK al abrir la app (antes se quedaba vieja para siempre y
+el panel seguía dibujando el tema anterior).
 
 El estado "aplicado" es la preferencia `applied`: la pone APLICAR y la limpia DESACTIVAR o el
 arranque con el toggle apagado. Abrir la app ya no toma el panel por su cuenta.

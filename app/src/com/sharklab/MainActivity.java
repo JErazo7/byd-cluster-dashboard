@@ -39,7 +39,7 @@ import java.util.List;
 public class MainActivity extends Activity {
 
     private static final String TAG = "SharkLab";
-    private static final String[] BUILTIN = {"byd"};
+    static final String[] BUILTIN = {"byd"};
 
     /** injetado depois da skin carregar: é o que alimenta o desenho com os dados do carro */
     static final String[] INJECT = {
@@ -168,14 +168,25 @@ public class MainActivity extends Activity {
         setContentView(root);
 
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        /* centro = galeria/ajustes; a skin vive no painel (overlay) */
+        /* o painel lê a cópia editável em files/dash; se o APK é mais novo, atualiza antes */
+        ThemeSync.run(this);
+        /* a única tela: grilla de temas + aplicar/desactivar + iniciar automáticamente */
         web.loadUrl("file:///android_asset/lab/home.html");
 
         startGps();
 
-        /* gancho de teste: `am start ... --ez bootapply true` roda a decisão do arranque */
+        /* ganchos de teste (não aparecem na interface):
+           --ez bootapply true  roda a decisão do arranque
+           --ez apply true      é o botão APLICAR
+           --ez release true    é o botão DESACTIVAR */
         if (getIntent() != null && getIntent().getBooleanExtra("bootapply", false)) {
             BootReceiver.applyChoice(getApplicationContext());
+        }
+        if (getIntent() != null && getIntent().getBooleanExtra("apply", false)) {
+            bridge.overlayShow();
+        }
+        if (getIntent() != null && getIntent().getBooleanExtra("release", false)) {
+            bridge.panelRelease();
         }
         if (getIntent() != null && getIntent().hasExtra("festate")) {
             final int v = getIntent().getIntExtra("festate", -1);
