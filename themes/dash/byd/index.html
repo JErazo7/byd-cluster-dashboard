@@ -638,25 +638,16 @@
     frame();
   }
 
-  function sceneFor(mode, terrain) {
-    if (terrain && /NIEVE/i.test(terrain)) return 'snow';
-    if (terrain && /LODO/i.test(terrain)) return 'mud';
-    if (terrain && /ARENA/i.test(terrain)) return 'sand';
-    if (terrain && /MONTA/i.test(terrain)) return 'mountain';
-    if (/SPORT/i.test(mode)) return 'sport';
-    if (/LODO|MUD|BARRO|TIERRA/i.test(mode)) return 'mud';
-    if (/NIEVE|SNOW|HIELO|ICE/i.test(mode)) return 'snow';
-    if (/ARENA|SAND|DESIERTO|DESERT|DUNE/i.test(mode)) return 'sand';
-    if (/MONTA|HILL|OFF|TRAIL/i.test(mode)) return 'mountain';
-    return 'night';
+  function sceneFor(mode) {
+    /* a cena segue o modo de condução. O terreno ficou de fora: `surfmode` continua em 1
+       mesmo com o carro em ECO/SPORT, então ele não serve para escolher a paisagem. */
+    /* ECO e NORMAL são o mesmo tema no carro; só SPORT troca a paisagem */
+    return /SPORT/i.test(mode) ? 'sport' : 'night';
   }
 
   function draw(d) {
-    var OP0 = { 1: 'NORMAL', 2: 'ECO', 3: 'SPORT' };
-    var TR0 = { 1: 'MONTAÑA', 2: 'NIEVE', 3: 'LODO', 4: 'ARENA' };
-    var mode0 = OP0[+d.opmode] || ((typeof d.drive === 'string' && d.drive) ? d.drive : 'NORMAL');
-    mode0 = mode0.replace(/^\s+|\s+$/g, '');
-    var terrain0 = TR0[+d.surfmode] || '';
+    /* mesma leitura do pill: o testigo manda (opmode sozinho confunde ECO com SPORT) */
+    var mode0 = driveMode(d);
     var kmh = Math.max(0, d.speed || 0);
     spdNum.textContent = String(Math.round(spd(kmh)));
 
@@ -665,7 +656,7 @@
     var tps = Math.max(0, Math.min(100, pedalRaw || 0));
     thrNum.firstChild.nodeValue = String(Math.round(tps));
     var sport = /SPORT/i.test(mode0);
-    var scene = sceneFor(mode0, terrain0);
+    var scene = sceneFor(mode0);
     setRing(thrRing, tps / 100);
     tintThrottle(tps / 100, scene);
 
@@ -694,7 +685,7 @@
     modeGlyph(mode);
 
     /* a paisagem e a paleta de destaque seguem o modo */
-    scene = sceneFor(mode, TR0[+d.surfmode] || '');
+
     fadeBackground(scene);
     var pal = SCENES[scene].accent;
     sceneDim.setAttribute('opacity', SCENES[scene].dim || 0);
