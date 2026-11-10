@@ -27,6 +27,10 @@ public final class ClusterOverlay {
 
     private static final String TAG = "SharkLab";
     public static final String WINDOW_TITLE = "EvSound painel";
+
+    /* o painel é uma janela virtual: o Chromium congela o requestAnimationFrame da skin, então
+       quem alimenta o desenho é este empurrador, de fora da página */
+    private static volatile boolean pushing;
     private static final int W = 1920, H = 720;
 
     private static WebView web;
@@ -148,6 +152,7 @@ public final class ClusterOverlay {
                 u += (u.endsWith("#") ? "" : "&") + "pw=" + W + "&ph=" + H;
                 web.loadUrl(u);
             }
+            startPush(ctx);
             Log.i(TAG, "overlay do painel criado no display " + target.getDisplayId()
                     + " layerStack esperado do painel");
             return true;
@@ -190,7 +195,27 @@ public final class ClusterOverlay {
         }
     }
 
+    /** empurra o estado para a skin a cada 400 ms (independente do rAF da página) */
+    private static void startPush(final Context ctx) {
+        pushing = true;
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        final ClusterSkinActivity.PanelBridge br =
+                new ClusterSkinActivity.PanelBridge(ctx.getApplicationContext());
+        h.post(new Runnable() {
+            public void run() {
+                if (!pushing || web == null) return;
+                try {
+                    String js = "window.BrasaDriveUpdate&&window.BrasaDriveUpdate(" + br.state() + ")";
+                    web.evaluateJavascript(js, null);
+                } catch (Throwable ignored) {
+                }
+                h.postDelayed(this, 400);
+            }
+        });
+    }
+
     public static synchronized void hide() {
+        pushing = false;
         lastLp = null;
         try {
             if (web != null && wm != null) wm.removeView(web);

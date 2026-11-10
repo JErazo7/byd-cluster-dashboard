@@ -694,7 +694,7 @@
     modeGlyph(mode);
 
     /* a paisagem e a paleta de destaque seguem o modo */
-    scene = sceneFor(mode, terr);
+    scene = sceneFor(mode, TR0[+d.surfmode] || '');
     fadeBackground(scene);
     var pal = SCENES[scene].accent;
     sceneDim.setAttribute('opacity', SCENES[scene].dim || 0);
