@@ -179,6 +179,8 @@ public final class AdbShell {
     private static final String WD_NAME = "shark_wd.sh";
     private static final String WD_SRC = "/sdcard/Android/data/com.xdja.clusterdemo/files/" + WD_NAME;
     private static final String WD_BEAT = "/sdcard/Android/data/com.xdja.clusterdemo/files/beat";
+    /* carimbo do último release do vigia: separa "ignição" de "alerta de porta aberta" */
+    static final String WD_OFF_TS = "/sdcard/Android/data/com.xdja.clusterdemo/files/off.ts";
 
     /**
      * Cão de guarda (como o do EvSound): um script no adbd que mora fora do nosso processo.
@@ -196,17 +198,18 @@ public final class AdbShell {
                     + "BEAT=" + WD_BEAT + "\n"
                     + "echo $$ > /data/local/tmp/shark_wd.pid\n"
                     + "echo \"$(date) armado\" >> /data/local/tmp/shark.log\n"
-                    + "sleep 20\n"
+                    + "sleep 10\n"
                     + "while :; do\n"
                     + "  now=$(date +%s)\n"
                     + "  last=$(stat -c %Y $BEAT 2>/dev/null)\n"
                     + "  case \"$last\" in ''|*[!0-9]*) last=0;; esac\n"
-                    + "  [ $((now - last)) -gt 12 ] && break\n"
-                    + "  sleep 3\n"
+                    + "  [ $((now - last)) -gt 4 ] && break\n"
+                    + "  sleep 1\n"
                     + "done\n"
                     + "echo \"$(date) app parou\" >> /data/local/tmp/shark.log\n"
                     + "for n in 46 18 0; do service call AutoContainer 2 i32 1000 i32 $n s16 null >/dev/null 2>&1; sleep 1.2; done\n"
                     + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
+                    + "date +%s > " + WD_OFF_TS + "\n"
                     + "sleep 2\n"
                     + "fission_screencap -d 0 > /data/local/tmp/off.raw 2>/dev/null\n"
                     + "echo \"$(date) fim $(wc -c < /data/local/tmp/off.raw 2>/dev/null)\" >> /data/local/tmp/shark.log\n"

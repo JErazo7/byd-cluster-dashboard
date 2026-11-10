@@ -377,6 +377,11 @@ public final class BydBridge {
         return numInt(P + "tyre.BYDAutoTyreDevice", "getTyrePressureValue", n);
     }
 
+    /** info de desligamento: com o carro ligado devolve 0 (medido) */
+    private double shutdownInfo() {
+        return numInt(P + "power.BYDAutoPowerDevice", "getShutdownInfo", 1);
+    }
+
     /** snapshot cru; -999 = sem leitura */
     public double[] snapshot() {
         double speed = first(SPEED);
@@ -413,7 +418,8 @@ public final class BydBridge {
                 first(ENERGY_STATE),                    /* 28 energy.getEnergyState */
                 first(BCM_STATE),                       /* 29 energy.getBCMState */
                 first(DAY_MODE),                        /* 30 bodywork.getPowerDayMode */
-                first(ECO_STATE)                        /* 31 instrument.getECOIndicatorState */
+                first(ECO_STATE),                       /* 31 instrument.getECOIndicatorState */
+                shutdownInfo()                          /* 32 power.getShutdownInfo(1) */
         };
     }
 }

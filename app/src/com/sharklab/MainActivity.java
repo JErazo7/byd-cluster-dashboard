@@ -175,6 +175,16 @@ public class MainActivity extends Activity {
 
         startGps();
 
+        /* reinício do processo com "iniciar automáticamente" ligado: se não foi o vigia quem
+           soltou o painel há instantes, é uma ignição — aplica sozinho */
+        if (p.getBoolean("bootApply", false) && !justReleasedByWatchdog()) {
+            ui.postDelayed(new Runnable() {
+                public void run() {
+                    if (!ClusterOverlay.running()) bridge.overlayShow();
+                }
+            }, 4000);
+        }
+
         testHooks(getIntent());
 
         if (getIntent() != null && getIntent().hasExtra("festate")) {
@@ -653,6 +663,21 @@ public class MainActivity extends Activity {
         }
     };
 
+    /**
+     * Foi o vigia que soltou o painel há pouco? Então este arranque é o da alerta de porta
+     * aberta, não uma ignição: não reaplica. Uma ignição de verdade leva bem mais que isso.
+     */
+    private boolean justReleasedByWatchdog() {
+        try {
+            java.io.File f = new java.io.File(getExternalFilesDir(null), "off.ts");
+            if (!f.isFile()) return false;
+            long ts = Long.parseLong(new String(java.nio.file.Files.readAllBytes(f.toPath())).trim());
+            return System.currentTimeMillis() / 1000 - ts < 45;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     private void takePanel() {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
         /* 'applied' é a vontade do usuário: só APLICAR (ou o boot com o toggle ligado)
@@ -693,24 +718,6 @@ public class MainActivity extends Activity {
         final boolean hApply = it.getBooleanExtra("apply", false);
         final boolean hRelease = it.getBooleanExtra("release", false);
         if (it.getBooleanExtra("dumplog", false)) AdbShell.dumpLog(getApplicationContext());
-        /* o Android re-entrega o intent original quando recria a activity: sem consumir os
-           extras, um `--ez apply true` de teste reaplicava a skin a cada reinício do processo
-           (foi o que fazia o tema aparecer com o carro apagado) */
-        if (it.hasExtra("apply") || it.hasExtra("release") || it.hasExtra("bootapply")
-                || it.hasExtra("dumpstate") || it.hasExtra("dumplog")
-                || it.hasExtra("bydtrace") || it.hasExtra("bydpoll") || it.hasExtra("bydset")
-                || it.hasExtra("dumpapi")) {
-            it.removeExtra("apply");
-            it.removeExtra("release");
-            it.removeExtra("bootapply");
-            it.removeExtra("dumpstate");
-            it.removeExtra("dumplog");
-            it.removeExtra("bydtrace");
-            it.removeExtra("bydpoll");
-            it.removeExtra("bydset");
-            it.removeExtra("dumpapi");
-            setIntent(it);
-        }
     /* ganchos de teste (não aparecem na interface):
        --ez bootapply true  roda a decisão do arranque
        --ez apply true      é o botão APLICAR
@@ -719,7 +726,8 @@ public class MainActivity extends Activity {
         BootReceiver.applyChoice(getApplicationContext());
     }
     if (it != null && it.hasExtra("bydset")) {
-        final String spec = it.getStringExtra("bydset");
+        String spec0 = it.getStringExtra("bydset");
+        final String spec = it.hasExtra("bydarg") ? spec0 + "|" + it.getIntExtra("bydarg", 0) : spec0;
         new Thread(new Runnable() {
             public void run() { bridge.bydSet(spec); }
         }).start();
@@ -760,6 +768,24 @@ public class MainActivity extends Activity {
     if (it != null && it.getBooleanExtra("release", false)) {
         bridge.panelRelease();
     }
+        /* o Android re-entrega o intent original quando recria a activity: sem consumir os
+           extras, um `--ez apply true` de teste reaplicava a skin a cada reinício do processo
+           (foi o que fazia o tema aparecer com o carro apagado) */
+        if (it.hasExtra("apply") || it.hasExtra("release") || it.hasExtra("bootapply")
+                || it.hasExtra("dumpstate") || it.hasExtra("dumplog")
+                || it.hasExtra("bydtrace") || it.hasExtra("bydpoll") || it.hasExtra("bydset")
+                || it.hasExtra("dumpapi")) {
+            it.removeExtra("apply");
+            it.removeExtra("release");
+            it.removeExtra("bootapply");
+            it.removeExtra("dumpstate");
+            it.removeExtra("dumplog");
+            it.removeExtra("bydtrace");
+            it.removeExtra("bydpoll");
+            it.removeExtra("bydset");
+            it.removeExtra("dumpapi");
+            setIntent(it);
+        }
     }
 
     @Override
