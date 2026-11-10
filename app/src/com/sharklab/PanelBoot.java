@@ -27,14 +27,20 @@ public final class PanelBoot {
         String skin = p.getString("skin", "industria");
         boolean overlay = p.getBoolean("overlay", true);
 
-        if (overlay) {
-            String url = urlFor(ctx, skin);
-            boolean ok = ClusterOverlay.show(ctx, url);
-            Log.i(TAG, "boot: overlay=" + ok + " " + ClusterOverlay.error());
-        }
         AdbShell.start(ctx);
         AdbShell.resume();
+        /* primeiro o cmd 16 (o container cria o display do painel), depois a janela da skin */
         if (p.getBoolean("cluster_cast", true)) PanelCast.send(16);
+        if (overlay) {
+            final Context app = ctx.getApplicationContext();
+            final String url = urlFor(ctx, skin);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+                public void run() {
+                    boolean ok = ClusterOverlay.show(app, url);
+                    Log.i(TAG, "boot: overlay=" + ok + " " + ClusterOverlay.error());
+                }
+            }, 1500);
+        }
         p.edit().putBoolean("enabled", true).apply();
         startService(ctx);
     }

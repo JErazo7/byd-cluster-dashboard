@@ -547,13 +547,18 @@ public class MainActivity extends Activity {
             Log.i(TAG, "painel: desligado pelo usuário, não retoma");
             return;
         }
-        ensureOverlay();
+        /* ORDEM IMPORTA: o container só cria o display do painel
+           (shared_fission_bg_XDJAScreenProjection_0) depois do cmd 16. Criar a janela antes
+           deixa o painel preto, porque a skin vai para um display que ainda não existe. */
         AdbShell.resume();
-        if (p.getBoolean("cluster_cast", true) && !p.getBoolean("projection", false)) {
-            bridge.clusterCast(16);
-            ClusterOverlay.bringToFront();
-            Log.i(TAG, "painel: tomado no onResume");
-        }
+        if (p.getBoolean("cluster_cast", true)) bridge.clusterCast(16);
+        ui.postDelayed(new Runnable() {
+            public void run() {
+                ensureOverlay();
+            }
+        }, 1200);
+        ClusterOverlay.bringToFront();
+        Log.i(TAG, "painel: 16 enviado; overlay em 1,2 s");
     }
 
     @Override

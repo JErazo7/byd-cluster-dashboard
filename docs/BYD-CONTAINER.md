@@ -141,3 +141,33 @@ magenta não denunciam o engano, o que torna o erro fácil de aceitar.
 
 Antes de mexer em formato de janela (`PixelFormat`) ou em `setLayerType`, decodifique
 uma captura de teste com as duas ordens e compare com uma cor conhecida.
+
+## Tomar o painel: a ordem e as três coisas que precisam estar vivas
+
+Medido em 2026-11-10, depois de perder uma sessão inteira achando que era regressão de código.
+Não é: é ordem de operações.
+
+1. **Sessão ADB com a chave embutida.** O app fala com `127.0.0.1:5555` usando a chave RSA
+   embutida no APK (`AdbShell`). Autorizada uma vez no carro, não pede mais nada. Sem ela o
+   `cmd 16` não sai e o painel continua na interface da BYD.
+2. **`cmd 16` ANTES da janela.** Quem cria o display do painel é o container, ao receber o 16.
+   Se a janela da skin for criada antes, ela vai para um display que ainda não existe e o
+   painel fica **preto** (foi exatamente o sintoma: preto com os ícones da BYD por cima).
+   `takePanel()` e `PanelBoot` agora mandam 16, esperam ~1,2 s e só então criam a janela.
+3. **Um produtor para a superfície.** O container compõe
+   `shared_fission_bg_XDJAScreenProjection_0`; se ninguém desenhar nela, preto de novo.
+   A rota `auto_container` por JSON foi testada payload por payload e **todos devolvem `-1`**
+   (rejeitado), então o produtor é a `VirtualDisplay` de `ClusterProjection`, que exige o token
+   de captura (`Mirror.request` → diálogo do sistema, uma vez por processo).
+
+Checklist de diagnóstico quando o painel não aparecer:
+
+```bash
+adb -s <ip>:5555 shell dumpsys display | grep -c mDisplayId   # 1 = display do painel não existe
+adb -s <ip>:5555 shell service call AutoContainer 2 i32 1000 i32 16 s16 null
+adb -s <ip>:5555 exec-out fission_screencap -d 0 > panel.raw   # RGBA, cabeçalho de 16 bytes
+```
+
+**Não rode o EvSound junto.** Ele também manda 16/18 no mesmo container e os dois ficam
+disputando o painel; quando o EvSound está ativo a nossa skin some. Deixe-o desinstalado ou
+parado. Se o painel voltar à interface da BYD do nada, é sinal de que algo mandou 18.
