@@ -45,6 +45,9 @@
 <h2>Panel</h2>
 <div class="grid" id="skins"></div>
 
+<h2>Modos (diagnóstico)</h2>
+<pre id="modes">—</pre>
+
 <pre id="log" hidden></pre>
 
 <script>
@@ -52,6 +55,28 @@
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
   var L = window.Lab || {};
+
+  /* ---------- quais campos mudam com os modos ---------- */
+  var MK = ['dcfg','surf','surfmode','dcmode','opmode','menu','automode','emode','estate','bcm',
+            'daymode','mNormal','mMud','mSand','mGrass'];
+  var snaps = [], lastKey = '';
+  function modeDiff() {
+    if (!L.state) return;
+    try {
+      var s = JSON.parse(L.state());
+      var key = MK.map(function (k) { return s[k]; }).join('|');
+      if (key !== lastKey && snaps.length < 10) { lastKey = key; snaps.push(s); }
+      var varies = MK.filter(function (k) {
+        return snaps.some(function (x) { return x[k] !== snaps[0][k]; });
+      });
+      var out = ['amostras: ' + snaps.length, 'mudam: ' + (varies.length ? varies.join(',') : 'nada')];
+      varies.forEach(function (k) {
+        out.push(k + ': ' + snaps.map(function (x) { return x[k]; }).join('  '));
+      });
+      $('modes').textContent = out.join('\n');
+    } catch (e) { $('modes').textContent = 'err ' + e; }
+  }
+  setInterval(modeDiff, 400);
 
   /* ---------- aplicar ao ligar ---------- */
   function bootPaint() {

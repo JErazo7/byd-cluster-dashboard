@@ -118,6 +118,15 @@ public final class BydBridge {
     private static final String[][] AUTO_MODE = {
             {P + "gearbox.BYDAutoGearboxDevice", "getGearboxAutoModeType"}
     };
+    private static final String[][] ENERGY_STATE = {
+            {P + "energy.BYDAutoEnergyDevice", "getEnergyState"}
+    };
+    private static final String[][] BCM_STATE = {
+            {P + "energy.BYDAutoEnergyDevice", "getBCMState"}
+    };
+    private static final String[][] DAY_MODE = {
+            {P + "bodywork.BYDAutoBodyworkDevice", "getPowerDayMode"}
+    };
 
     /* as quatro luzes de modo do painel: a que estiver acesa é o modo ativo */
     private static final String[][] M_NORMAL = {
@@ -382,7 +391,10 @@ public final class BydBridge {
                 first(DC_MODE),                         /* 24 energy.getDCWorkMode */
                 first(OP_MODE),                         /* 25 energy.getOperationMode */
                 first(MENU_STATE),                      /* 26 instrument.get2in1MenuState */
-                first(AUTO_MODE)                        /* 27 gearbox.getGearboxAutoModeType */
+                first(AUTO_MODE),                       /* 27 gearbox.getGearboxAutoModeType */
+                first(ENERGY_STATE),                    /* 28 energy.getEnergyState */
+                first(BCM_STATE),                       /* 29 energy.getBCMState */
+                first(DAY_MODE)                         /* 30 bodywork.getPowerDayMode */
         };
     }
 }

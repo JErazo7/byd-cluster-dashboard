@@ -32,6 +32,8 @@ public final class PanelBoot {
             boolean ok = ClusterOverlay.show(ctx, url);
             Log.i(TAG, "boot: overlay=" + ok + " " + ClusterOverlay.error());
         }
+        AdbShell.start(ctx);
+        AdbShell.resume();
         if (p.getBoolean("cluster_cast", true)) PanelCast.send(16);
         p.edit().putBoolean("enabled", true).apply();
         startService(ctx);

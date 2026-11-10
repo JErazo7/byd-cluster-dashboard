@@ -107,6 +107,7 @@ public class ClusterSkinActivity extends Activity {
                     + ",\"surfmode\":" + num(b[23]) + ",\"dcmode\":" + num(b[24])
                     + ",\"opmode\":" + num(b[25]) + ",\"menu\":" + num(b[26])
                     + ",\"automode\":" + num(b[27])
+                    + ",\"estate\":" + num(b[28]) + ",\"bcm\":" + num(b[29]) + ",\"daymode\":" + num(b[30])
                     + ",\"v12\":" + (b[9] > -998 ? b[9] : 13.8)
                     + ",\"phone\":-1,\"tt\":{},\"rhd\":false,\"warn\":[],\"adas\":" + byd.adasJson()
                     + ",\"cv\":null,\"nmv\":null,\"ext\":null,\"trip\":null}";

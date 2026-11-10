@@ -895,6 +895,10 @@ public class MainActivity extends Activity {
         public String projStart() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             p.edit().putBoolean("projection", true).putBoolean("enabled", true).apply();
+            /* religa o laço ADB: o botão de apagar o deixa pausado, e sem o cmd 16 dos 60 s o
+               painel não volta a ser tomado */
+            AdbShell.start(MainActivity.this);
+            AdbShell.resume();
             /* precisa do token de captura: PUBLIC sem ele é recusado pelo sistema */
             wantProjection = true;
             Mirror.request(MainActivity.this);
