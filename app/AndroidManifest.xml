@@ -110,6 +110,8 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.SCREEN_OFF" />
+                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
+                <action android:name="android.intent.action.QUICKBOOT_POWEROFF" />
             </intent-filter>
         </receiver>
     </application>

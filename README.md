@@ -89,6 +89,13 @@ el panel seguía dibujando el tema anterior).
 El estado "aplicado" es la preferencia `applied`: la pone APLICAR y la limpia DESACTIVAR o el
 arranque con el toggle apagado. Abrir la app ya no toma el panel por su cuenta.
 
+### Apagado y alerta de puerta
+
+Con el auto apagado, BYD enciende el cuadro para mostrar la alerta de puerta abierta. La skin
+no puede quedar encima de eso: `PanelRelease.release(ctx)` esconde la ventana **antes** de
+devolver el panel y limpia `applied`, y `ScreenReceiver` dispara lo mismo con `SCREEN_OFF`,
+`ACTION_SHUTDOWN` y `QUICKBOOT_POWEROFF`.
+
 ## Cómo toma el panel
 
 El clúster no es un display Android común: es otra instancia (`fission`) y el panel solo

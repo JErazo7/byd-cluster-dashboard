@@ -642,7 +642,7 @@ public class MainActivity extends Activity {
         @Override
         public void onReceive(android.content.Context c, Intent i) {
             /* carro desligou/dormiu: solta o painel e fecha a skin; ao ligar, volta o original da BYD */
-            PanelRelease.release();
+            PanelRelease.release(c);
             MainActivity.this.finishAndRemoveTask();
         }
     };

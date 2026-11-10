@@ -17,7 +17,7 @@ public class BootReceiver extends BroadcastReceiver {
         if (intent == null) return;
         String a = intent.getAction();
         if ("com.sharklab.RELEASE".equals(a) || "android.intent.action.ACTION_SHUTDOWN".equals(a)) {
-            PanelRelease.release();
+            PanelRelease.release(ctx);
             return;
         }
         if (!Intent.ACTION_BOOT_COMPLETED.equals(a)
@@ -39,7 +39,7 @@ public class BootReceiver extends BroadcastReceiver {
         if (!bootApply) {
             /* toggle desligado: o painel fica com a BYD e a skin não sobe sozinha */
             p.edit().putBoolean("enabled", false).putBoolean("applied", false).apply();
-            PanelRelease.release();
+            PanelRelease.release(ctx);
             return;
         }
         p.edit().putBoolean("applied", true).putBoolean("enabled", true).apply();

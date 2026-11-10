@@ -10,7 +10,19 @@ public final class PanelRelease {
     private PanelRelease() {
     }
 
+    /** devolve o painel e marca a skin como desaplicada (o app não retoma sozinho no resume) */
+    public static void release(android.content.Context ctx) {
+        if (ctx != null) {
+            ctx.getSharedPreferences("lab", android.content.Context.MODE_PRIVATE).edit()
+                    .putBoolean("applied", false).apply();
+        }
+        release();
+    }
+
     public static void release() {
+        /* a janela da skin tem que sair ANTES de devolver o painel: com o carro desligado a BYD
+           acende o quadro para a alerta de porta aberta e a nossa janela ficava por cima dela */
+        ClusterOverlay.hide();
         AdbShell.stop();
         /* a sequência do EvSound para devolver o painel: 46, 18, 0 */
         AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 46 s16 null; sleep 1.2; "
