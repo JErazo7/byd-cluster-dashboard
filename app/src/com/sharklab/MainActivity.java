@@ -182,6 +182,42 @@ public class MainActivity extends Activity {
         if (getIntent() != null && getIntent().getBooleanExtra("bootapply", false)) {
             BootReceiver.applyChoice(getApplicationContext());
         }
+        if (getIntent() != null && getIntent().hasExtra("bydset")) {
+            final String spec = getIntent().getStringExtra("bydset");
+            new Thread(new Runnable() {
+                public void run() { bridge.bydSet(spec); }
+            }).start();
+        }
+        if (getIntent() != null && getIntent().getBooleanExtra("dumpstate", false)) {
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        String js = new ClusterSkinActivity.PanelBridge(getApplicationContext()).state();
+                        java.io.File f = new java.io.File(getExternalFilesDir(null), "state.json");
+                        java.io.FileWriter w = new java.io.FileWriter(f, false);
+                        w.write(js);
+                        w.close();
+                        AdbShell.trace(MainActivity.this, "state dump ok");
+                    } catch (Throwable t) {
+                        AdbShell.trace(MainActivity.this, "state dump erro " + t);
+                    }
+                }
+            }).start();
+        }
+        if (getIntent() != null && getIntent().hasExtra("bydtrace")) {
+            final String spec = getIntent().getStringExtra("bydtrace");
+            bridge.bydTrace(spec, getIntent().getIntExtra("bydsec", 45));
+        }
+        if (getIntent() != null && getIntent().hasExtra("bydpoll")) {
+            final String spec = getIntent().getStringExtra("bydpoll");
+            bridge.bydPoll(spec, 75);
+        }
+        if (getIntent() != null && getIntent().hasExtra("dumpapi")) {
+            final String cl = getIntent().getStringExtra("dumpapi");
+            new Thread(new Runnable() {
+                public void run() { bridge.apiDump(cl); }
+            }).start();
+        }
         if (getIntent() != null && getIntent().getBooleanExtra("apply", false)) {
             bridge.overlayShow();
         }
@@ -812,6 +848,7 @@ public class MainActivity extends Activity {
                     + ",\"pw\":" + pw
                     + ",\"odo\":" + odo + ",\"range\":" + range
                     + ",\"tout\":" + temp + ",\"btemp\":30,\"dmode\":2,\"drive\":\"ECO\",\"ready\":1,\"regen\":0"
+                    + ",\"opmode\":" + i(b[25]) + ",\"surfmode\":" + i(b[23])
                     + ",\"fuel\":" + i(b[13]) + ",\"fuelKm\":" + i(b[14])
                     + ",\"ev\":" + (b[15] > -998 ? ((b[15] >= 200 && b[15] <= 8000) ? "0" : "1") : "null")
                     + ",\"tyre\":" + tyreJson(b)
@@ -1493,6 +1530,133 @@ public class MainActivity extends Activity {
         }
 
         /** o que este carro deixa ler (roda no veículo, não no PC) */
+        /** chama um setter da API BYD: "setting.BYDAutoSettingDevice|setX|2" (teste, fora da UI) */
+        @JavascriptInterface
+        public String bydSet(String spec) {
+            String[] p = spec.split("\\|");
+            if (p.length < 2) return "erro: spec";
+            String cls = "android.hardware.bydauto." + p[0];
+            try {
+                Class<?> c = Class.forName(cls);
+                Object dev;
+                try {
+                    java.lang.reflect.Method g = c.getDeclaredMethod("getInstance", android.content.Context.class);
+                    g.setAccessible(true);
+                    dev = g.invoke(null, new BydPermissionContext(getApplicationContext()));
+                } catch (NoSuchMethodException e) {
+                    java.lang.reflect.Method g = c.getDeclaredMethod("getInstance");
+                    g.setAccessible(true);
+                    dev = g.invoke(null);
+                }
+                java.lang.reflect.Method m;
+                Object r;
+                if (p.length >= 3) {
+                    m = c.getMethod(p[1], int.class);
+                    m.setAccessible(true);
+                    r = m.invoke(dev, Integer.parseInt(p[2].trim()));
+                } else {
+                    m = c.getMethod(p[1]);
+                    m.setAccessible(true);
+                    r = m.invoke(dev);
+                }
+                AdbShell.trace(MainActivity.this, "byd " + spec + " -> " + r);
+                return String.valueOf(r);
+            } catch (Throwable t) {
+                Throwable c2 = t;
+                while (c2.getCause() != null && c2 != c2.getCause()) c2 = c2.getCause();
+                AdbShell.trace(MainActivity.this, "byd " + spec + " erro " + c2);
+                return "erro: " + c2;
+            }
+        }
+
+        /** amostra tudo, sem filtrar, com carimbo em ms (leitura crua de um ciclo de modos) */
+        @JavascriptInterface
+        public void bydTrace(final String spec, final int seconds) {
+            new Thread(new Runnable() {
+                public void run() {
+                    String[] list = spec.split(",");
+                    long end = System.currentTimeMillis() + seconds * 1000L;
+                    while (System.currentTimeMillis() < end) {
+                        StringBuilder sb = new StringBuilder("t=" + (System.currentTimeMillis() % 100000));
+                        for (String item : list) {
+                            String[] p = item.split("\\|");
+                            sb.append(' ').append(p[1]).append('=').append(bydSet(p[0] + "|" + p[1] + "|").trim());
+                        }
+                        AdbShell.trace(MainActivity.this, sb.toString());
+                        try { Thread.sleep(200); } catch (InterruptedException ignored) { }
+                    }
+                    AdbShell.trace(MainActivity.this, "trace fim");
+                }
+            }).start();
+        }
+
+        /** amostra getters e registra só o que muda (descoberta de qual leitura segue o volante) */
+        @JavascriptInterface
+        public void bydPoll(final String spec, final int seconds) {
+            new Thread(new Runnable() {
+                public void run() {
+                    String[] list = spec.split(",");
+                    int[] last = new int[list.length];
+                    for (int i = 0; i < last.length; i++) last[i] = Integer.MIN_VALUE;
+                    long end = System.currentTimeMillis() + seconds * 1000L;
+                    while (System.currentTimeMillis() < end) {
+                        for (int i = 0; i < list.length; i++) {
+                            String[] p = list[i].split("\\|");
+                            String r = bydSet(p[0] + "|" + p[1] + "|");
+                            try {
+                                int v = Integer.parseInt(r.trim());
+                                if (v != last[i]) {
+                                    last[i] = v;
+                                    AdbShell.trace(MainActivity.this, "poll " + p[1] + "=" + v);
+                                }
+                            } catch (Throwable ignored) { }
+                        }
+                        try { Thread.sleep(400); } catch (InterruptedException ignored) { }
+                    }
+                    AdbShell.trace(MainActivity.this, "poll fim");
+                }
+            }).start();
+        }
+
+        /** lista os métodos públicos das classes da API BYD (descoberta, não aparece na UI) */
+        @JavascriptInterface
+        public String apiDump(String classes) {
+            StringBuilder sb = new StringBuilder();
+            String[] list = classes.split(",");
+            for (String name : list) {
+                String cls = name.trim();
+                try {
+                    Class<?> c = Class.forName(cls);
+                    java.lang.reflect.Method[] ms = c.getMethods();
+                    java.util.Arrays.sort(ms, new java.util.Comparator<java.lang.reflect.Method>() {
+                        public int compare(java.lang.reflect.Method a, java.lang.reflect.Method b) {
+                            return a.getName().compareTo(b.getName());
+                        }
+                    });
+                    sb.append("== ").append(cls).append('\n');
+                    for (java.lang.reflect.Method m : ms) {
+                        if (m.getDeclaringClass() == Object.class) continue;
+                        sb.append(m.getName()).append('(');
+                        Class<?>[] ps = m.getParameterTypes();
+                        for (int i = 0; i < ps.length; i++) {
+                            if (i > 0) sb.append(", ");
+                            sb.append(ps[i].getSimpleName());
+                        }
+                        sb.append("): ").append(m.getReturnType().getSimpleName()).append('\n');
+                    }
+                } catch (Throwable t) {
+                    sb.append("== ").append(cls).append(" erro: ").append(t).append('\n');
+                }
+            }
+            try {
+                java.io.File f = new java.io.File(getExternalFilesDir(null), "api.txt");
+                java.io.FileWriter w = new java.io.FileWriter(f, false);
+                w.write(sb.toString());
+                w.close();
+            } catch (Throwable ignored) { }
+            return sb.toString();
+        }
+
         @JavascriptInterface
         public String probe() {
             String base = CarProbe.run(getApplicationContext());
