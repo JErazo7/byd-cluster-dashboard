@@ -35,6 +35,21 @@ import java.util.zip.CRC32;
  */
 public final class AdbShell {
 
+    /* ctx para o execOnce: sem ele o connect usa keys(null) e morre calado */
+    private static Context appCtx;
+
+    /* rastro em arquivo: o logcat do carro rotaciona e some no meio do teste */
+    static void trace(android.content.Context c, String line) {
+        try {
+            java.io.File f = new java.io.File(c.getExternalFilesDir(null), "painel.log");
+            java.io.FileWriter w = new java.io.FileWriter(f, true);
+            w.write(new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+                    .format(new java.util.Date()) + " " + line + "\n");
+            w.close();
+        } catch (Throwable ignored) { }
+    }
+
+
     private static final String TAG = "SharkLab";
     private static final int A_CNXN = 0x4e584e43, A_AUTH = 0x48545541, A_OPEN = 0x4e45504f,
             A_OKAY = 0x59414b4f, A_CLSE = 0x45534c43, A_WRTE = 0x57525445;
@@ -54,6 +69,7 @@ public final class AdbShell {
     }
 
     public static synchronized void start(final Context ctx) {
+        appCtx = ctx.getApplicationContext();
         if (started) {
             android.util.Log.i(TAG, "adb: laço já iniciado");
             return;
@@ -73,13 +89,16 @@ public final class AdbShell {
                         /* respeita o botão do app: desligado pelo usuário, nada de cmd 16 */
                         boolean on = ctx.getSharedPreferences("lab", 0).getBoolean("enabled", true);
                         if (!paused && on) {
-                            /* medido no EvSound: 46 prepara/cria o display do painel e só
-                               depois o 16 projeta. Sem o 46 o display não existe e a skin fica
-                               sem onde desenhar. */
+                            /* 46 cria o display do painel e 45 o põe em tela cheia: com o 45 o
+                               container deixa de desenhar os widgets nativos (P/NORMAL,
+                               bateria, pneus, ODO) por cima da skin. O 16 sozinho projeta com
+                               esses widgets. Medido no carro. */
                             String out = exec(sess,
-                                    "service call AutoContainer 2 i32 1000 i32 46 s16 null; sleep 1.2; "
-                                            + "service call AutoContainer 2 i32 1000 i32 16 s16 null", id++);
-                            Log.i(TAG, "adb: 16 -> " + (out == null ? "null" : out.trim()));
+                                    /* NADA de 46 no laço: o 46 recria o display e derruba a skin;
+                                       16 projeta e 45 deixa em tela cheia (medido no carro) */
+                                    "service call AutoContainer 2 i32 1000 i32 16 s16 null; sleep 1.5; "
+                                            + "service call AutoContainer 2 i32 1000 i32 45 s16 null", id++);
+                            Log.i(TAG, "adb: 16/45 -> " + (out == null ? "null" : out.trim()));
                         }
                         android.util.Log.i(TAG, "adb: tick paused=" + paused + " enabled=" + on);
                         for (int i = 0; i < 60 && !wake; i++) Thread.sleep(1000);
@@ -103,15 +122,18 @@ public final class AdbShell {
 
     /** roda uma linha de shell numa sessão própria (usado ao soltar o painel) */
     public static void execOnce(final String cmd) {
+        final Context c = appCtx;
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    Sess s = connect(null);
-                    if (s == null) return;
-                    exec(s, cmd, 900);
+                    Sess s = connect(c);
+                    if (s == null) { trace(c, "execOnce sem sessao"); return; }
+                    String out = exec(s, cmd, 900);
+                    trace(c, "execOnce " + (out == null ? "null" : out.trim()));
                     try { s.s.close(); } catch (Throwable ignored) { }
                 } catch (Throwable t) {
                     android.util.Log.w(TAG, "adb: execOnce falhou: " + t);
+                    trace(c, "execOnce erro " + t);
                 }
             }
         }, "adb-once").start();

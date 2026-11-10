@@ -30,7 +30,7 @@ public final class PanelBoot {
         AdbShell.start(ctx);
         AdbShell.resume();
         /* primeiro o cmd 16 (o container cria o display do painel), depois a janela da skin */
-        if (p.getBoolean("cluster_cast", true)) PanelCast.send(16);
+        if (p.getBoolean("cluster_cast", true)) PanelCast.send(45);
         if (overlay) {
             final Context app = ctx.getApplicationContext();
             final String url = urlFor(ctx, skin);

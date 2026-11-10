@@ -417,10 +417,12 @@ public class MainActivity extends Activity {
         if (p.getBoolean("overlay", true)) {
             boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
             Log.i(TAG, "painel por overlay: " + ok + " " + ClusterOverlay.error());
-            if (ok) bridge.clusterCast(16);      /* assume o painel sem depender do EvSound */
+            if (ok) ui.postDelayed(new Runnable() {
+            public void run() { bridge.clusterCast(45); }
+        }, 2000);      /* assume o painel sem depender do EvSound */
             retryOverlay();
         } else if (p.getBoolean("cluster_cast", true)) {
-            bridge.clusterCast(16);
+            bridge.clusterCast(45);
         }
 
         if (getIntent() != null && getIntent().getBooleanExtra("release", false)) {
@@ -461,7 +463,9 @@ public class MainActivity extends Activity {
         if (!p.getBoolean("overlay", true) || ClusterOverlay.running()) return;
         boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
         Log.i(TAG, "painel: overlay recriado=" + ok + " " + ClusterOverlay.error());
-        if (ok) bridge.clusterCast(16);
+        if (ok) ui.postDelayed(new Runnable() {
+            public void run() { bridge.clusterCast(45); }
+        }, 2000);
     }
 
     /**
@@ -474,9 +478,10 @@ public class MainActivity extends Activity {
         ui.post(new Runnable() {
             public void run() {
                 try {
-                    if (ClusterProjection.running()
-                            && getSharedPreferences("lab", MODE_PRIVATE).getBoolean("enabled", true)) {
-                        bridge.clusterCast(16);
+                    /* 45 só com a janela viva: tela cheia sem a skin mostra o layout nativo */
+                    if (getSharedPreferences("lab", MODE_PRIVATE).getBoolean("enabled", true)) {
+                        if (ClusterOverlay.running()) bridge.clusterCast(45);
+                        else ensureOverlay();
                     }
                 } catch (Throwable ignored) {
                 }
@@ -648,7 +653,16 @@ public class MainActivity extends Activity {
            (shared_fission_bg_XDJAScreenProjection_0) depois do cmd 16. Criar a janela antes
            deixa o painel preto, porque a skin vai para um display que ainda não existe. */
         AdbShell.resume();
-        if (p.getBoolean("cluster_cast", true)) bridge.clusterCast(16);
+        /* 16 projeta no painel, 45 só depois deixa a skin em tela cheia: mandar 45 sozinho
+           mostra o layout nativo da BYD */
+        AdbShell.trace(this, "takePanel: enabled=" + p.getBoolean("enabled", true)
+                + " cast=" + p.getBoolean("cluster_cast", true));
+        if (p.getBoolean("cluster_cast", true)) {
+            bridge.clusterCast(16);
+            ui.postDelayed(new Runnable() {
+                public void run() { bridge.clusterCast(45); }
+            }, 1600);
+        }
         ui.postDelayed(new Runnable() {
             public void run() {
                 ensureOverlay();
@@ -690,7 +704,7 @@ public class MainActivity extends Activity {
                     android.media.projection.MediaProjection mp = mpm.getMediaProjection(result, data);
                     ClusterProjection.startWithProjection(this, mp, bridge,
                             urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria"), true, false));
-                    bridge.clusterCast(16);
+                    bridge.clusterCast(45);
                     startService(new Intent(this, PanelService.class));
                 } catch (Throwable t) {
                     Log.w(TAG, "projeção com token falhou", t);
@@ -878,16 +892,67 @@ public class MainActivity extends Activity {
         /** skin no painel como janela overlay (título que o container procura) */
         @JavascriptInterface
         public String overlayShow() {
-            SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-            boolean ok = ClusterOverlay.show(MainActivity.this,
-                    urlFor(p.getString("skin", "industria"), true, false));
-            if (ok) clusterCast(16);
-            return "{\"ok\":" + ok + ",\"erro\":\"" + ClusterOverlay.error().replace("\"", "'") + "\"}";
+            /* ordem medida no carro: derruba a janela velha, o 46 cria o display, a janela entra
+               no display NOVO e só então o 45 põe o painel em tela cheia. Janela criada antes
+               do 46 fica no display antigo e o 45 mostra o layout nativo da BYD. */
+            final SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+            final String sk = p.getString("skin", "industria");
+            ClusterOverlay.hide();
+            new Thread(new Runnable() {
+                public void run() {
+                            AdbShell.start(MainActivity.this);
+                    /* o display do painel já existe na maioria dos casos; o 46 recria o display
+                       e deixa a janela órfã, então só entra se a janela não puder ser criada */
+                    AdbShell.trace(MainActivity.this, "overlayShow: entrando");
+                    final boolean[] res = {false};
+                    final java.util.concurrent.CountDownLatch latch =
+                            new java.util.concurrent.CountDownLatch(1);
+                    ui.post(new Runnable() {
+                        public void run() {
+                            res[0] = ClusterOverlay.show(MainActivity.this, urlFor(sk, true, false));
+                            Log.i(TAG, "painel: overlay " + res[0] + " " + ClusterOverlay.error());
+                            latch.countDown();
+                        }
+                    });
+                    try { latch.await(6, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) { }
+                    try { Thread.sleep(1600); } catch (InterruptedException ignored) { }
+                    if (!res[0]) {
+                        AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 46 s16 null");
+                        AdbShell.trace(MainActivity.this, "sem janela: 46 enviado");
+                        try { Thread.sleep(1800); } catch (InterruptedException ignored) { }
+                        ui.post(new Runnable() {
+                            public void run() {
+                                res[0] = ClusterOverlay.show(MainActivity.this, urlFor(sk, true, false));
+                                AdbShell.trace(MainActivity.this, "2a janela " + res[0]);
+                            }
+                        });
+                        try { Thread.sleep(2500); } catch (InterruptedException ignored) { }
+                    }
+                    if (res[0]) {
+                        /* 16 projeta no painel e só depois do 16 o 45 vira tela cheia da skin */
+                        AdbShell.trace(MainActivity.this, "overlay ok, mandando 16");
+                        AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 16 s16 null");
+                        try { Thread.sleep(1500); } catch (InterruptedException ignored) { }
+                        AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 45 s16 null");
+                        AdbShell.trace(MainActivity.this, "16/45 enviados");
+                    }
+                }
+            }).start();
+            return "{\"step\":\"tomando o painel\"}";
         }
 
         @JavascriptInterface
         public void overlayHide() {
             ClusterOverlay.hide();
+        }
+
+        /** botão APAGAR: fecha a skin e devolve o painel ao layout original da BYD */
+        @JavascriptInterface
+        public void panelRelease() {
+            getSharedPreferences("lab", MODE_PRIVATE).edit()
+                    .putBoolean("enabled", false).apply();
+            ClusterOverlay.hide();
+            PanelRelease.release();
         }
 
         @JavascriptInterface

@@ -61,9 +61,27 @@ AutoContainer está en modo proyección**. Ese modo se pide por binder, tipo 100
 
 | cmd | efecto |
 |---|---|
-| 16 | proyecto a pantalla completa |
+| 16 | proyección: el panel empieza a mostrar el display virtual |
 | 17 | mitad |
 | 18 | vuelvo al panel original de BYD |
+| 45 | tela cheia: el container deja de dibujar sus widgets (P/NORMAL, batería, pneus, ODO) encima |
+| 46 | recria el display del panel |
+| 0 | suelta |
+
+**Secuencia medida en el carro (2026-11-10), orden importa:**
+
+| paso | qué hace | efecto |
+|---|---|---|
+| ventana de la skin primero | overlay `EvSound painel` en el display 2 | sin ella el 45 no tiene qué mostrar |
+| `16` | proyección | la skin aparece con los widgets nativos encima |
+| `45` | tela cheia | los widgets nativos desaparecen; queda solo la skin |
+
+`46` **no** va en esa secuencia: recria el display y deja la ventana huérfana, y el panel
+vuelve al layout nativo. Solo se usa al soltar (`46` → `18` → `0`) y como rescate cuando la
+ventana no se puede crear porque el display no existe.
+
+El lazo de 60 s reafirma `16` + `45` (nunca `46`), así que el panel aguanta aunque otro app
+mande `18`. Verificado: 3 minutos en pantalla completa sin reenviar comandos a mano.
 
 La skin es una ventana `TYPE_APPLICATION_OVERLAY` creada con el contexto del display del
 panel. El app manda el cmd 16 al crear la ventana y en `onResume`; con el EvSound

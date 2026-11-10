@@ -83,7 +83,12 @@
   $('start').addEventListener('click', function () {
     var info = '';
     started = !started;
-    if (started && L.ignite) L.ignite();   /* painel: varredura de arranque */
+    if (started) {
+      if (L.ignite) L.ignite();            /* painel: varredura de arranque */
+      if (L.overlayShow) info = L.overlayShow();   /* toma o painel: 46 -> janela -> 16 -> 45 */
+    } else {
+      if (L.panelRelease) info = L.panelRelease();
+    }
     refresh();
     /* o JSON de resposta carrega o erro da projeção: aparece embaixo do botão */
     if (info) $('startSub').textContent = String(info).slice(0, 220);
