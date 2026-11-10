@@ -252,7 +252,14 @@
   el('path', { d: arcPath(640, 336, 258, 208, 332), fill: 'none', stroke: '#38cfff', 'stroke-width': 2.5, opacity: 0.45 });
   el('path', { d: arcPath(640, 336, 270, 214, 326), fill: 'none', stroke: '#38cfff', 'stroke-width': 1.2, opacity: 0.2 });
 
-  /* relógio, odômetro e temperatura moram no cartão da direita (banda de baixo) */
+  /* ---------- topo ---------- */
+  var clockTxt = txt(24, 34, '', 22, 'num', 'start');
+  el('rect', { x: 102, y: 16, width: 1, height: 22, fill: '#2a3d52' });
+  var outTxt = txt(118, 34, '', 22, 'num', 'start');
+
+  /* à direita: odômetro total */
+  txt(1264, 18, 'ODO', 10, 'mut', 'end');
+  var odoTxt = txt(1264, 38, '', 19, 'num', 'end');
 
   /* ---------- aros ---------- */
   var RING_Y = 196, R = 146, LX = 176, RX = W - 176;
@@ -389,37 +396,37 @@
   }
 
   /* cartão 1: bateria, combustível, autonomia — 340 de largura (14..354) */
-  var c1 = card(14, 340);
-  batteryIcon(38, 350, c1);
-  var batNum = txt(70, 378, '--', 27, 'num', 'start');
+  var c1 = card(14, 446);
+  batteryIcon(60, 350, c1);
+  var batNum = txt(92, 378, '--', 27, 'num', 'start');
   var batUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
   batUnit.textContent = '';
   batNum.appendChild(batUnit);
-  txt(70, 396, T.bat, 11, 'mut', 'start');
-  var batBar = segBar(c1, 38, 410, 120, 7, 10);
+  txt(92, 396, T.bat, 11, 'mut', 'start');
+  var batBar = segBar(c1, 60, 410, 148, 7, 10);
 
-  pumpIcon(196, 350, c1);
-  var fuelNum = txt(240, 378, '--', 27, 'num', 'start');
+  pumpIcon(254, 350, c1);
+  var fuelNum = txt(306, 378, '--', 27, 'num', 'start');
   var fuelUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
   fuelUnit.textContent = '';
   fuelNum.appendChild(fuelUnit);
-  txt(240, 396, T.fuel, 11, 'mut', 'start');
-  var fuelBar = segBar(c1, 196, 410, 112, 7, 10);
+  txt(306, 396, T.fuel, 11, 'mut', 'start');
+  var fuelBar = segBar(c1, 254, 410, 148, 7, 10);
 
-  el('rect', { x: 176, y: 344, width: 1, height: 58, fill: '#16283c' }, c1);
+  el('rect', { x: 231, y: 344, width: 1, height: 58, fill: '#16283c' }, c1);
 
   /* autonomia numa linha só, centrada no cartão */
-  el('rect', { x: 40, y: 428, width: 288, height: 1, fill: '#16283c' }, c1);
-  mountainIcon(96, 449, 10, c1);
-  var rangeNum = txt(126, 454, '', 22, 'num', 'start');
-  txt(206, 454, T.range, 11, 'mut', 'start');
+  el('rect', { x: 40, y: 428, width: 394, height: 1, fill: '#16283c' }, c1);
+  mountainIcon(147, 449, 10, c1);
+  var rangeNum = txt(177, 454, '', 22, 'num', 'start');
+  txt(258, 454, T.range, 11, 'mut', 'start');
 
   /* cartão 2 (meio): modo de condução — layout recalculado para 340 de largura */
-  var MCARD = { x: 366, w: 340, cx: 366 + 170 };
+  var MCARD = { x: 820, w: 446, cx: 820 + 223 };
   var c3 = card(MCARD.x, MCARD.w);
-  var pill = { x: MCARD.x + 30, y: 355, w: MCARD.w - 60, h: 42, r: 21 };
+  var pill = { x: MCARD.x + 32, y: 355, w: MCARD.w - 64, h: 42, r: 21 };
   neon(c3, pill.x, pill.y, pill.w, pill.h, pill.r, 0.85);
-  var modeIcon = el('g', { transform: 'translate(' + (pill.x + 48) + ' 376)' }, c3);
+  var modeIcon = el('g', { transform: 'translate(' + (pill.x + 50) + ' 376)' }, c3);
   /* um ícone por modo: estrada, folha, chevrons, montanha, floco, dunas ou gota */
   function modeGlyph(mode) {
     var m = (mode || '').toUpperCase();
@@ -475,63 +482,23 @@
   }
 
   /* cartão 3 (direita): pressões — 446 de largura, carro no centro do cartão */
-  var TYRES = { x: 718, w: 240 };
+  var TYRES = { x: 470, w: 340 };
   var c2 = card(TYRES.x, TYRES.w);
-  var CAR = { w: 45, h: 108, cx: TYRES.x + TYRES.w / 2, top: 344 };
-  var carX = CAR.cx - CAR.w / 2;
-
-  /* medidas do PNG (651x1560): rodas a y 485 e 1040, meia-largura até a borda do pneu */
-  var K = CAR.h / 1560;                                  /* 0.0795 */
-  var WHEEL = { front: CAR.top + 485 * K, rear: CAR.top + 1040 * K, half: CAR.w / 2 - 3 };
-  var NUM = { xl: TYRES.x + 62, xr: TYRES.x + TYRES.w - 62, yf: 354, yr: 458 };
-
-  /* módulo HUD na roda, como o do pacote, mas em escala de tela (r 44 no SVG ficaria 3 px) */
-  var MR = 8;                                            /* raio externo do módulo */
-  function tireModule(x, y) {
-    var g = el('g', { class: 'tire-mod' }, tyreLinks);
-    el('circle', { cx: x, cy: y, r: MR * 1.25, fill: 'url(#tireHub)' }, g);
-    el('circle', {
-      cx: x, cy: y, r: MR, fill: 'none', stroke: 'var(--tire-dim)', 'stroke-width': 0.9,
-      opacity: 0.65, 'stroke-dasharray': '8 2 3.5 2 8 2 3.5 2'
-    }, g);
-    el('circle', {
-      cx: x, cy: y, r: MR * 0.78, fill: 'none', stroke: 'url(#tireConnector)',
-      'stroke-width': 1.2, 'stroke-dasharray': '9 2 4 2 9 2 4 2', filter: 'url(#tireSoftGlow)'
-    }, g);
-    el('circle', {
-      cx: x, cy: y, r: MR * 0.55, fill: 'none', stroke: 'var(--tire-bright)',
-      'stroke-width': 0.7, opacity: 0.8, 'stroke-dasharray': '1.4 2.2'
-    }, g);
-    el('circle', { cx: x, cy: y, r: 1.6, fill: 'var(--tire-color)', opacity: 0.9,
-      filter: 'url(#tireTightGlow)' }, g);
-  }
-
-  var tyreLinks = el('g', { class: 'tyre-links' }, c2);
-
-  /* conectores: saem da roda, dão o degrau de 45° e correm retos até o número */
-  [
-    [NUM.xl, NUM.yf, -1, WHEEL.front],
-    [NUM.xr, NUM.yf, 1, WHEEL.front],
-    [NUM.xl, NUM.yr, -1, WHEEL.rear],
-    [NUM.xr, NUM.yr, 1, WHEEL.rear]
-  ].forEach(function (t) {
-    var nx = t[0], ny = t[1], dir = t[2], wy = t[3];
-    var wheelX = CAR.cx + dir * WHEEL.half;
-    var step = 13;                                       /* degrau de 45° */
-    var knee = wheelX + dir * (MR + 4);
-    el('path', {
-      d: 'M ' + wheelX + ' ' + wy + ' H ' + knee + ' L ' + (knee + step) + ' ' + ny
-        + ' H ' + nx, class: 'tyre-link'
-    }, tyreLinks);
-    tireModule(wheelX, wy);
-  });
-
-  /* o carro entra por último: conectores e módulos passam por baixo da carroceria */
-  var tyrecarImg = el('image', { id: 'tyrecar', href: 'assets/tyre-car.png',
-    x: carX, y: CAR.top, width: CAR.w, height: CAR.h,
+  /* arte do pacote: carro visto de cima + aros das rodas + trilhos laterais, já com alfa
+     (1510x897, recortada pela caixa do alfa). Entra com a altura do cartão. */
+  var ART = { h: 124, w: 1510 / 897 * 124 };            /* 209 de largura */
+  var artX = TYRES.x + TYRES.w / 2 - ART.w / 2;
+  var artY = 330 + (136 - ART.h) / 2;
+  var tyrecarImg = el('image', { id: 'tyrecar', href: 'assets/tyre-stage.png',
+    x: artX, y: artY, width: ART.w, height: ART.h,
     preserveAspectRatio: 'xMidYMid meet' }, c2);
 
-  /* posição/âncora de cada número: as linhas terminam na roda, o texto fica na ponta */
+  /* os números ficam nas pontas dos trilhos, dentro do cartão */
+  var NUM = { xl: Math.max(TYRES.x + 60, artX - 12),
+              xr: Math.min(TYRES.x + TYRES.w - 60, artX + ART.w + 12),
+              yf: 352, yr: 452 };
+
+  /* posição/âncora de cada número */
   var TYRE = [['fl', NUM.xl, NUM.yf, 'end'], ['fr', NUM.xr, NUM.yf, 'start'],
               ['rl', NUM.xl, NUM.yr, 'end'], ['rr', NUM.xr, NUM.yr, 'start']];
   var tyreNum = {};
@@ -546,25 +513,6 @@
     n.appendChild(u);
     tyreNum[t[0]] = { num: n, unit: u };
   });
-
-  /* cartão 4 (direita) — 296 (970..1266): ODO na primeira linha,
-     relógio e temperatura na segunda, em duas colunas */
-  var c4 = card(970, 296);
-  txt(990, 352, 'ODO', 9, 'mut', 'start');
-  var odoTxt = txt(1246, 380, '', 26, 'num', 'end');
-  el('rect', { x: 990, y: 392, width: 256, height: 1, fill: '#16283c' }, c4);
-
-  var clockTxt = txt(990, 452, '', 40, 'num', 'start');
-  clockTxt.setAttribute('letter-spacing', '-0.5');
-
-  var tempIcon = el('g', { transform: 'translate(1176,424)' }, c4);
-  el('path', {
-    d: 'M7 0a4 4 0 0 0-4 4v10a5.6 5.6 0 1 0 8 0V4a4 4 0 0 0-4-4z',
-    fill: 'none', stroke: '#7f8c9b', 'stroke-width': 1.8, 'stroke-linejoin': 'round'
-  }, tempIcon);
-  el('circle', { cx: 7, cy: 17.5, r: 2.6, fill: '#7f8c9b' }, tempIcon);
-  el('rect', { x: 6.2, y: 6, width: 1.6, height: 10, rx: 0.8, fill: '#7f8c9b' }, tempIcon);
-  var outTxt = txt(1246, 452, '', 24, 'num', 'end');
 
   var warnTxt = txt(240, 34, '', 14, 'or', 'start');
 
