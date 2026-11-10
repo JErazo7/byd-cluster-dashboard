@@ -981,6 +981,10 @@ public class MainActivity extends Activity {
         public void bootApplySet(boolean on) {
             getSharedPreferences("lab", MODE_PRIVATE).edit()
                     .putBoolean("bootApply", on).putBoolean("autostart", on).apply();
+            try {
+                java.io.File f = new java.io.File(getExternalFilesDir(null), "autostart");
+                if (on) f.createNewFile(); else f.delete();
+            } catch (Throwable ignored) { }
             AdbShell.trace(MainActivity.this, "bootApply=" + on);
         }
 
@@ -1032,6 +1036,14 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
             final String sk = p.getString("skin", "byd");
+            try {
+                java.io.File af = new java.io.File(getExternalFilesDir(null), "autostart");
+                if (p.getBoolean("bootApply", false)) {
+                    if (!af.isFile()) af.createNewFile();
+                } else {
+                    af.delete();
+                }
+            } catch (Throwable ignored) { }
             AdbShell.watchdog(MainActivity.this);
             ClusterOverlay.hide();
             new Thread(new Runnable() {

@@ -181,6 +181,8 @@ public final class AdbShell {
     private static final String WD_BEAT = "/sdcard/Android/data/com.xdja.clusterdemo/files/beat";
     /* carimbo do último release do vigia: separa "ignição" de "alerta de porta aberta" */
     static final String WD_OFF_TS = "/sdcard/Android/data/com.xdja.clusterdemo/files/off.ts";
+    /* existe quando "iniciar automáticamente" está ligado: o vigia então revive o app */
+    static final String WD_AUTO = "/sdcard/Android/data/com.xdja.clusterdemo/files/autostart";
 
     /**
      * Cão de guarda (como o do EvSound): um script no adbd que mora fora do nosso processo.
@@ -192,13 +194,13 @@ public final class AdbShell {
         try {
             java.io.File f = new java.io.File(ctx.getExternalFilesDir(null), WD_NAME);
             java.io.FileWriter w = new java.io.FileWriter(f, false);
-            /* batimento: se o app morre OU congela (o Android congela processo em cache, o pid
-               continua vivo e kill -0 mentiria), o carimbo para de avançar e o vigia solta */
             w.write("#!/system/bin/sh\n"
                     + "BEAT=" + WD_BEAT + "\n"
+                    + "AUTO=" + WD_AUTO + "\n"
                     + "echo $$ > /data/local/tmp/shark_wd.pid\n"
                     + "echo \"$(date) armado\" >> /data/local/tmp/shark.log\n"
                     + "sleep 10\n"
+                    /* 1) vigia: solta o painel quando o latido para (app morto ou congelado) */
                     + "while :; do\n"
                     + "  now=$(date +%s)\n"
                     + "  last=$(stat -c %Y $BEAT 2>/dev/null)\n"
@@ -208,11 +210,26 @@ public final class AdbShell {
                     + "done\n"
                     + "echo \"$(date) app parou\" >> /data/local/tmp/shark.log\n"
                     + "for n in 46 18 0; do service call AutoContainer 2 i32 1000 i32 $n s16 null >/dev/null 2>&1; sleep 1.2; done\n"
-                    + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
                     + "date +%s > " + WD_OFF_TS + "\n"
-                    + "sleep 2\n"
-                    + "fission_screencap -d 0 > /data/local/tmp/off.raw 2>/dev/null\n"
-                    + "echo \"$(date) fim $(wc -c < /data/local/tmp/off.raw 2>/dev/null)\" >> /data/local/tmp/shark.log\n"
+                    + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
+                    /* 2) reviver: se o auto-início estiver ligado e a central ficar acesa, sobe o app */
+                    + "awake=0\n"
+                    + "while [ -f $AUTO ]; do\n"
+                    + "  if dumpsys power 2>/dev/null | grep -q 'mWakefulness=Awake'; then\n"
+                    + "    awake=$((awake+1))\n"
+                    + "  else\n"
+                    + "    awake=0\n"
+                    + "  fi\n"
+                    + "  if [ $awake -ge 3 ]; then\n"
+                    + "    if [ -z \"$(pidof com.xdja.clusterdemo)\" ]; then\n"
+                    + "      echo \"$(date) revivendo\" >> /data/local/tmp/shark.log\n"
+                    + "      am start -n com.xdja.clusterdemo/com.sharklab.MainActivity >/dev/null 2>&1\n"
+                    + "      exit 0\n"
+                    + "    fi\n"
+                    + "    awake=0\n"
+                    + "  fi\n"
+                    + "  sleep 30\n"
+                    + "done\n"
                     + "rm -f /data/local/tmp/shark_wd.pid\n");
             w.close();
         } catch (Throwable t) {
@@ -221,7 +238,9 @@ public final class AdbShell {
         /* setsid: sessão própria, então o filho sobrevive ao fechamento da nossa sessão adb */
         execOnce("cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
                 + "; chmod 755 /data/local/tmp/" + WD_NAME
-                + "; setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 &");
+                + "; P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null)"
+                + "; if [ -z \"$P\" ] || [ ! -d /proc/$P ]; then "
+                + "setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi");
     }
 
     /** carimbo de vida: o vigia solta o painel quando ele para de avançar */
