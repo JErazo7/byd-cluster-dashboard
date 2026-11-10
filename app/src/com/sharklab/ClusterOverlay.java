@@ -31,6 +31,8 @@ public final class ClusterOverlay {
     /* o painel é uma janela virtual: o Chromium congela o requestAnimationFrame da skin, então
        quem alimenta o desenho é este empurrador, de fora da página */
     private static volatile boolean pushing;
+    private static DisplayManager jetDm;
+    private static DisplayManager.DisplayListener jetListener;
     private static final int W = 1920, H = 720;
 
     private static WebView web;
@@ -153,6 +155,7 @@ public final class ClusterOverlay {
                 web.loadUrl(u);
             }
             startPush(ctx);
+            watchPanelPower(ctx, target.getDisplayId());
             Log.i(TAG, "overlay do painel criado no display " + target.getDisplayId()
                     + " layerStack esperado do painel");
             return true;
@@ -195,6 +198,49 @@ public final class ClusterOverlay {
         }
     }
 
+    /**
+     * Vigia o display do painel: quando ele apaga (carro desligado) a skin sai da frente, senão
+     * a BYD acende o quadro para a alerta de porta aberta e ela aparece coberta pelo tema.
+     */
+    private static void watchPanelPower(final Context ctx, final int displayId) {
+        stopWatch();
+        try {
+            jetDm = (DisplayManager) ctx.getSystemService(Context.DISPLAY_SERVICE);
+            jetListener = new DisplayManager.DisplayListener() {
+                @Override
+                public void onDisplayAdded(int id) { }
+
+                @Override
+                public void onDisplayRemoved(int id) {
+                    if (id == displayId) PanelRelease.release(ctx);
+                }
+
+                @Override
+                public void onDisplayChanged(int id) {
+                    if (id != displayId || jetDm == null) return;
+                    Display d = jetDm.getDisplay(id);
+                    if (d == null) return;
+                    int state = d.getState();
+                    if (state == Display.STATE_OFF || state == Display.STATE_DOZE
+                            || state == Display.STATE_DOZE_SUSPEND) {
+                        PanelRelease.release(ctx.getApplicationContext());
+                    }
+                }
+            };
+            jetDm.registerDisplayListener(jetListener, null);
+        } catch (Throwable t) {
+            Log.w(TAG, "vidro: sem vigia do display", t);
+        }
+    }
+
+    private static void stopWatch() {
+        try {
+            if (jetDm != null && jetListener != null) jetDm.unregisterDisplayListener(jetListener);
+        } catch (Throwable ignored) {
+        }
+        jetListener = null;
+    }
+
     /** empurra o estado para a skin a cada 400 ms (independente do rAF da página) */
     private static void startPush(final Context ctx) {
         pushing = true;
@@ -216,6 +262,7 @@ public final class ClusterOverlay {
 
     public static synchronized void hide() {
         pushing = false;
+        stopWatch();
         lastLp = null;
         try {
             if (web != null && wm != null) wm.removeView(web);
