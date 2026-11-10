@@ -164,8 +164,13 @@ public final class BydBridge {
     private final Map<String, Long> born = new HashMap<String, Long>();
     private static final long TTL = 1500;
 
+    /* contexto cru: cada leitura passa um BydPermissionContext novo, porque o getInstance da BYD
+       guarda o singleton por contexto — com um só contexto o objeto nunca atualiza os valores */
+    private final Context appCtx;
+
     public BydBridge(Context ctx) {
-        this.ctx = new BydPermissionContext(ctx.getApplicationContext());
+        this.appCtx = ctx.getApplicationContext();
+        this.ctx = new BydPermissionContext(this.appCtx);
     }
 
     /* ---------- reflexão ---------- */
@@ -183,7 +188,7 @@ public final class BydBridge {
             try {
                 Method m = c.getDeclaredMethod("getInstance", Context.class);
                 m.setAccessible(true);
-                d = m.invoke(null, ctx);
+                d = m.invoke(null, new BydPermissionContext(appCtx));
             } catch (NoSuchMethodException e) {
                 Method m = c.getDeclaredMethod("getInstance");
                 m.setAccessible(true);
