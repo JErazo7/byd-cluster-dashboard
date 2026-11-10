@@ -490,6 +490,8 @@ public class MainActivity extends Activity {
                     if (PanelRelease.session && p2.getBoolean("applied", false)) {
                         if (ClusterOverlay.running()) bridge.clusterCast(45);
                         else ensureOverlay();
+                        /* rearma o vigia do apagamento: se ele já disparou ou não subiu, volta */
+                        AdbShell.watchdog(MainActivity.this);
                     }
                 } catch (Throwable ignored) {
                 }
@@ -687,6 +689,9 @@ public class MainActivity extends Activity {
     /** ganchos de teste (não aparecem na interface da central) */
     private void testHooks(Intent it) {
         if (it == null) return;
+        final boolean hBoot = it.getBooleanExtra("bootapply", false);
+        final boolean hApply = it.getBooleanExtra("apply", false);
+        final boolean hRelease = it.getBooleanExtra("release", false);
         if (it.getBooleanExtra("dumplog", false)) AdbShell.dumpLog(getApplicationContext());
         /* o Android re-entrega o intent original quando recria a activity: sem consumir os
            extras, um `--ez apply true` de teste reaplicava a skin a cada reinício do processo
@@ -710,7 +715,7 @@ public class MainActivity extends Activity {
        --ez bootapply true  roda a decisão do arranque
        --ez apply true      é o botão APLICAR
        --ez release true    é o botão DESACTIVAR */
-    if (it != null && it.getBooleanExtra("bootapply", false)) {
+    if (hBoot) {
         BootReceiver.applyChoice(getApplicationContext());
     }
     if (it != null && it.hasExtra("bydset")) {
@@ -749,7 +754,7 @@ public class MainActivity extends Activity {
             public void run() { bridge.apiDump(cl); }
         }).start();
     }
-    if (it != null && it.getBooleanExtra("apply", false)) {
+    if (hApply) {
         bridge.overlayShow();
     }
     if (it != null && it.getBooleanExtra("release", false)) {
@@ -987,7 +992,8 @@ public class MainActivity extends Activity {
                no display NOVO e só então o 45 põe o painel em tela cheia. Janela criada antes
                do 46 fica no display antigo e o 45 mostra o layout nativo da BYD. */
             final SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-            p.edit().putBoolean("applied", true).apply();
+            /* enabled=true religa o laço ADB (é ele que sobe o vigia do apagamento) */
+            p.edit().putBoolean("applied", true).putBoolean("enabled", true).apply();
             PanelRelease.session = true;
             /* o serviço é quem escuta SCREEN_OFF: sem ele o tema fica no quadro quando o carro
                apaga e a BYD acende a alerta de porta aberta */

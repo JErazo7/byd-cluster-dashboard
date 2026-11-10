@@ -121,10 +121,14 @@ public final class AdbShell {
                                container deixa de desenhar os widgets nativos (P/NORMAL,
                                bateria, pneus, ODO) por cima da skin. O 16 sozinho projeta com
                                esses widgets. Medido no carro. */
+                            /* vigia do apagamento sobe aqui, na sessão longa do laço: pelo execOnce a
+                               sessão fecha e mata o filho */
                             String out = exec(sess,
-                                    /* NADA de 46 no laço: o 46 recria o display e derruba a skin;
-                                       16 projeta e 45 deixa em tela cheia (medido no carro) */
-                                    "service call AutoContainer 2 i32 1000 i32 16 s16 null; sleep 1.5; "
+                                    "cp " + WD_SRC + " /data/local/tmp/" + WD_NAME + " 2>/dev/null; "
+                                            + "chmod 755 /data/local/tmp/" + WD_NAME + " 2>/dev/null; "
+                                            + "[ -f /data/local/tmp/shark_wd.pid ] || "
+                                            + "(setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 &); "
+                                            + "service call AutoContainer 2 i32 1000 i32 16 s16 null; sleep 1.5; "
                                             + "service call AutoContainer 2 i32 1000 i32 45 s16 null", id++);
                             Log.i(TAG, "adb: 16/45 -> " + (out == null ? "null" : out.trim()));
                         }
@@ -190,6 +194,7 @@ public final class AdbShell {
                continua vivo e kill -0 mentiria), o carimbo para de avançar e o vigia solta */
             w.write("#!/system/bin/sh\n"
                     + "BEAT=" + WD_BEAT + "\n"
+                    + "echo $$ > /data/local/tmp/shark_wd.pid\n"
                     + "echo \"$(date) armado\" >> /data/local/tmp/shark.log\n"
                     + "sleep 20\n"
                     + "while :; do\n"
@@ -204,14 +209,16 @@ public final class AdbShell {
                     + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
                     + "sleep 2\n"
                     + "fission_screencap -d 0 > /data/local/tmp/off.raw 2>/dev/null\n"
-                    + "echo \"$(date) fim $(wc -c < /data/local/tmp/off.raw 2>/dev/null)\" >> /data/local/tmp/shark.log\n");
+                    + "echo \"$(date) fim $(wc -c < /data/local/tmp/off.raw 2>/dev/null)\" >> /data/local/tmp/shark.log\n"
+                    + "rm -f /data/local/tmp/shark_wd.pid\n");
             w.close();
         } catch (Throwable t) {
             return;
         }
+        /* setsid: sessão própria, então o filho sobrevive ao fechamento da nossa sessão adb */
         execOnce("cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
                 + "; chmod 755 /data/local/tmp/" + WD_NAME
-                + "; (nohup sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 &); sleep 1");
+                + "; setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 &");
     }
 
     /** carimbo de vida: o vigia solta o painel quando ele para de avançar */
