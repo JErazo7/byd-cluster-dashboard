@@ -13,10 +13,10 @@
   input[type=range] { width: 118px; }
   select, button { background: #16202b; color: #cfd8e3; border: 1px solid #26333f; border-radius: 6px; padding: 6px 8px; font-size: 13px; }
   #fit { position: relative; overflow: hidden; }
-  .stage { position: relative; width: 1280px; height: 480px; transform-origin: 0 0; background: #04070c;
+  .stage { position: relative; width: 1920px; height: 720px; transform-origin: 0 0; background: #04070c;
            background-image: linear-gradient(#101820, #1d2a38); outline: 1px solid #1d2733; }
-  .stage iframe { width: 1280px; height: 480px; border: 0; display: block; }
-  .notch { position: absolute; left: 427px; top: 0; width: 426px; height: 54px; background: #243244; opacity: .9; }
+  .stage iframe { width: 1920px; height: 720px; border: 0; display: block; }
+  .notch { position: absolute; left: 700px; top: 0; width: 520px; height: 60px; background: #243244; opacity: .9; }
   .notch span { display: block; margin: 16px 0 0 10px; font-size: 11px; color: #7f8c9b; }
   .hide { display: none; }
   code { color: #8fd6ff; }
@@ -26,11 +26,7 @@
 <body>
 <header>
   <label>Tema <select id="theme">
-    <option value="shark">shark</option>
-    <option value="sharkmap">sharkmap</option>
-    <option value="muscle">muscle</option>
-    <option value="industria">industria</option>
-    <option value="byd">byd</option>
+    <option value="byd" selected>byd</option>
   </select></label>
   <label>Velocidad <input id="speed" type="range" min="0" max="220" value="87"><span id="speedV">87</span></label>
   <label>Potencia kW <input id="pw" type="range" min="-120" max="220" value="64"><span id="pwV">64</span></label>
@@ -39,6 +35,10 @@
   <label>Pedal % <input id="tps" type="range" min="0" max="100" value="34"><span id="tpsV">34</span></label>
   <label>Tracción <select id="ev"><option value="">—</option><option value="1" selected>EV</option><option value="0">HEV</option></select></label>
   <label>Marcha <select id="sel"><option>P</option><option>R</option><option>N</option><option selected>D</option></select></label>
+  <label>P FL <input id="tfl" type="range" min="1.5" max="3.5" step="0.1" value="2.5"><span id="tflV">2.5</span></label>
+  <label>P FR <input id="tfr" type="range" min="1.5" max="3.5" step="0.1" value="2.4"><span id="tfrV">2.4</span></label>
+  <label>P RL <input id="trl" type="range" min="1.5" max="3.5" step="0.1" value="2.6"><span id="trlV">2.6</span></label>
+  <label>P RR <input id="trr" type="range" min="1.5" max="3.5" step="0.1" value="2.5"><span id="trrV">2.5</span></label>
   <label>Modo <select id="drive"><option>ECO</option><option selected>NORMAL</option><option>MONTAÑA</option><option>NIEVE</option><option>ARENA</option><option>LODO</option><option>SPORT</option></select></label>
   <label>Intermitentes <select id="turn"><option value="0">ninguna</option><option value="1">izquierda</option><option value="2">derecha</option></select></label>
   <label>Parámetros (shark) <select id="variant">
@@ -49,7 +49,7 @@
 </header>
 <div id="fit">
   <div class="stage" id="stage">
-    <iframe id="f" src="dash/shark/index.html#nopreview=1"></iframe>
+    <iframe id="f" src="dash/byd/index.html#nopreview=1&full=1&panel=1"></iframe>
     <div class="notch hide" id="notch"><span>luces BYD (x 427–853, y 0–54)</span></div>
   </div>
 </div>
@@ -70,7 +70,7 @@
       turnLeft: turn === '1' ? 1 : 0, turnRight: turn === '2' ? 1 : 0,
       on: true, sel: $('sel').value, ev: $('ev').value === '' ? null : +$('ev').value, car: 'V8', pw: +$('pw').value, odo: 12843, range: 412, tout: 24, btemp: 32,
       dmode: 2, drive: $('drive').value, ready: 1, regen: 0, v12: 13.8, phone: -1, tt: {}, rhd: false, warn: [],
-      adas: {}, tyre: { fl: 2.4, fr: 2.4, rl: 2.3, rr: 2.3 }, cam: null,
+      adas: {}, tyre: { fl: +$('tfl').value, fr: +$('tfr').value, rl: +$('trl').value, rr: +$('trr').value }, cam: null,
       nmv: { text: 'Gire a la derecha en 200 m' }, ext: null, trip: { km: 12.4 },
       media: { title: 'Highway to Hell', artist: 'AC/DC' }
     });
@@ -92,7 +92,7 @@
     f.src = 'dash/' + $('theme').value + '/index.html' + (v ? v : '#nopreview=1') + (v ? '&' : '') + 'v=' + Date.now();
   }
 
-  ['speed', 'pw', 'soc', 'fuelKm', 'tps'].forEach(function (id) {
+  ['speed', 'pw', 'soc', 'fuelKm', 'tps', 'tfl', 'tfr', 'trl', 'trr'].forEach(function (id) {
     $(id).addEventListener('input', function () { $(id + 'V').textContent = this.value; feed(); });
   });
   ['sel', 'drive', 'turn', 'ev'].forEach(function (id) { $(id).addEventListener('change', feed); });
@@ -103,10 +103,10 @@
   /* el cuadro es 1280×480: en el celular entra en el ancho y el dedo alcanza los controles */
   var stage = $('stage'), fit = $('fit');
   function resize() {
-    var k = Math.min(1, (document.documentElement.clientWidth - 16) / 1280);
+    var k = Math.min(1, (document.documentElement.clientWidth - 16) / 1920);
     stage.style.transform = 'scale(' + k.toFixed(4) + ')';
     stage.style.margin = '8px 0 0 8px';
-    fit.style.height = (480 * k + 16) + 'px';
+    fit.style.height = (720 * k + 16) + 'px';
   }
   window.addEventListener('resize', resize);
   resize();
