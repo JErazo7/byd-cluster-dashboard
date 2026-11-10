@@ -33,6 +33,7 @@ public class PanelService extends Service {
         public void onReceive(Context c, Intent i) {
             if (i == null) return;
             String a = i.getAction();
+            AdbShell.trace(getApplicationContext(), "servico: " + a);
             if (Intent.ACTION_SCREEN_OFF.equals(a) || Intent.ACTION_SHUTDOWN.equals(a)
                     || "android.intent.action.QUICKBOOT_POWEROFF".equals(a)) {
                 PanelRelease.release(getApplicationContext());

@@ -668,10 +668,13 @@
     setRing(thrRing, tps / 100);
     tintThrottle(tps / 100, scene);
 
-    /* potência com sinal: negativo quando está regenerando */
-    var kw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
+    /* potência com sinal: negativo quando está regenerando. No arranque a BYD devolve um valor
+       cru fora de faixa (3095 kW); acima de 400 kW não é leitura, é sentinela: mostra '--' */
+    var raw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
+    var valid = Math.abs(raw) <= 400;
+    var kw = valid ? raw : 0;
     var p = Math.round(powTo(kw));
-    powNum.firstChild.nodeValue = String(p);
+    powNum.firstChild.nodeValue = valid ? String(p) : '--';
     powUnit.textContent = powU();
     setRing(powRing, Math.min(1, Math.abs(kw) / 200));
     var regen = kw < -1;

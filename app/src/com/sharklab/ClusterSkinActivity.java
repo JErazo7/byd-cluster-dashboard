@@ -93,7 +93,7 @@ public class ClusterSkinActivity extends Activity {
                     + ",\"rpm\":" + (car ? 900 + spd * 30 : 900 + spd * 42) + ",\"ped\":" + Math.round(load * 100)
                     + ",\"soc\":" + (b[3] > -998 ? (int) b[3] : -1)
                     + ",\"brk\":0,\"turnL\":false,\"turnR\":false"
-                    + ",\"pw\":" + (b[2] > -998 ? (int) b[2] : 0)
+                    + ",\"pw\":" + (b[2] > -998 && Math.abs(b[2]) <= 400 ? (int) b[2] : -999)
                     + ",\"odo\":" + (b[8] > -998 ? (int) b[8] : -999)
                     + ",\"range\":" + (b[4] > -998 ? (int) b[4] : -999)
                     + ",\"tout\":" + (b[7] > -998 ? (int) b[7] : -999)

@@ -830,7 +830,10 @@ public class MainActivity extends Activity {
             int gear = bydGear >= 0 ? Math.max(1, Math.min(6, spd / 22 + 1))
                                     : Math.max(1, Math.min(6, (int) (spd / 22) + 1));
             int rpm = car ? rpmFor(spd, gear) : 900 + (int) (spd * 42);
-            int pw = b[2] > -998 ? (int) Math.round(b[2]) : Math.round(spd * 0.9f - (up ? 0 : 25));
+            int pw0 = b[2] > -998 ? (int) Math.round(b[2]) : Integer.MIN_VALUE;
+            /* no arranque a BYD devolve um cru fora de faixa (3095 kW): não é leitura */
+            int pw = (pw0 != Integer.MIN_VALUE && Math.abs(pw0) <= 400) ? pw0
+                    : Math.round(spd * 0.9f - (up ? 0 : 25));
             int soc = b[3] > -998 ? (int) Math.round(b[3]) : Math.max(0, 82 - (int) (spd / 8));
             int range = b[4] > -998 ? (int) Math.round(b[4]) : Math.max(0, 412 - (int) (spd / 6));
             int ped = b[5] > -998 ? (int) Math.round(b[5]) : Math.round(Math.min(100, spd / 1.2f));

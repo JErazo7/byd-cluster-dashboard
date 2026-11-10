@@ -21,6 +21,7 @@ public final class PanelRelease {
     }
 
     public static void release() {
+        AdbShell.trace(null, "release() sem ctx");
         /* a janela da skin tem que sair ANTES de devolver o painel: com o carro desligado a BYD
            acende o quadro para a alerta de porta aberta e a nossa janela ficava por cima dela */
         ClusterOverlay.hide();

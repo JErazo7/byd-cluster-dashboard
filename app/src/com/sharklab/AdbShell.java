@@ -40,6 +40,8 @@ public final class AdbShell {
 
     /* rastro em arquivo: o logcat do carro rotaciona e some no meio do teste */
     static void trace(android.content.Context c, String line) {
+        if (c == null && appCtx != null) c = appCtx;
+        if (c == null) return;
         try {
             java.io.File f = new java.io.File(c.getExternalFilesDir(null), "painel.log");
             java.io.FileWriter w = new java.io.FileWriter(f, true);

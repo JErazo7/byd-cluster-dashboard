@@ -65,6 +65,7 @@ public final class ClusterOverlay {
     }
 
     public static synchronized boolean show(Context ctx, String url) {
+        AdbShell.trace(ctx, "overlay.show\n" + android.util.Log.getStackTraceString(new Throwable()).split("\n")[1]);
         hide();
         error = "";
         try {
