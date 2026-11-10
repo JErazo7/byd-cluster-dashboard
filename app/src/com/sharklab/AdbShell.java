@@ -54,21 +54,29 @@ public final class AdbShell {
     }
 
     public static synchronized void start(final Context ctx) {
-        if (started) return;
+        if (started) {
+            android.util.Log.i(TAG, "adb: laço já iniciado");
+            return;
+        }
         started = true;
+        android.util.Log.i(TAG, "adb: laço iniciando");
         new Thread(new Runnable() {
             public void run() {
                 Sess sess = null;
                 int id = 1;
                 while (true) {
                     try {
-                        if (sess == null) sess = connect(ctx);
+                        if (sess == null) {
+                            sess = connect(ctx);
+                            android.util.Log.i(TAG, "adb: conectado " + (sess != null));
+                        }
                         /* respeita o botão do app: desligado pelo usuário, nada de cmd 16 */
                         boolean on = ctx.getSharedPreferences("lab", 0).getBoolean("enabled", true);
                         if (!paused && on) {
                             String out = exec(sess, "service call AutoContainer 2 i32 1000 i32 16 s16 null", id++);
                             Log.i(TAG, "adb: 16 -> " + (out == null ? "null" : out.trim()));
                         }
+                        android.util.Log.i(TAG, "adb: tick paused=" + paused + " enabled=" + on);
                         for (int i = 0; i < 60 && !wake; i++) Thread.sleep(1000);
                         wake = false;
                     } catch (Throwable t) {
