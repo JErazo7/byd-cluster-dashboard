@@ -104,8 +104,8 @@ public class ClusterSkinActivity extends Activity {
                     + ",\"dcfg\":" + num(b[18]) + ",\"surf\":" + num(b[17]) + ",\"emode\":" + num(b[16])
                     + ",\"mNormal\":" + num(b[19]) + ",\"mMud\":" + num(b[20])
                     + ",\"mSand\":" + num(b[21]) + ",\"mGrass\":" + num(b[22])
-                    + ",\"surfmode\":" + num(b[23]) + ",\"dcmode\":" + num(b[24])
-                    + ",\"opmode\":" + num(b[25]) + ",\"ecoind\":" + num(b[31]) + ",\"menu\":" + num(b[26])
+                    + ",\"surfmode\":" + surfValid(b[23]) + ",\"dcmode\":" + num(b[24])
+                    + ",\"opmode\":" + num(b[25]) + ",\"ecoind\":" + ecoValid(b[31]) + ",\"menu\":" + num(b[26])
                     + ",\"automode\":" + num(b[27])
                     + ",\"estate\":" + num(b[28]) + ",\"bcm\":" + num(b[29]) + ",\"daymode\":" + num(b[30])
                     + ",\"v12\":" + (b[9] > -998 ? b[9] : 13.8)
@@ -129,6 +129,23 @@ public class ClusterSkinActivity extends Activity {
         }
 
         /** número inteiro ou -999 (o contrato das skins usa -999 como "sem leitura") */
+        /* último valor válido: no arranque do carro os getters devolvem 8322/-999 e o modo
+           aparecia trocado até a leitura assentar */
+        private static int lastEco = 135298;
+        private static int lastSurf = 1;
+
+        private int ecoValid(double v) {
+            int e = (int) Math.round(v);
+            if (e == 135298 || e == 8353 || e == 10306) lastEco = e;
+            return lastEco;
+        }
+
+        private int surfValid(double v) {
+            int sm = (int) Math.round(v);
+            if (sm >= 1 && sm <= 5) lastSurf = sm;
+            return lastSurf;
+        }
+
         private String num(double v) {
             return String.valueOf(v > -998 ? (int) Math.round(v) : -999);
         }

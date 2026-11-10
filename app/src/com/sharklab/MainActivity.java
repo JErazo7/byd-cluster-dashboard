@@ -687,6 +687,7 @@ public class MainActivity extends Activity {
     /** ganchos de teste (não aparecem na interface da central) */
     private void testHooks(Intent it) {
         if (it == null) return;
+        if (it.getBooleanExtra("dumplog", false)) AdbShell.dumpLog(getApplicationContext());
     /* ganchos de teste (não aparecem na interface):
        --ez bootapply true  roda a decisão do arranque
        --ez apply true      é o botão APLICAR

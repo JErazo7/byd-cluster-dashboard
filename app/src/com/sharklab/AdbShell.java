@@ -42,15 +42,41 @@ public final class AdbShell {
     static void trace(android.content.Context c, String line) {
         if (c == null && appCtx != null) c = appCtx;
         if (c == null) return;
+        String stamp = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+                .format(new java.util.Date()) + " " + line + "\n";
+        /* interno primeiro: com o carro apagado o armazenamento externo pode desmontar e o
+           rastro (justo o do apagamento) se perdia */
+        try {
+            java.io.File f = new java.io.File(c.getFilesDir(), "painel.log");
+            java.io.FileWriter w = new java.io.FileWriter(f, true);
+            w.write(stamp);
+            w.close();
+        } catch (Throwable ignored) { }
         try {
             java.io.File f = new java.io.File(c.getExternalFilesDir(null), "painel.log");
             java.io.FileWriter w = new java.io.FileWriter(f, true);
-            w.write(new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
-                    .format(new java.util.Date()) + " " + line + "\n");
+            w.write(stamp);
             w.close();
         } catch (Throwable ignored) { }
     }
 
+    /** copia o rastro interno (legível só pelo app) para o armazenamento externo */
+    static void dumpLog(android.content.Context c) {
+        if (c == null && appCtx != null) c = appCtx;
+        if (c == null) return;
+        try {
+            java.io.File in = new java.io.File(c.getFilesDir(), "painel.log");
+            if (!in.isFile()) return;
+            java.io.File out = new java.io.File(c.getExternalFilesDir(null), "painel-interno.log");
+            java.io.FileInputStream is = new java.io.FileInputStream(in);
+            java.io.FileOutputStream os = new java.io.FileOutputStream(out, false);
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = is.read(buf)) > 0) os.write(buf, 0, n);
+            is.close();
+            os.close();
+        } catch (Throwable ignored) { }
+    }
 
     private static final String TAG = "SharkLab";
     private static final int A_CNXN = 0x4e584e43, A_AUTH = 0x48545541, A_OPEN = 0x4e45504f,
