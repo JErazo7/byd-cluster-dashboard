@@ -7,15 +7,13 @@ texto y una app Android que las pinta en la pantalla central y en el panel detr�
 | Carpeta | Qué es | Estado |
 |---|---|---|
 | `app/` | SharkLab: app Android que pinta la skin (APK 36 KB, sin Gradle) | **compila y firma** |
-| `themes/` | Temas `shark`, `sharkmap`, `muscle`, `industria`, `byd` + preview con sliders | funcionando |
+| `themes/` | Tema `byd` (único que la app muestra) | funcionando |
 | `tools/` | Reempaquetador para meter tus temas en el EvSound que ya compraste | funcionando |
 
-**Grelha das skins:** todas desenham em **1280×480** (a mesma do `shark`): o SVG leva
-`width/height="100%"` com `viewBox="0 0 1280 480"` e escala sozinho para o quadro do painel.
-Os tamanhos de referência — para as skins novas não ficarem sobredimensionadas — são os do
-`shark`: aros de raio 108 com traço 12 e centros em x 262/1018, y 250; número do mostrador 58
-(herói 128 no centro), título 19–20, P R N D 26, READY 17, rodapé e odômetro 17, relógio 24,
-faixa das luzes da BYD em x 427–853, y 0–54.
+**Grelha da skin:** o `byd` desenha em **1920×720** com `viewBox` — o quadro exato do painel —
+e `width/height="100%"`, então escala sozinho. Aros laterais com raio ~200 e traço 14, centros
+em x 300/1620 e y 400; número do mostrador 96 (herói 120 no centro); cartões da faixa de baixo
+em y 560–700; faixa das luzes da BYD em x 700–1220, y 0–60.
 
 O `byd` é o único tema com foto, tudo em `themes/dash/byd/assets/`: `bg.jpg` (paisagem),
 `bg-sport.jpg` (estrada em brasa, modo SPORT), `bg-mountain.jpg` (serra verde, modo
@@ -31,8 +29,8 @@ composto com `mix-blend-mode: screen`).
 | Panel/skin propio (SVG, 1920×720, claro/oscuro, panel entero, ancho variable) | ✅ |
 | Skin en el panel detrás del volante a pantalla completa, sin depender del EvSound | ✅ |
 | El app toma el panel solo: manda `AutoContainer` cmd 16 al abrir la ventana y al volver a primer plano | ✅ |
-| Carga de skins desde el almacenamiento (sin recompilar) | ✅ |
-| Tarjeta de control dentro del panel (skin, panel, cámara, volante) | ✅ |
+| La app muestra solo los temas instalados (hoy: `byd`) en una grilla | ✅ |
+| Pantalla única: grilla de temas + APLICAR/DESACTIVAR + toggle iniciar automáticamente | ✅ |
 | Lectura de datos reales del BYD (CAN/DiLink) | ⏳ pendiente |
 | Cámaras, ADAS, mapa, Android Auto / CarPlay | ⏳ pendiente (AA/CarPlay requieren licencia de Google/Apple) |
 
@@ -52,6 +50,23 @@ Se puede cambiar con `PKG=... OUT=... ./app/build.sh`.
 
 La app carga `assets/dash/<id>/index.html`, le inyecta `lab/*.js` y alimenta la skin con
 datos simulados (`Lab.state()`), igual que el feed de referencia.
+
+## La app (una sola pantalla)
+
+`assets/lab/home.html` es toda la interface:
+
+| elemento | qué hace |
+|---|---|
+| grilla | una tarjeta por tema instalado (`themes/dash/<id>/index.html`); tocar una la pone en el panel |
+| APLICAR / DESACTIVAR | toma el panel (ventana → `16` → `45`) o lo devuelve a BYD (`46` → `18` → `0`) |
+| iniciar automáticamente | `bootApply`: si está encendido, al arrancar el auto se aplica el tema; si está apagado, el panel queda con BYD y la skin **no** sube sola |
+
+No hay ajustes, galería, logbook ni menús: se borraron `settings.html`, `skins.html`,
+`lab-logbook.js` y `lab-ui.js`, y con ellos los temas `industria`, `muscle`, `shark` y
+`sharkmap`.
+
+El estado "aplicado" es la preferencia `applied`: la pone APLICAR y la limpia DESACTIVAR o el
+arranque con el toggle apagado. Abrir la app ya no toma el panel por su cuenta.
 
 ## Cómo toma el panel
 

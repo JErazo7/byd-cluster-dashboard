@@ -5,138 +5,125 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SharkLab</title>
 <style>
-  :root { --bg:#05080d; --panel:#0d151e; --line:#1e2b38; --fg:#e8eef5; --dim:#7f8c9b; --acc:#38cfff; --good:#37e07a; --warm:#ffb020; }
+  :root { --bg:#05080d; --panel:#0d151e; --line:#1e2b38; --fg:#e8eef5; --dim:#7f8c9b;
+          --acc:#38cfff; --good:#37e07a; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { margin: 0; min-height: 100vh; background: radial-gradient(120% 90% at 50% 0%, #0d1a26 0%, var(--bg) 60%);
-         color: var(--fg); font: 16px/1.4 system-ui, sans-serif; display: flex; align-items: center; justify-content: center; }
-  .wrap { width: min(1100px, 94vw); }
-  h1 { font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: var(--dim); margin: 0 0 18px; text-align: center; }
-  .start { display: block; margin: 0 auto 26px; width: 260px; height: 260px; border-radius: 50%;
-           border: 2px solid #1f3d52; background: radial-gradient(circle at 50% 40%, #10222f, #070d13 70%);
-           color: var(--fg); font-size: 26px; font-weight: 600; letter-spacing: .12em; cursor: pointer;
-           box-shadow: 0 0 0 0 rgba(56,207,255,.4); transition: box-shadow .4s, transform .15s; }
-  .start:active { transform: scale(.98); }
-  .start.on { border-color: var(--good); color: var(--good); box-shadow: 0 0 60px rgba(55,224,122,.25); }
-  .start .sub { display: block; font-size: 13px; letter-spacing: .08em; color: var(--dim); margin-top: 8px; font-weight: 400; }
-  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
-  .card small { display: block; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
-  .card b { font-size: 22px; font-weight: 600; }
-  .card button { margin-top: 12px; width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line);
-                 background: #111c26; color: var(--fg); font-size: 15px; cursor: pointer; }
-  .card button:active { border-color: var(--acc); color: var(--acc); }
-  .gear { position: fixed; right: 14px; bottom: 14px; width: 46px; height: 46px; border-radius: 50%;
-          background: rgba(20,30,42,.6); border: 1px solid var(--line); color: var(--dim); font-size: 18px; cursor: pointer; }
-  .panel-sel { position: fixed; inset: 0; background: rgba(4,7,11,.94); display: none; padding: 26px; overflow: auto; }
-  .panel-sel.show { display: block; }
-  .panel-sel h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 14px; }
-  .item { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; cursor: pointer; }
+  body { margin: 0; min-height: 100vh; color: var(--fg); font: 16px/1.4 system-ui, sans-serif;
+         background: radial-gradient(120% 90% at 50% 0%, #0d1a26 0%, var(--bg) 60%);
+         display: flex; align-items: center; justify-content: center; }
+  .wrap { width: min(900px, 92vw); padding: 24px 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .item { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+          overflow: hidden; cursor: pointer; }
   .item[aria-current=true] { border-color: var(--acc); }
   .item img { width: 100%; aspect-ratio: 8/3; object-fit: cover; display: block; background: #04070c; }
-  .item span { display: block; padding: 8px 10px; font-size: 14px; }
+  .item span { display: block; padding: 10px 12px; font-size: 15px; letter-spacing: .06em;
+               text-transform: uppercase; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+         margin-top: 22px; padding: 16px 18px; background: var(--panel);
+         border: 1px solid var(--line); border-radius: 14px; }
+  .row small { display: block; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+               color: var(--dim); }
+  .apply { width: 100%; margin-top: 14px; padding: 20px; border-radius: 16px;
+           border: 1px solid #1f3d52; background: #101a24; color: var(--fg);
+           font-size: 19px; font-weight: 600; letter-spacing: .14em; cursor: pointer; }
+  .apply.on { border-color: var(--good); color: var(--good); }
+  .apply:active { transform: scale(.995); }
+  .sub { margin-top: 10px; font-size: 13px; color: var(--dim); text-align: center; min-height: 18px; }
+  /* switch */
+  .sw { position: relative; width: 62px; height: 34px; flex: none; border-radius: 999px;
+        border: 1px solid var(--line); background: #0a1219; cursor: pointer; }
+  .sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px;
+               border-radius: 50%; background: #46586a; transition: left .18s, background .18s; }
+  .sw[aria-pressed=true] { border-color: var(--good); }
+  .sw[aria-pressed=true]::after { left: 31px; background: var(--good); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>SharkLab</h1>
-  <button class="start" id="start">ENCENDER<span class="sub" id="startSub">tocar para arrancar</span></button>
-  <div style="text-align:center;color:#7f8c9b;font-size:13px;margin:-10px 0 18px">
-    pedal <b id="ped" style="color:#38cfff">0%</b>
-  </div>
-  <div class="cards">
-    <div class="card">
-      <small>Tema actual</small>
-      <b id="themeName">—</b>
-      <button id="themeBtn">ELEGIR TEMA</button>
-    </div>
-  </div>
-</div>
-<button class="gear" id="gear">⚙</button>
+  <div class="grid" id="grid"></div>
 
-<div class="panel-sel" id="themePanel">
-  <h2>Elegí tu tema</h2>
-  <div class="grid" id="themeGrid"></div>
+  <button class="apply" id="apply">APLICAR</button>
+  <div class="sub" id="sub"></div>
+
+  <div class="row" id="autoRow">
+    <div>
+      <small>Iniciar automáticamente</small>
+      <span style="color:var(--dim);font-size:13px">aplica el tema al encender el auto</span>
+    </div>
+    <div class="sw" id="auto" role="switch" aria-pressed="false" aria-label="Iniciar automáticamente"></div>
+  </div>
 </div>
 
 <script>
 (function () {
   'use strict';
   var L = window.Lab || {};
-  var started = false;
+  var applied = L.panelApplied ? !!L.panelApplied() : false;
 
   function $(id) { return document.getElementById(id); }
 
-  /* --- estado inicial --- */
-  function themeName() {
-    var id = L.currentSkin ? L.currentSkin() : 'muscle';
-    return id;
-  }
-  function refresh() {
-    $('themeName').textContent = themeName();
-    $('start').classList.toggle('on', started);
-    $('startSub').textContent = started ? 'encendido · tocá para apagar' : 'tocar para arrancar';
-    $('start').firstChild.textContent = started ? 'APAGAR' : 'ENCENDER';
+  function paint() {
+    $('apply').textContent = applied ? 'DESACTIVAR' : 'APLICAR';
+    $('apply').classList.toggle('on', applied);
+    $('sub').textContent = applied ? 'aplicado en el panel' : '';
   }
 
-  /* --- encender --- */
-  $('start').addEventListener('click', function () {
-    var info = '';
-    started = !started;
-    if (started) {
-      if (L.ignite) L.ignite();            /* painel: varredura de arranque */
-      if (L.overlayShow) info = L.overlayShow();   /* toma o painel: 46 -> janela -> 16 -> 45 */
-    } else {
-      if (L.panelRelease) info = L.panelRelease();
-    }
-    refresh();
-    /* o JSON de resposta carrega o erro da projeção: aparece embaixo do botão */
-    if (info) $('startSub').textContent = String(info).slice(0, 220);
-  });
-
-  /* --- temas --- */
-  function openThemes() {
-    var grid = $('themeGrid');
-    grid.innerHTML = '';
+  function grid() {
     var list = [];
     try { list = JSON.parse(L.skins ? L.skins() : '[]'); } catch (e) {}
     var cur = L.currentSkin ? L.currentSkin() : '';
+    var g = $('grid');
+    g.innerHTML = '';
     list.forEach(function (id) {
       var d = document.createElement('div');
       d.className = 'item';
       d.setAttribute('aria-current', id === cur ? 'true' : 'false');
       var img = document.createElement('img');
       img.src = L.thumbUrl ? L.thumbUrl(id) : '../dash/' + id + '/thumb.jpg';
+      img.alt = id;
       var s = document.createElement('span');
       s.textContent = id;
       d.appendChild(img); d.appendChild(s);
       d.addEventListener('click', function () {
         if (L.overlayReload) L.overlayReload(id);
-        else if (L.applySkin) L.applySkin(id);
-        $('themePanel').classList.remove('show');
-        setTimeout(refresh, 400);
+        setTimeout(function () { grid(); paint(); }, 300);
       });
-      grid.appendChild(d);
+      g.appendChild(d);
     });
-    $('themePanel').classList.add('show');
   }
-  $('themeBtn').addEventListener('click', openThemes);
-  $('themePanel').addEventListener('click', function (e) {
-    if (e.target === this) this.classList.remove('show');
+
+  $('apply').addEventListener('click', function () {
+    var info = '';
+    if (!applied) {
+      if (L.ignite) L.ignite();
+      if (L.overlayShow) info = L.overlayShow();
+      applied = true;
+    } else {
+      if (L.panelRelease) L.panelRelease();
+      applied = false;
+    }
+    paint();
+    if (info) $('sub').textContent = String(info).slice(0, 200);
   });
 
-  /* --- avanzado (menú oculto) --- */
-  $('gear').addEventListener('click', function () {
-    if (L.openAdvanced) L.openAdvanced();
+  var sw = $('auto');
+  function paintAuto() {
+    var on = L.bootApplyGet ? !!L.bootApplyGet() : false;
+    sw.setAttribute('aria-pressed', String(on));
+    document.querySelector('.row span').textContent = on
+      ? 'aplica el tema al encender el auto'
+      : 'el panel queda con el diseño de BYD al encender';
+  }
+  $('autoRow').addEventListener('click', function () {
+    var on = !(L.bootApplyGet ? !!L.bootApplyGet() : false);
+    if (L.bootApplySet) L.bootApplySet(on);
+    paintAuto();
   });
 
-  refresh();
-  setInterval(refresh, 1500);
-  /* diagnóstico ao vivo */
-  setInterval(function () {
-    var ev = window.__labEv;
-    document.getElementById('ped').textContent = (ev ? Math.round(ev.tps || 0) : 0) + '%';
-  }, 300);
+  grid();
+  paintAuto();
+  paint();
 })();
 </script>
 </body>

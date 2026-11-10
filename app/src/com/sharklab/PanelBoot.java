@@ -24,23 +24,32 @@ public final class PanelBoot {
 
     public static void apply(Context ctx) {
         SharedPreferences p = ctx.getSharedPreferences("lab", Context.MODE_PRIVATE);
-        String skin = p.getString("skin", "industria");
+        String skin = p.getString("skin", "byd");
         boolean overlay = p.getBoolean("overlay", true);
 
         AdbShell.start(ctx);
         AdbShell.resume();
-        /* primeiro o cmd 16 (o container cria o display do painel), depois a janela da skin */
-        if (p.getBoolean("cluster_cast", true)) PanelCast.send(45);
-        if (overlay) {
-            final Context app = ctx.getApplicationContext();
-            final String url = urlFor(ctx, skin);
-            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
-                public void run() {
-                    boolean ok = ClusterOverlay.show(app, url);
-                    Log.i(TAG, "boot: overlay=" + ok + " " + ClusterOverlay.error());
-                }
-            }, 1500);
-        }
+        /* ordem medida no carro: a janela primeiro, 16 projeta, 45 tira os widgets da BYD.
+           Sem a janela o 45 mostra o layout nativo. */
+        final Context app = ctx.getApplicationContext();
+        final String url = urlFor(ctx, skin);
+        final boolean cast = p.getBoolean("cluster_cast", true);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+            public void run() {
+                boolean ok = overlay && ClusterOverlay.show(app, url);
+                Log.i(TAG, "boot: overlay=" + ok + " " + ClusterOverlay.error());
+                AdbShell.trace(app, "boot: overlay=" + ok);
+                if (!ok) return;
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+                    public void run() {
+                        AdbShell.execOnce(
+                                "service call AutoContainer 2 i32 1000 i32 16 s16 null; sleep 1.5; "
+                                        + "service call AutoContainer 2 i32 1000 i32 45 s16 null");
+                        AdbShell.trace(app, "boot: 16/45 enviados");
+                    }
+                }, 2200);
+            }
+        }, 1500);
         p.edit().putBoolean("enabled", true).apply();
         startService(ctx);
     }

@@ -39,11 +39,11 @@ import java.util.List;
 public class MainActivity extends Activity {
 
     private static final String TAG = "SharkLab";
-    private static final String[] BUILTIN = {"industria", "muscle", "shark"};
+    private static final String[] BUILTIN = {"byd"};
 
-    /** injetados nesta ordem depois da skin carregar (o mesmo caminho que o app de referência usa) */
+    /** injetado depois da skin carregar: é o que alimenta o desenho com os dados do carro */
     static final String[] INJECT = {
-            "lab/lab-feed.js", "lab/lab-logbook.js", "lab/lab-ui.js"
+            "lab/lab-feed.js"
     };
 
     /** o painel só desenha: não injeta a interface de controle da central */
@@ -173,6 +173,10 @@ public class MainActivity extends Activity {
 
         startGps();
 
+        /* gancho de teste: `am start ... --ez bootapply true` roda a decisão do arranque */
+        if (getIntent() != null && getIntent().getBooleanExtra("bootapply", false)) {
+            BootReceiver.applyChoice(getApplicationContext());
+        }
         if (getIntent() != null && getIntent().hasExtra("festate")) {
             final int v = getIntent().getIntExtra("festate", -1);
             new Thread(new Runnable() {
@@ -315,7 +319,7 @@ public class MainActivity extends Activity {
                         o.setLaunchDisplayId(did);
                         Intent i = new Intent(MainActivity.this, ClusterSkinActivity.class);
                         i.putExtra(ClusterSkinActivity.EXTRA_URL,
-                                urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria"), true, false));
+                                urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "byd"), true, false));
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                         startActivity(i, o.toBundle());
                         Log.i(TAG, "disp: lançado no display " + did);
@@ -331,7 +335,7 @@ public class MainActivity extends Activity {
         if (cmd != null && !cmd.isEmpty()) {
             Log.i(TAG, "cmd.txt=" + cmd);
             if (cmd.contains("pub")) {
-                int d = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "industria"), true, false));
+                int d = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "byd"), true, false));
                 writeResult("pub.json", "{\"display\":" + d + ",\"erro\":\""
                         + ClusterProjection.error().replace("\"", "'") + "\"}");
                 if (d > 0) {
@@ -347,7 +351,7 @@ public class MainActivity extends Activity {
                     }
                 }
             } else if (cmd.contains("overlay")) {
-                boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
+                boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "byd"), true, false));
                 writeResult("overlay.json", "{\"ok\":" + ok + ",\"erro\":\""
                         + ClusterOverlay.error().replace("\"", "'") + "\"}");
             } else if (cmd.contains("token")) {
@@ -358,7 +362,7 @@ public class MainActivity extends Activity {
 
         /* gancho: --ez pub true cria o display "evsound_mapa" (flags 3) e joga a skin nele */
         if (getIntent() != null && getIntent().getBooleanExtra("pub", false)) {
-            int did = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "industria"), true, false));
+            int did = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "byd"), true, false));
             try {
                 java.io.File f = new java.io.File(getExternalFilesDir(null), "pub.json");
                 java.io.FileOutputStream o = new java.io.FileOutputStream(f);
@@ -415,7 +419,7 @@ public class MainActivity extends Activity {
             }
         }, camFilter);
         if (p.getBoolean("overlay", true)) {
-            boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
+            boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "byd"), true, false));
             Log.i(TAG, "painel por overlay: " + ok + " " + ClusterOverlay.error());
             if (ok) ui.postDelayed(new Runnable() {
             public void run() { bridge.clusterCast(45); }
@@ -438,7 +442,7 @@ public class MainActivity extends Activity {
         AdbShell.start(this);
 
         /* painel do motorista: uma Presentation no display virtual do carro */
-        if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "industria"));
+        if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "byd"));
     }
 
     /**
@@ -461,7 +465,7 @@ public class MainActivity extends Activity {
     private void ensureOverlay() {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
         if (!p.getBoolean("overlay", true) || ClusterOverlay.running()) return;
-        boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "industria"), true, false));
+        boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "byd"), true, false));
         Log.i(TAG, "painel: overlay recriado=" + ok + " " + ClusterOverlay.error());
         if (ok) ui.postDelayed(new Runnable() {
             public void run() { bridge.clusterCast(45); }
@@ -645,8 +649,12 @@ public class MainActivity extends Activity {
 
     private void takePanel() {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        if (!p.getBoolean("enabled", true)) {
-            Log.i(TAG, "painel: desligado pelo usuário, não retoma");
+        /* 'applied' é a vontade do usuário: só APLICAR (ou o boot com o toggle ligado)
+           liga o painel. Antes o padrão era ligado e a skin subia sozinha ao abrir o app. */
+        AdbShell.trace(this, "takePanel: applied=" + p.getBoolean("applied", false)
+                + " bootApply=" + p.getBoolean("bootApply", false));
+        if (!p.getBoolean("applied", false)) {
+            Log.i(TAG, "painel: desaplicado pelo usuário, não retoma");
             return;
         }
         /* ORDEM IMPORTA: o container só cria o display do painel
@@ -703,7 +711,7 @@ public class MainActivity extends Activity {
                             (android.media.projection.MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
                     android.media.projection.MediaProjection mp = mpm.getMediaProjection(result, data);
                     ClusterProjection.startWithProjection(this, mp, bridge,
-                            urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria"), true, false));
+                            urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "byd"), true, false));
                     bridge.clusterCast(45);
                     startService(new Intent(this, PanelService.class));
                 } catch (Throwable t) {
@@ -860,6 +868,7 @@ public class MainActivity extends Activity {
         public void bootApplySet(boolean on) {
             getSharedPreferences("lab", MODE_PRIVATE).edit()
                     .putBoolean("bootApply", on).putBoolean("autostart", on).apply();
+            AdbShell.trace(MainActivity.this, "bootApply=" + on);
         }
 
         public boolean autostartGet() {
@@ -896,7 +905,8 @@ public class MainActivity extends Activity {
                no display NOVO e só então o 45 põe o painel em tela cheia. Janela criada antes
                do 46 fica no display antigo e o 45 mostra o layout nativo da BYD. */
             final SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-            final String sk = p.getString("skin", "industria");
+            p.edit().putBoolean("applied", true).apply();
+            final String sk = p.getString("skin", "byd");
             ClusterOverlay.hide();
             new Thread(new Runnable() {
                 public void run() {
@@ -950,7 +960,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void panelRelease() {
             getSharedPreferences("lab", MODE_PRIVATE).edit()
-                    .putBoolean("enabled", false).apply();
+                    .putBoolean("enabled", false).putBoolean("applied", false).apply();
             ClusterOverlay.hide();
             PanelRelease.release();
         }
@@ -958,6 +968,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean overlayOn() {
             return ClusterOverlay.running();
+        }
+
+        /** o painel está tomado pela skin (vontade do usuário + janela viva) */
+        @JavascriptInterface
+        public boolean panelApplied() {
+            return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("applied", false)
+                    && ClusterOverlay.running();
         }
 
         /** liga/desliga o tema no painel (persistente) */
@@ -1154,7 +1171,7 @@ public class MainActivity extends Activity {
         public String clusterShow() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             p.edit().putBoolean("cluster", true).apply();
-            showCluster(p.getString("skin", "industria"));
+            showCluster(p.getString("skin", "byd"));
             return "{\"ok\":" + (clusterError.isEmpty()) + ",\"why\":\"" + clusterError.replace("\"", "'") + "\"}";
         }
 
@@ -1412,7 +1429,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String currentSkin() {
-            return getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "industria");
+            return getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "byd");
         }
 
         /** efeito de arranque no painel */
@@ -1421,15 +1438,6 @@ public class MainActivity extends Activity {
             ClusterOverlay.javaScript("window.EvsIgnition && window.EvsIgnition();");
         }
 
-        /** menu avançado (ajustes/projeção/volante) */
-        @JavascriptInterface
-        public void openAdvanced() {
-            ui.post(new Runnable() {
-                public void run() {
-                    if (web != null) web.loadUrl("file:///android_asset/lab/settings.html");
-                }
-            });
-        }
 
         @JavascriptInterface
         public boolean overlayReload(final String id) {
@@ -1462,14 +1470,6 @@ public class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface
-        public void openGallery() {
-            ui.post(new Runnable() {
-                public void run() {
-                    if (web != null) web.loadUrl("file:///android_asset/lab/skins.html");
-                }
-            });
-        }
 
         @JavascriptInterface
         public void setSkin(final String id) {
