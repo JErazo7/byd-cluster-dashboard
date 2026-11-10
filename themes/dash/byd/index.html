@@ -354,7 +354,7 @@
 
   var gGlassShade = el('linearGradient', { id: 'gGlassShade', x1: '0', y1: '0', x2: '0', y2: '1' }, defs);
   el('stop', { offset: '0', 'stop-color': '#000000', 'stop-opacity': '0' }, gGlassShade);
-  el('stop', { offset: '1', 'stop-color': '#000000', 'stop-opacity': '0.22' }, gGlassShade);
+  el('stop', { offset: '1', 'stop-color': '#000000', 'stop-opacity': '0.12' }, gGlassShade);
 
   var cardSeq = 0;
   /* desfoque só na área do cartão: barato no SoC do carro */
@@ -364,7 +364,7 @@
       id: id, filterUnits: 'userSpaceOnUse',
       x: x - 4, y: 326, width: w + 8, height: 144
     }, defs);
-    el('feGaussianBlur', { stdDeviation: '7' }, f);
+    el('feGaussianBlur', { stdDeviation: '14' }, f);
     return id;
   }
 
@@ -377,11 +377,11 @@
     var inner = el('g', { 'clip-path': 'url(#' + cid + ')' }, g);
     /* o que está atrás aparece desfocado: vidro fosco de verdade */
     el('use', { href: '#gBg', filter: 'url(#' + blur + ')' }, inner);
-    rrect(x, 330, w, 136, 18, { fill: 'rgba(190,222,255,0.10)' }, inner);
+    
     rrect(x, 330, w, 136, 18, { fill: 'url(#gGlass)' }, inner);
     /* borda clara + aro interno: a leitura do vidro do iOS */
     rrect(x + 0.5, 330.5, w - 1, 135, 17.5, {
-      fill: 'none', stroke: 'rgba(255,255,255,0.42)', 'stroke-width': 1.1
+      fill: 'none', stroke: 'rgba(255,255,255,0.5)', 'stroke-width': 1.1
     }, g);
     rrect(x + 3, 333, w - 6, 130, 15, {
       fill: 'none', stroke: 'rgba(255,255,255,0.10)', 'stroke-width': 1
@@ -390,8 +390,6 @@
     rrect(x + 14, 331.5, w - 28, 1.6, 0.8, {
       fill: 'url(#gGlass)', opacity: 0.9
     }, g);
-    /* sombra interna embaixo: dá espessura ao vidro */
-    rrect(x, 400, w, 66, 18, { fill: 'url(#gGlassShade)' }, g);
     neon(g, x, 330, w, 136, 18, 0.3);
     return g;
   }
