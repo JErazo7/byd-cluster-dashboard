@@ -252,17 +252,10 @@
   el('path', { d: arcPath(640, 336, 258, 208, 332), fill: 'none', stroke: '#38cfff', 'stroke-width': 2.5, opacity: 0.45 });
   el('path', { d: arcPath(640, 336, 270, 214, 326), fill: 'none', stroke: '#38cfff', 'stroke-width': 1.2, opacity: 0.2 });
 
-  /* ---------- topo ---------- */
-  var clockTxt = txt(24, 34, '', 22, 'num', 'start');
-  el('rect', { x: 102, y: 16, width: 1, height: 22, fill: '#2a3d52' });
-  var outTxt = txt(118, 34, '', 22, 'num', 'start');
-
-  /* à direita: odômetro total e o estado EV/HEV */
-  txt(1264, 18, 'ODO', 10, 'mut', 'end');
-  var odoTxt = txt(1264, 38, '', 19, 'num', 'end');
+  /* relógio, odômetro e temperatura moram no cartão da direita (banda de baixo) */
 
   /* ---------- aros ---------- */
-  var RING_Y = 214, R = 120, LX = 152, RX = W - 152;
+  var RING_Y = 196, R = 146, LX = 176, RX = W - 176;
   var SWEEP = 268;                /* arco aberto em baixo: nada do aro cai sobre os painéis */
   var A_THR = 135, DIR_THR = 1;   /* esquerda: começa embaixo à esquerda e sobe pelo lado esquerdo */
   var A_POW = 45, DIR_POW = -1;   /* direita: começa embaixo à direita e sobe pelo lado direito */
@@ -271,26 +264,26 @@
     var g = el('g');
     var full = arcPath(cx, RING_Y, R, a0, a0 + dir * SWEEP);
     /* trilha do aro, aro de marcas pontilhadas e o arco de valor */
-    var track = el('path', { d: full, fill: 'none', stroke: '#22405c', 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
+    var track = el('path', { d: full, fill: 'none', stroke: '#22405c', 'stroke-width': 17, 'stroke-linecap': 'round' }, g);
     /* zona vermelha no fim do curso */
     var red = el('path', {
       d: arcPath(cx, RING_Y, R, a0 + dir * SWEEP * 0.9, a0 + dir * SWEEP), fill: 'none',
-      stroke: '#ff2f2f', 'stroke-width': 14, 'stroke-linecap': 'round', opacity: 0
+      stroke: '#ff2f2f', 'stroke-width': 17, 'stroke-linecap': 'round', opacity: 0
     }, g);
     /* marcas radiais curtas ao longo do arco */
     var TICKS = 25;
     for (var t = 0; t < TICKS; t++) {
       var ta = a0 + dir * SWEEP * (t / (TICKS - 1));
       var major = t % 6 === 0;
-      var p0 = pt(cx, RING_Y, R - 11, ta), p1 = pt(cx, RING_Y, R - (major ? 27 : 20), ta);
+      var p0 = pt(cx, RING_Y, R - 13, ta), p1 = pt(cx, RING_Y, R - (major ? 32 : 24), ta);
       el('line', {
         x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1],
         class: 'tick', 'stroke-width': major ? 2.4 : 1.5,
         'stroke-linecap': 'butt', opacity: major ? 0.95 : 0.7
       }, g);
     }
-    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 30, 'stroke-linecap': 'round', opacity: 0.16 }, g);
-    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 14, 'stroke-linecap': 'round' }, g);
+    var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 36, 'stroke-linecap': 'round', opacity: 0.16 }, g);
+    var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 17, 'stroke-linecap': 'round' }, g);
     return { glow: glow, val: val, red: red, track: track, cx: cx, a0: a0, dir: dir };
   }
   function setRing(rg, frac) {
@@ -303,17 +296,17 @@
   var powRing = ring(RX, 'url(#gPow)', A_POW, DIR_POW);
 
   /* rótulo em cima e valor+unidade centrados como um bloco só dentro do aro */
-  var lblThr = txt(LX, 192, T.thr, 19, 'dim');
+  var lblThr = txt(LX, 168, T.thr, 22, 'dim');
   lblThr.setAttribute('letter-spacing', '1.2');
-  var thrNum = txt(LX, 254, '0', 56, 'num');
+  var thrNum = txt(LX, 242, '0', 64, 'num');
   var thrUnit = el('tspan', { 'font-size': 22, class: 'dim', dx: 4 });
   thrUnit.textContent = '%';
   thrNum.appendChild(thrUnit);
 
-  var bolt = el('path', { d: 'M' + (RX - 4) + ' 164 l9 -16 l-2.5 10.5 h8 l-10 17 l2.5 -11.5 z', fill: '#ff9a3c', opacity: 0.9 });
-  var lblPow = txt(RX, 192, T.pow, 19, 'dim');
+  var bolt = el('path', { d: 'M' + (RX - 4) + ' 136 l9 -16 l-2.5 10.5 h8 l-10 17 l2.5 -11.5 z', fill: '#ff9a3c', opacity: 0.9 });
+  var lblPow = txt(RX, 168, T.pow, 22, 'dim');
   lblPow.setAttribute('letter-spacing', '1.2');
-  var powNum = txt(RX, 254, '0', 56, 'num');
+  var powNum = txt(RX, 242, '0', 64, 'num');
   var powUnit = el('tspan', { 'font-size': 22, class: 'dim', dx: 4 });
   powUnit.textContent = powU();
   powNum.appendChild(powUnit);
@@ -395,34 +388,34 @@
     }, parent);
   }
 
-  /* cartão 1: bateria, combustível, autonomia */
-  var c1 = card(14, 446);
-  batteryIcon(60, 350, c1);
-  var batNum = txt(92, 378, '--', 27, 'num', 'start');
+  /* cartão 1: bateria, combustível, autonomia — 340 de largura (14..354) */
+  var c1 = card(14, 340);
+  batteryIcon(38, 350, c1);
+  var batNum = txt(70, 378, '--', 27, 'num', 'start');
   var batUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
   batUnit.textContent = '';
   batNum.appendChild(batUnit);
-  txt(92, 396, T.bat, 11, 'mut', 'start');
-  var batBar = segBar(c1, 60, 410, 148, 7, 10);
+  txt(70, 396, T.bat, 11, 'mut', 'start');
+  var batBar = segBar(c1, 38, 410, 120, 7, 10);
 
-  pumpIcon(254, 350, c1);
-  var fuelNum = txt(306, 378, '--', 27, 'num', 'start');
+  pumpIcon(196, 350, c1);
+  var fuelNum = txt(240, 378, '--', 27, 'num', 'start');
   var fuelUnit = el('tspan', { 'font-size': 14, class: 'mut', dx: 3 });
   fuelUnit.textContent = '';
   fuelNum.appendChild(fuelUnit);
-  txt(306, 396, T.fuel, 11, 'mut', 'start');
-  var fuelBar = segBar(c1, 254, 410, 148, 7, 10);
+  txt(240, 396, T.fuel, 11, 'mut', 'start');
+  var fuelBar = segBar(c1, 196, 410, 112, 7, 10);
 
-  el('rect', { x: 231, y: 344, width: 1, height: 58, fill: '#16283c' }, c1);
+  el('rect', { x: 176, y: 344, width: 1, height: 58, fill: '#16283c' }, c1);
 
   /* autonomia numa linha só, centrada no cartão */
-  el('rect', { x: 40, y: 428, width: 394, height: 1, fill: '#16283c' }, c1);
-  mountainIcon(147, 449, 10, c1);
-  var rangeNum = txt(177, 454, '', 22, 'num', 'start');
-  txt(258, 454, T.range, 11, 'mut', 'start');
+  el('rect', { x: 40, y: 428, width: 288, height: 1, fill: '#16283c' }, c1);
+  mountainIcon(96, 449, 10, c1);
+  var rangeNum = txt(126, 454, '', 22, 'num', 'start');
+  txt(206, 454, T.range, 11, 'mut', 'start');
 
   /* cartão 2 (meio): modo de condução — layout recalculado para 340 de largura */
-  var MCARD = { x: 470, w: 340, cx: 470 + 170 };
+  var MCARD = { x: 366, w: 340, cx: 366 + 170 };
   var c3 = card(MCARD.x, MCARD.w);
   var pill = { x: MCARD.x + 30, y: 355, w: MCARD.w - 60, h: 42, r: 21 };
   neon(c3, pill.x, pill.y, pill.w, pill.h, pill.r, 0.85);
@@ -482,41 +475,60 @@
   }
 
   /* cartão 3 (direita): pressões — 446 de largura, carro no centro do cartão */
-  var TYRES = { x: 820, w: 446 };
+  var TYRES = { x: 718, w: 240 };
   var c2 = card(TYRES.x, TYRES.w);
-  var CAR = { w: 52, h: 124, cx: TYRES.x + TYRES.w / 2, top: 336 };
-  var CAR_SCALE = CAR.h / 1560;               /* 0.0795 */
-  var carW = 651 * CAR_SCALE;                 /* 51,7 */
-  var carX = CAR.cx - carW / 2;
+  var CAR = { w: 45, h: 108, cx: TYRES.x + TYRES.w / 2, top: 344 };
+  var carX = CAR.cx - CAR.w / 2;
 
-  /* mesmos módulos e conectores do pacote, com a cor da cena */
-  var tireHud = el('g', { id: 'tireHud',
-    transform: 'translate(' + carX + ' ' + CAR.top + ') scale(' + CAR_SCALE + ')' }, c2);
-  tireHud.innerHTML = document.getElementById('tireHudSrc').textContent;
+  /* medidas do PNG (651x1560): rodas a y 485 e 1040, meia-largura até a borda do pneu */
+  var K = CAR.h / 1560;                                  /* 0.0795 */
+  var WHEEL = { front: CAR.top + 485 * K, rear: CAR.top + 1040 * K, half: CAR.w / 2 - 3 };
+  var NUM = { xl: TYRES.x + 62, xr: TYRES.x + TYRES.w - 62, yf: 354, yr: 458 };
 
-  /* medidas do pacote: rodas a 485 e 1040 no viewBox 1560, escaladas para o cartão */
-  var WHEEL = { front: CAR.top + 485 * CAR_SCALE, rear: CAR.top + 1040 * CAR_SCALE,
-                half: carW / 2 - 2 };
-  var NUM = { xl: TYRES.x + 58, xr: TYRES.x + TYRES.w - 58, yf: 356, yr: 460 };
+  /* módulo HUD na roda, como o do pacote, mas em escala de tela (r 44 no SVG ficaria 3 px) */
+  var MR = 8;                                            /* raio externo do módulo */
+  function tireModule(x, y) {
+    var g = el('g', { class: 'tire-mod' }, tyreLinks);
+    el('circle', { cx: x, cy: y, r: MR * 1.25, fill: 'url(#tireHub)' }, g);
+    el('circle', {
+      cx: x, cy: y, r: MR, fill: 'none', stroke: 'var(--tire-dim)', 'stroke-width': 0.9,
+      opacity: 0.65, 'stroke-dasharray': '8 2 3.5 2 8 2 3.5 2'
+    }, g);
+    el('circle', {
+      cx: x, cy: y, r: MR * 0.78, fill: 'none', stroke: 'url(#tireConnector)',
+      'stroke-width': 1.2, 'stroke-dasharray': '9 2 4 2 9 2 4 2', filter: 'url(#tireSoftGlow)'
+    }, g);
+    el('circle', {
+      cx: x, cy: y, r: MR * 0.55, fill: 'none', stroke: 'var(--tire-bright)',
+      'stroke-width': 0.7, opacity: 0.8, 'stroke-dasharray': '1.4 2.2'
+    }, g);
+    el('circle', { cx: x, cy: y, r: 1.6, fill: 'var(--tire-color)', opacity: 0.9,
+      filter: 'url(#tireTightGlow)' }, g);
+  }
 
-  /* as linhas de cada número até o módulo da roda, no tracejado da referência */
   var tyreLinks = el('g', { class: 'tyre-links' }, c2);
+
+  /* conectores: saem da roda, dão o degrau de 45° e correm retos até o número */
   [
     [NUM.xl, NUM.yf, -1, WHEEL.front],
     [NUM.xr, NUM.yf, 1, WHEEL.front],
     [NUM.xl, NUM.yr, -1, WHEEL.rear],
     [NUM.xr, NUM.yr, 1, WHEEL.rear]
   ].forEach(function (t) {
-    var wheelX = CAR.cx + t[2] * WHEEL.half;
-    var knee = t[0] + t[2] * 30;              /* sai reto do número, como na referência */
-    var inner = wheelX - t[2] * 10;
-    el('path', { d: 'M ' + t[0] + ' ' + t[1] + ' H ' + knee
-      + ' L ' + inner + ' ' + t[3] + ' H ' + wheelX, class: 'tyre-link' }, tyreLinks);
+    var nx = t[0], ny = t[1], dir = t[2], wy = t[3];
+    var wheelX = CAR.cx + dir * WHEEL.half;
+    var step = 13;                                       /* degrau de 45° */
+    var knee = wheelX + dir * (MR + 4);
+    el('path', {
+      d: 'M ' + wheelX + ' ' + wy + ' H ' + knee + ' L ' + (knee + step) + ' ' + ny
+        + ' H ' + nx, class: 'tyre-link'
+    }, tyreLinks);
+    tireModule(wheelX, wy);
   });
 
   /* o carro entra por último: conectores e módulos passam por baixo da carroceria */
   var tyrecarImg = el('image', { id: 'tyrecar', href: 'assets/tyre-car.png',
-    x: carX, y: CAR.top, width: carW, height: CAR.h,
+    x: carX, y: CAR.top, width: CAR.w, height: CAR.h,
     preserveAspectRatio: 'xMidYMid meet' }, c2);
 
   /* posição/âncora de cada número: as linhas terminam na roda, o texto fica na ponta */
@@ -534,6 +546,25 @@
     n.appendChild(u);
     tyreNum[t[0]] = { num: n, unit: u };
   });
+
+  /* cartão 4 (direita) — 296 (970..1266): ODO na primeira linha,
+     relógio e temperatura na segunda, em duas colunas */
+  var c4 = card(970, 296);
+  txt(990, 352, 'ODO', 9, 'mut', 'start');
+  var odoTxt = txt(1246, 380, '', 26, 'num', 'end');
+  el('rect', { x: 990, y: 392, width: 256, height: 1, fill: '#16283c' }, c4);
+
+  var clockTxt = txt(990, 452, '', 40, 'num', 'start');
+  clockTxt.setAttribute('letter-spacing', '-0.5');
+
+  var tempIcon = el('g', { transform: 'translate(1176,424)' }, c4);
+  el('path', {
+    d: 'M7 0a4 4 0 0 0-4 4v10a5.6 5.6 0 1 0 8 0V4a4 4 0 0 0-4-4z',
+    fill: 'none', stroke: '#7f8c9b', 'stroke-width': 1.8, 'stroke-linejoin': 'round'
+  }, tempIcon);
+  el('circle', { cx: 7, cy: 17.5, r: 2.6, fill: '#7f8c9b' }, tempIcon);
+  el('rect', { x: 6.2, y: 6, width: 1.6, height: 10, rx: 0.8, fill: '#7f8c9b' }, tempIcon);
+  var outTxt = txt(1246, 452, '', 24, 'num', 'end');
 
   var warnTxt = txt(240, 34, '', 14, 'or', 'start');
 
@@ -681,9 +712,9 @@
 
   /* no SPORT os aros ficam mais grossos, com halo forte e zona vermelha no fim */
   [thrRing, powRing].forEach(function (rg) {
-    rg.val.setAttribute('stroke-width', sport ? 19 : 14);
-    rg.glow.setAttribute('stroke-width', sport ? 40 : 30);
-    rg.red.setAttribute('stroke-width', sport ? 19 : 14);
+    rg.val.setAttribute('stroke-width', sport ? 22 : 17);
+    rg.glow.setAttribute('stroke-width', sport ? 48 : 36);
+    rg.red.setAttribute('stroke-width', sport ? 22 : 17);
     rg.red.setAttribute('opacity', sport ? '0.9' : '0');
     rg.track.setAttribute('stroke',
       scene === 'sport' ? '#3a1f1a' : (scene === 'mountain' ? '#1e4b42'
