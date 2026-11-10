@@ -167,6 +167,45 @@ public final class AdbShell {
         }, "adb-once").start();
     }
 
+    /**
+     * Cão de guarda solto no shell (como o do EvSound): fica no adbd, não no nosso processo.
+     * Quando o app morre — o carro apaga e o Android mata tudo — ele devolve o painel (46/18/0),
+     * senão o último quadro da skin fica congelado atrás da alerta de porta aberta da BYD.
+     */
+    private static final String WD_NAME = "shark_wd.sh";
+    private static final String WD_SRC = "/sdcard/Android/data/com.xdja.clusterdemo/files/" + WD_NAME;
+
+    /**
+     * Cão de guarda (como o do EvSound): um script no adbd que mora fora do nosso processo.
+     * Quando o app morre — o carro apaga e o Android mata tudo — ele devolve o painel e deixa
+     * um registro e uma captura para diagnosticar.
+     */
+    public static void watchdog(Context ctx) {
+        if (ctx == null) return;
+        try {
+            java.io.File f = new java.io.File(ctx.getExternalFilesDir(null), WD_NAME);
+            java.io.FileWriter w = new java.io.FileWriter(f, false);
+            w.write("#!/system/bin/sh\n"
+                    + "P=$(pidof com.xdja.clusterdemo)\n"
+                    + "echo \"$(date) armado pid=$P\" >> /data/local/tmp/shark.log\n"
+                    + "[ -n \"$P\" ] || exit 0\n"
+                    + "while [ -n \"$(pidof com.xdja.clusterdemo)\" ]; do sleep 2; done\n"
+                    + "echo \"$(date) app morreu\" >> /data/local/tmp/shark.log\n"
+                    + "for n in 46 18 0; do service call AutoContainer 2 i32 1000 i32 $n s16 null >/dev/null 2>&1; sleep 1.2; done\n"
+                    + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
+                    + "sleep 2\n"
+                    + "fission_screencap -d 0 > /data/local/tmp/off.raw 2>/dev/null\n"
+                    + "echo \"$(date) fim $(wc -c < /data/local/tmp/off.raw 2>/dev/null)\" >> /data/local/tmp/shark.log\n");
+            w.close();
+        } catch (Throwable t) {
+            return;
+        }
+        /* o sleep mantém a sessão viva até o filho se desprender (sem isso o adbd mata tudo) */
+        execOnce("cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
+                + "; chmod 755 /data/local/tmp/" + WD_NAME
+                + "; (nohup sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 &); sleep 1");
+    }
+
     /** solta o painel: o laço para de mandar cmd 16 e a central volta ao original da BYD */
     public static void stop() {
         paused = true;

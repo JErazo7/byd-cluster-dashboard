@@ -1000,6 +1000,7 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
             final String sk = p.getString("skin", "byd");
+            AdbShell.watchdog(MainActivity.this);
             ClusterOverlay.hide();
             new Thread(new Runnable() {
                 public void run() {

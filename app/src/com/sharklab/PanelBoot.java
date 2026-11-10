@@ -37,6 +37,7 @@ public final class PanelBoot {
         PanelRelease.session = true;
         AdbShell.start(ctx);
         AdbShell.resume();
+        AdbShell.watchdog(ctx);
         /* ordem medida no carro: a janela primeiro, 16 projeta, 45 tira os widgets da BYD.
            Sem a janela o 45 mostra o layout nativo. */
         final Context app = ctx.getApplicationContext();
