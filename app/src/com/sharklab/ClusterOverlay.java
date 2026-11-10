@@ -31,6 +31,7 @@ public final class ClusterOverlay {
     /* o painel é uma janela virtual: o Chromium congela o requestAnimationFrame da skin, então
        quem alimenta o desenho é este empurrador, de fora da página */
     private static volatile boolean pushing;
+    private static volatile Context lastCtx;
     private static DisplayManager jetDm;
     private static DisplayManager.DisplayListener jetListener;
     private static final int W = 1920, H = 720;
@@ -244,12 +245,23 @@ public final class ClusterOverlay {
     /** empurra o estado para a skin a cada 400 ms (independente do rAF da página) */
     private static void startPush(final Context ctx) {
         pushing = true;
+        lastCtx = ctx.getApplicationContext();
         final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
         final ClusterSkinActivity.PanelBridge br =
                 new ClusterSkinActivity.PanelBridge(ctx.getApplicationContext());
         h.post(new Runnable() {
             public void run() {
                 if (!pushing || web == null) return;
+                /* o listener nem sempre dispara quando o carro apaga: confere direto */
+                try {
+                    Context app = lastCtx;
+                    Display pd = app == null ? null : panelDisplay(app);
+                    if (pd != null && pd.getState() != Display.STATE_ON) {
+                        PanelRelease.release(app);
+                        return;
+                    }
+                } catch (Throwable ignored) {
+                }
                 try {
                     String js = "window.BrasaDriveUpdate&&window.BrasaDriveUpdate(" + br.state() + ")";
                     web.evaluateJavascript(js, null);
