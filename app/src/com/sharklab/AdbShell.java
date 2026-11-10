@@ -213,6 +213,8 @@ public final class AdbShell {
                     + "date +%s > " + WD_OFF_TS + "\n"
                     + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
                     /* 2) reviver: se o auto-início estiver ligado e a central ficar acesa, sobe o app */
+                    + "G=$(date +%s)\n"
+                    + "while [ $(( $(date +%s) - G )) -lt 40 ]; do sleep 2; done\n"
                     + "awake=0\n"
                     + "while [ -f $AUTO ]; do\n"
                     + "  if dumpsys power 2>/dev/null | grep -q 'mWakefulness=Awake'; then\n"
@@ -220,7 +222,7 @@ public final class AdbShell {
                     + "  else\n"
                     + "    awake=0\n"
                     + "  fi\n"
-                    + "  if [ $awake -ge 3 ]; then\n"
+                    + "  if [ $awake -ge 2 ]; then\n"
                     + "    if [ -z \"$(pidof com.xdja.clusterdemo)\" ]; then\n"
                     + "      echo \"$(date) revivendo\" >> /data/local/tmp/shark.log\n"
                     + "      am start -n com.xdja.clusterdemo/com.sharklab.MainActivity >/dev/null 2>&1\n"
@@ -228,7 +230,7 @@ public final class AdbShell {
                     + "    fi\n"
                     + "    awake=0\n"
                     + "  fi\n"
-                    + "  sleep 30\n"
+                    + "  sleep 5\n"
                     + "done\n"
                     + "rm -f /data/local/tmp/shark_wd.pid\n");
             w.close();
