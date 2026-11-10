@@ -175,55 +175,8 @@ public class MainActivity extends Activity {
 
         startGps();
 
-        /* ganchos de teste (não aparecem na interface):
-           --ez bootapply true  roda a decisão do arranque
-           --ez apply true      é o botão APLICAR
-           --ez release true    é o botão DESACTIVAR */
-        if (getIntent() != null && getIntent().getBooleanExtra("bootapply", false)) {
-            BootReceiver.applyChoice(getApplicationContext());
-        }
-        if (getIntent() != null && getIntent().hasExtra("bydset")) {
-            final String spec = getIntent().getStringExtra("bydset");
-            new Thread(new Runnable() {
-                public void run() { bridge.bydSet(spec); }
-            }).start();
-        }
-        if (getIntent() != null && getIntent().getBooleanExtra("dumpstate", false)) {
-            new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        String js = new ClusterSkinActivity.PanelBridge(getApplicationContext()).state();
-                        java.io.File f = new java.io.File(getExternalFilesDir(null), "state.json");
-                        java.io.FileWriter w = new java.io.FileWriter(f, false);
-                        w.write(js);
-                        w.close();
-                        AdbShell.trace(MainActivity.this, "state dump ok");
-                    } catch (Throwable t) {
-                        AdbShell.trace(MainActivity.this, "state dump erro " + t);
-                    }
-                }
-            }).start();
-        }
-        if (getIntent() != null && getIntent().hasExtra("bydtrace")) {
-            final String spec = getIntent().getStringExtra("bydtrace");
-            bridge.bydTrace(spec, getIntent().getIntExtra("bydsec", 45));
-        }
-        if (getIntent() != null && getIntent().hasExtra("bydpoll")) {
-            final String spec = getIntent().getStringExtra("bydpoll");
-            bridge.bydPoll(spec, 75);
-        }
-        if (getIntent() != null && getIntent().hasExtra("dumpapi")) {
-            final String cl = getIntent().getStringExtra("dumpapi");
-            new Thread(new Runnable() {
-                public void run() { bridge.apiDump(cl); }
-            }).start();
-        }
-        if (getIntent() != null && getIntent().getBooleanExtra("apply", false)) {
-            bridge.overlayShow();
-        }
-        if (getIntent() != null && getIntent().getBooleanExtra("release", false)) {
-            bridge.panelRelease();
-        }
+        testHooks(getIntent());
+
         if (getIntent() != null && getIntent().hasExtra("festate")) {
             final int v = getIntent().getIntExtra("festate", -1);
             new Thread(new Runnable() {
@@ -727,10 +680,65 @@ public class MainActivity extends Activity {
         Log.i(TAG, "painel: 16 enviado; overlay em 1,2 s");
     }
 
+    /** ganchos de teste (não aparecem na interface da central) */
+    private void testHooks(Intent it) {
+        if (it == null) return;
+    /* ganchos de teste (não aparecem na interface):
+       --ez bootapply true  roda a decisão do arranque
+       --ez apply true      é o botão APLICAR
+       --ez release true    é o botão DESACTIVAR */
+    if (it != null && it.getBooleanExtra("bootapply", false)) {
+        BootReceiver.applyChoice(getApplicationContext());
+    }
+    if (it != null && it.hasExtra("bydset")) {
+        final String spec = it.getStringExtra("bydset");
+        new Thread(new Runnable() {
+            public void run() { bridge.bydSet(spec); }
+        }).start();
+    }
+    if (it != null && it.getBooleanExtra("dumpstate", false)) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    String js = new ClusterSkinActivity.PanelBridge(getApplicationContext()).state();
+                    java.io.File f = new java.io.File(getExternalFilesDir(null), "state.json");
+                    java.io.FileWriter w = new java.io.FileWriter(f, false);
+                    w.write(js);
+                    w.close();
+                    AdbShell.trace(MainActivity.this, "state dump ok");
+                } catch (Throwable t) {
+                    AdbShell.trace(MainActivity.this, "state dump erro " + t);
+                }
+            }
+        }).start();
+    }
+    if (it != null && it.hasExtra("bydtrace")) {
+        final String spec = it.getStringExtra("bydtrace");
+        bridge.bydTrace(spec, it.getIntExtra("bydsec", 45));
+    }
+    if (it != null && it.hasExtra("bydpoll")) {
+        final String spec = it.getStringExtra("bydpoll");
+        bridge.bydPoll(spec, 75);
+    }
+    if (it != null && it.hasExtra("dumpapi")) {
+        final String cl = it.getStringExtra("dumpapi");
+        new Thread(new Runnable() {
+            public void run() { bridge.apiDump(cl); }
+        }).start();
+    }
+    if (it != null && it.getBooleanExtra("apply", false)) {
+        bridge.overlayShow();
+    }
+    if (it != null && it.getBooleanExtra("release", false)) {
+        bridge.panelRelease();
+    }
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        testHooks(intent);
         if (intent != null && intent.getBooleanExtra("release", false)) {
             released = true;
             PanelRelease.release();
