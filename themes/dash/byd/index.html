@@ -526,6 +526,10 @@
   /* os números ficam nas pontas dos trilhos, dentro do cartão */
   var NUM = { xl: artX - 4, xr: artX + ART.w + 4, yf: 362, yr: 428 };
 
+  /* terreno medido no carro (rueda direita): 5 montanha, 3 lodo, 4 areia, 2 neve.
+     1 = sem terreno, e aí o painel volta ao modo de condução (normal/eco/sport). */
+  var TERRAIN = { 5: 'MONTAÑA', 3: 'LODO', 4: 'ARENA', 2: 'NIEVE' };
+
   /* modo de condução: o testigo do painel distingue os três (medido: 135298 normal,
      8353 eco, 10306 sport); `opmode` sozinho só separa dois deles */
   function driveMode(d) {
@@ -641,13 +645,17 @@
   function sceneFor(mode) {
     /* a cena segue o modo de condução. O terreno ficou de fora: `surfmode` continua em 1
        mesmo com o carro em ECO/SPORT, então ele não serve para escolher a paisagem. */
-    /* ECO e NORMAL são o mesmo tema no carro; só SPORT troca a paisagem */
+    /* terreno muda a paisagem; ECO e NORMAL são o mesmo tema e só SPORT troca a foto */
+    if (/MONTA/i.test(mode)) return 'mountain';
+    if (/NIEVE/i.test(mode)) return 'snow';
+    if (/LODO/i.test(mode)) return 'mud';
+    if (/ARENA/i.test(mode)) return 'sand';
     return /SPORT/i.test(mode) ? 'sport' : 'night';
   }
 
   function draw(d) {
-    /* mesma leitura do pill: o testigo manda (opmode sozinho confunde ECO com SPORT) */
-    var mode0 = driveMode(d);
+    /* mesma leitura do pill: terreno ou modo de condução */
+    var mode0 = TERRAIN[+d.surfmode] || driveMode(d);
     var kmh = Math.max(0, d.speed || 0);
     spdNum.textContent = String(Math.round(spd(kmh)));
 
@@ -678,9 +686,8 @@
     /* medido no carro: `opmode` é o modo de condução (1 NORMAL, 2 ECO, 3 SPORT) e
        `surfmode` é o terreno (1 montanha, 2 neve, 3 lama, 4 areia) — são controles diferentes;
        antes o pill mostrava o terreno e girar a rueda do modo não mudava nada. */
-    /* só um modo fica ativo por vez: com o carro em ECO o `surfmode` continua em 1 (valor de
-       configuração, não de estado), então o pill segue o testigo do modo e nada mais */
-    var mode = driveMode(d);
+    /* só um modo fica ativo por vez: terreno quando a rueda direita escolheu um, senão o modo */
+    var mode = TERRAIN[+d.surfmode] || driveMode(d);
     modeTxt.textContent = mode.toUpperCase();
     modeGlyph(mode);
 
