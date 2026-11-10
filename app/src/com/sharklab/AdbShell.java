@@ -177,6 +177,8 @@ public final class AdbShell {
      * senão o último quadro da skin fica congelado atrás da alerta de porta aberta da BYD.
      */
     private static final String WD_NAME = "shark_wd.sh";
+    /* aspa simples dentro do script montado em Java */
+    private static final String Q = "\\\"";
     private static final String WD_SRC = "/sdcard/Android/data/com.xdja.clusterdemo/files/" + WD_NAME;
     private static final String WD_BEAT = "/sdcard/Android/data/com.xdja.clusterdemo/files/beat";
     /* carimbo do último release do vigia: separa "ignição" de "alerta de porta aberta" */
@@ -212,23 +214,15 @@ public final class AdbShell {
                     + "for n in 46 18 0; do service call AutoContainer 2 i32 1000 i32 $n s16 null >/dev/null 2>&1; sleep 1.2; done\n"
                     + "date +%s > " + WD_OFF_TS + "\n"
                     + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
-                    /* 2) reviver: se o auto-início estiver ligado e a central ficar acesa, sobe o app */
-                    + "G=$(date +%s)\n"
-                    + "while [ $(( $(date +%s) - G )) -lt 40 ]; do sleep 2; done\n"
-                    + "awake=0\n"
+                    /* 2) reviver, igual ao EvSound: app morta -> sobe de novo, sem janela de tempo.
+                       Quem decide aplicar é a própria app (marcha fora de P = arrancou) */
                     + "while [ -f $AUTO ]; do\n"
-                    + "  if dumpsys power 2>/dev/null | grep -q 'mWakefulness=Awake'; then\n"
-                    + "    awake=$((awake+1))\n"
-                    + "  else\n"
-                    + "    awake=0\n"
-                    + "  fi\n"
-                    + "  if [ $awake -ge 2 ]; then\n"
-                    + "    if [ -z \"$(pidof com.xdja.clusterdemo)\" ]; then\n"
-                    + "      echo \"$(date) revivendo\" >> /data/local/tmp/shark.log\n"
+                    + "  if [ -z " + Q + "$(pidof com.xdja.clusterdemo)" + Q + " ]; then\n"
+                    + "    if dumpsys power 2>/dev/null | grep -q 'mWakefulness=Awake'; then\n"
+                    + "      echo " + Q + "$(date) revivendo" + Q + " >> /data/local/tmp/shark.log\n"
                     + "      am start -n com.xdja.clusterdemo/com.sharklab.MainActivity >/dev/null 2>&1\n"
                     + "      exit 0\n"
                     + "    fi\n"
-                    + "    awake=0\n"
                     + "  fi\n"
                     + "  sleep 5\n"
                     + "done\n"

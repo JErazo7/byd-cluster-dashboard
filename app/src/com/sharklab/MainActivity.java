@@ -175,6 +175,29 @@ public class MainActivity extends Activity {
 
         startGps();
 
+        /* o auto-início também se decide pelo carro: marcha fora de P (e velocidade) é o
+           evento real de "arrancou", não um tempo. Vale enquanto a app está viva, inclusive
+           depois de um revive. */
+        ui.post(new Runnable() {
+            public void run() {
+                try {
+                    SharedPreferences pa = getSharedPreferences("lab", MODE_PRIVATE);
+                    if (pa.getBoolean("bootApply", false) && !ClusterOverlay.running()
+                            && !justReleasedByWatchdog()) {
+                        double[] b = byd.snapshot();
+                        int gear = b[1] > -998 ? (int) b[1] : -1;   /* 3 = P */
+                        boolean moved = (gear >= 0 && gear != 3) || b[0] > 1;
+                        if (moved) {
+                            AdbShell.trace(MainActivity.this, "auto: marcha " + gear + " -> aplica");
+                            bridge.overlayShow();
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+                ui.postDelayed(this, 3000);
+            }
+        });
+
         /* reinício do processo com "iniciar automáticamente" ligado: se não foi o vigia quem
            soltou o painel há instantes, é uma ignição — aplica sozinho */
         if (p.getBoolean("bootApply", false) && !justReleasedByWatchdog()) {
