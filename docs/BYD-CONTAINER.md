@@ -171,3 +171,29 @@ adb -s <ip>:5555 exec-out fission_screencap -d 0 > panel.raw   # RGBA, cabeçalh
 **Não rode o EvSound junto.** Ele também manda 16/18 no mesmo container e os dois ficam
 disputando o painel; quando o EvSound está ativo a nossa skin some. Deixe-o desinstalado ou
 parado. Se o painel voltar à interface da BYD do nada, é sinal de que algo mandou 18.
+
+## O display do painel existe só enquanto o container está projetando
+
+Medido em 2026-11-10 com o EvSound **rodando** (pacote `com.mdemetrio.evsoundbyd`, atividade
+`.MainActivity`; ele não aparece na gaveta, se abre por `am start`):
+
+```
+DisplayDeviceInfo{"fission_bg_xdjaVirtualSurface", 1920x720, density 320, type VIRTUAL,
+                  owner com.xdja.containerservice (uid 1000),
+                  FLAG_PRESENTATION, mDisplayId=2}
+```
+
+Camadas no SurfaceFlinger com ele ativo: `EvSound painel` e `EvSound botão do som`.
+
+Duas consequências:
+
+1. **Antes disso `dumpsys display` mostra um display só.** Era por isso que a janela da skin
+   respondia `display do painel nao encontrado`: o display não existe até o container entrar em
+   projeção com um cliente pendurado nele.
+2. **Com o display vivo a nossa skin pinta por cima normalmente** — verificado: com o EvSound
+   aberto, abrir a SharkLab desenha o tema `byd` no painel (acelerador, potência, bateria,
+   combustível, autonomia, pressões 2.5/2.6 bar, MONTAÑA, P R N D, ODO).
+
+Ou seja: o `ClusterOverlay` está correto; falta a SharkLab conseguir que o container publique o
+display. Enquanto isso não estiver resolvido, a ordem prática é: **EvSound inicia a projeção, a
+SharkLab desenha a skin**.
