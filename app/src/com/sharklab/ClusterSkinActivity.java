@@ -133,17 +133,21 @@ public class ClusterSkinActivity extends Activity {
            aparecia trocado até a leitura assentar */
         private static int lastEco = 135298;
         private static int lastSurf = 1;
+        private static final long STARTED = System.currentTimeMillis();
+        /* segurar o último valor só nos primeiros 15 s do processo; depois vale o que o carro diz,
+           senão a rueda deixa de mudar o modo (o teste com 8322 ficava eterno) */
+        private static final long HOLD = 15000;
 
         private int ecoValid(double v) {
             int e = (int) Math.round(v);
-            if (e == 135298 || e == 8353 || e == 10306) lastEco = e;
-            return lastEco;
+            if (e == 135298 || e == 8353 || e == 10306) { lastEco = e; return e; }
+            return (System.currentTimeMillis() - STARTED < HOLD) ? lastEco : e;
         }
 
         private int surfValid(double v) {
             int sm = (int) Math.round(v);
-            if (sm >= 1 && sm <= 5) lastSurf = sm;
-            return lastSurf;
+            if (sm >= 1 && sm <= 5) { lastSurf = sm; return sm; }
+            return (System.currentTimeMillis() - STARTED < HOLD) ? lastSurf : sm;
         }
 
         private String num(double v) {

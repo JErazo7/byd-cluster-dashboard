@@ -27,6 +27,7 @@ public final class PanelBoot {
         String skin = p.getString("skin", "byd");
         boolean overlay = p.getBoolean("overlay", true);
 
+        PanelRelease.session = true;
         AdbShell.start(ctx);
         AdbShell.resume();
         /* ordem medida no carro: a janela primeiro, 16 projeta, 45 tira os widgets da BYD.

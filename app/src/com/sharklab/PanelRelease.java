@@ -10,8 +10,16 @@ public final class PanelRelease {
     private PanelRelease() {
     }
 
+    /**
+     * Vale só dentro do processo: a skin está no painel porque o usuário (ou o arranque) pediu
+     * AGORA. Se o processo morre — o carro apaga e o PanelService é ressuscitado — a skin não
+     * volta: era isso que reaparecia em cima da alerta de porta aberta.
+     */
+    public static volatile boolean session;
+
     /** devolve o painel e marca a skin como desaplicada (o app não retoma sozinho no resume) */
     public static void release(android.content.Context ctx) {
+        session = false;
         if (ctx != null) {
             /* applied E enabled: o laço de 60 s recriava a janela com `enabled` ainda ligado */
             ctx.getSharedPreferences("lab", android.content.Context.MODE_PRIVATE).edit()
@@ -21,7 +29,7 @@ public final class PanelRelease {
     }
 
     public static void release() {
-        AdbShell.trace(null, "release() sem ctx");
+        session = false;
         /* a janela da skin tem que sair ANTES de devolver o painel: com o carro desligado a BYD
            acende o quadro para a alerta de porta aberta e a nossa janela ficava por cima dela */
         ClusterOverlay.hide();

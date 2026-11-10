@@ -49,6 +49,7 @@ public class PanelService extends Service {
         f.addAction(Intent.ACTION_SHUTDOWN);
         f.addAction("android.intent.action.QUICKBOOT_POWEROFF");
         registerReceiver(screenOff, f);
+        AdbShell.trace(getApplicationContext(), "servico: receptor registrado");
     }
 
     @Override
