@@ -464,7 +464,10 @@ public class MainActivity extends Activity {
     /** garante a janela do painel quando ela não existe (boot, troca de display, etc.) */
     private void ensureOverlay() {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        if (!p.getBoolean("overlay", true) || ClusterOverlay.running()) return;
+        /* só recria se o usuário (ou o boot) mandou aplicar: senão o laço ressuscitava a skin
+           depois de desligar o carro */
+        if (!p.getBoolean("applied", false) || !p.getBoolean("overlay", true)
+                || ClusterOverlay.running()) return;
         boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "byd"), true, false));
         Log.i(TAG, "painel: overlay recriado=" + ok + " " + ClusterOverlay.error());
         if (ok) ui.postDelayed(new Runnable() {
@@ -483,7 +486,8 @@ public class MainActivity extends Activity {
             public void run() {
                 try {
                     /* 45 só com a janela viva: tela cheia sem a skin mostra o layout nativo */
-                    if (getSharedPreferences("lab", MODE_PRIVATE).getBoolean("enabled", true)) {
+                    SharedPreferences p2 = getSharedPreferences("lab", MODE_PRIVATE);
+                    if (p2.getBoolean("applied", false)) {
                         if (ClusterOverlay.running()) bridge.clusterCast(45);
                         else ensureOverlay();
                     }

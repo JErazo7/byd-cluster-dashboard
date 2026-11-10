@@ -13,8 +13,9 @@ public final class PanelRelease {
     /** devolve o painel e marca a skin como desaplicada (o app não retoma sozinho no resume) */
     public static void release(android.content.Context ctx) {
         if (ctx != null) {
+            /* applied E enabled: o laço de 60 s recriava a janela com `enabled` ainda ligado */
             ctx.getSharedPreferences("lab", android.content.Context.MODE_PRIVATE).edit()
-                    .putBoolean("applied", false).apply();
+                    .putBoolean("applied", false).putBoolean("enabled", false).apply();
         }
         release();
     }
