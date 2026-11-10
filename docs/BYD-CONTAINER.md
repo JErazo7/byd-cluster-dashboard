@@ -197,3 +197,21 @@ Duas consequências:
 Ou seja: o `ClusterOverlay` está correto; falta a SharkLab conseguir que o container publique o
 display. Enquanto isso não estiver resolvido, a ordem prática é: **EvSound inicia a projeção, a
 SharkLab desenha a skin**.
+
+## A sequência do container: 46 e depois 16
+
+Extraído do APK do EvSound (`/tmp/ev330.apk`, strings do dex) e confirmado no carro:
+
+```
+service call AutoContainer 2 i32 1000 i32 46 s16 null; sleep 1.2
+service call AutoContainer 2 i32 1000 i32 16 s16 null
+```
+
+**O 46 é o que cria o display do painel** (`fission_bg_xdjaVirtualSurface`). O 16 sozinho
+projeta, mas sem o 46 não existe display nenhum e a janela da skin responde "display do painel
+nao encontrado". Ao devolver o painel a BYD o EvSound manda **46, 18 e 0**, nessa ordem.
+
+Medido com o EvSound **desabilitado** (`pm disable-user com.mdemetrio.evsoundbyd`): mandando 46 e
+16, `dumpsys display` passa de 1 para 2 displays e a skin da SharkLab aparece no painel — já não
+depende do EvSound. Falta acertar a escala: a skin sai ampliada e cortada (viewport do painel é
+960 CSS px para um viewBox de 1280×480).

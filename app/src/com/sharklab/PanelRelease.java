@@ -12,6 +12,10 @@ public final class PanelRelease {
 
     public static void release() {
         AdbShell.stop();
+        /* a sequência do EvSound para devolver o painel: 46, 18, 0 */
+        AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 46 s16 null; sleep 1.2; "
+                + "service call AutoContainer 2 i32 1000 i32 18 s16 null; sleep 1; "
+                + "service call AutoContainer 2 i32 1000 i32 0 s16 null");
         if (PanelCast.send(18)) return;
         try {
             Class<?> sm = Class.forName("android.os.ServiceManager");

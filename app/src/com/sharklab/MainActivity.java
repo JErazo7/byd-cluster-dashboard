@@ -173,6 +173,83 @@ public class MainActivity extends Activity {
 
         startGps();
 
+        if (getIntent() != null && getIntent().getBooleanExtra("magic", false)) {
+            new Thread(new Runnable() {
+                public void run() {
+                    StringBuilder sb = new StringBuilder("{\"iface\":[");
+                    try {
+                        Class<?> c = Class.forName("android.view.IMagicWindowManager");
+                        java.lang.reflect.Method[] ms = c.getMethods();
+                        for (int i = 0; i < ms.length; i++) {
+                            if (i > 0) sb.append(',');
+                            sb.append("\"").append(ms[i].getName()).append('(');
+                            Class<?>[] ps = ms[i].getParameterTypes();
+                            for (int j = 0; j < ps.length; j++) {
+                                if (j > 0) sb.append(',');
+                                sb.append(ps[j].getSimpleName());
+                            }
+                            sb.append("):").append(ms[i].getReturnType().getSimpleName()).append("\"");
+                        }
+                    } catch (Throwable t) {
+                        sb.append("\"erro:").append(t).append('"');
+                    }
+                    sb.append("],\"stub\":[");
+                    try {
+                        Class<?> stub = Class.forName("android.view.IMagicWindowManager$Stub");
+                        java.lang.reflect.Method[] ms = stub.getDeclaredMethods();
+                        boolean first = true;
+                        for (java.lang.reflect.Method m : ms) {
+                            if (!java.util.Arrays.toString(m.getParameterTypes()).contains("IBinder")) continue;
+                            if (!first) sb.append(',');
+                            first = false;
+                            sb.append('"').append(m.getName()).append('(');
+                            Class<?>[] ps = m.getParameterTypes();
+                            for (int j = 0; j < ps.length; j++) {
+                                if (j > 0) sb.append(',');
+                                sb.append(ps[j].getSimpleName());
+                            }
+                            sb.append(')').append('"');
+                        }
+                    } catch (Throwable t) {
+                        sb.append("\"erro:").append(t).append('"');
+                    }
+                    sb.append("],\"state\":[");
+                    try {
+                        Class<?> stub = Class.forName("android.view.IMagicWindowManager$Stub");
+                        Object binder = Class.forName("android.os.ServiceManager")
+                                .getMethod("getService", String.class).invoke(null, "magicwindow");
+                        Object svc = stub.getMethod("asInterface", android.os.IBinder.class).invoke(null, binder);
+                        String[] pkgs = {"com.xdja.clusterdemo", "com.mdemetrio.evsoundbyd"};
+                        boolean first = true;
+                        for (String pk : pkgs) {
+                            if (!first) sb.append(',');
+                            first = false;
+                            sb.append("{\"pkg\":\"").append(pk).append("\"");
+                            try {
+                                Object magic = svc.getClass().getMethod("isMagicApp", String.class).invoke(svc, pk);
+                                sb.append(",\"isMagic\":").append(String.valueOf(magic));
+                            } catch (Throwable t) { sb.append(",\"isMagic\":\"erro\""); }
+                            try {
+                                Object acts = svc.getClass().getMethod("getMagicAppActivities", String.class).invoke(svc, pk);
+                                sb.append(",\"activities\":").append(String.valueOf(acts));
+                            } catch (Throwable t) { sb.append(",\"activities\":\"erro\""); }
+                            sb.append('}');
+                        }
+                    } catch (Throwable t) {
+                        sb.append("\"erro:").append(t).append('"');
+                    }
+                    sb.append("]}");
+                    try {
+                        java.io.File f = new java.io.File(getExternalFilesDir(null), "magic.json");
+                        java.io.FileOutputStream o = new java.io.FileOutputStream(f);
+                        o.write(sb.toString().getBytes("UTF-8"));
+                        o.close();
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }).start();
+        }
+
         if (getIntent() != null && getIntent().getBooleanExtra("jsontest", false)) {
             new Thread(new Runnable() {
                 public void run() {

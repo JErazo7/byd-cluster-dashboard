@@ -73,7 +73,12 @@ public final class AdbShell {
                         /* respeita o botão do app: desligado pelo usuário, nada de cmd 16 */
                         boolean on = ctx.getSharedPreferences("lab", 0).getBoolean("enabled", true);
                         if (!paused && on) {
-                            String out = exec(sess, "service call AutoContainer 2 i32 1000 i32 16 s16 null", id++);
+                            /* medido no EvSound: 46 prepara/cria o display do painel e só
+                               depois o 16 projeta. Sem o 46 o display não existe e a skin fica
+                               sem onde desenhar. */
+                            String out = exec(sess,
+                                    "service call AutoContainer 2 i32 1000 i32 46 s16 null; sleep 1.2; "
+                                            + "service call AutoContainer 2 i32 1000 i32 16 s16 null", id++);
                             Log.i(TAG, "adb: 16 -> " + (out == null ? "null" : out.trim()));
                         }
                         android.util.Log.i(TAG, "adb: tick paused=" + paused + " enabled=" + on);
@@ -94,6 +99,22 @@ public final class AdbShell {
     public static void resume() {
         paused = false;
         wake = true;
+    }
+
+    /** roda uma linha de shell numa sessão própria (usado ao soltar o painel) */
+    public static void execOnce(final String cmd) {
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    Sess s = connect(null);
+                    if (s == null) return;
+                    exec(s, cmd, 900);
+                    try { s.s.close(); } catch (Throwable ignored) { }
+                } catch (Throwable t) {
+                    android.util.Log.w(TAG, "adb: execOnce falhou: " + t);
+                }
+            }
+        }, "adb-once").start();
     }
 
     /** solta o painel: o laço para de mandar cmd 16 e a central volta ao original da BYD */
