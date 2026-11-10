@@ -81,9 +81,12 @@
 
   /* --- encender --- */
   $('start').addEventListener('click', function () {
+    var info = '';
     started = !started;
     if (started && L.ignite) L.ignite();   /* painel: varredura de arranque */
     refresh();
+    /* o JSON de resposta carrega o erro da projeção: aparece embaixo do botão */
+    if (info) $('startSub').textContent = String(info).slice(0, 220);
   });
 
   /* --- temas --- */
