@@ -159,6 +159,10 @@ public final class BydBridge {
     private final Context ctx;
     private final Map<String, Object> devices = new HashMap<String, Object>();
     private final Map<String, Boolean> probed = new HashMap<String, Boolean>();
+    /* os dispositivos da BYD devolvem leitura velha quando o objeto é reaproveitado: em SPORT o
+       mesmo instance seguia dizendo ECO. Recriar de vez em quando resolve (medido no carro). */
+    private final Map<String, Long> born = new HashMap<String, Long>();
+    private static final long TTL = 1500;
 
     public BydBridge(Context ctx) {
         this.ctx = new BydPermissionContext(ctx.getApplicationContext());
@@ -168,7 +172,11 @@ public final class BydBridge {
 
     /** getInstance(Context) e, se não existir, getInstance() — cacheado por classe */
     private Object device(String cls) {
-        if (devices.containsKey(cls)) return devices.get(cls);
+        Long at = born.get(cls);
+        if (devices.containsKey(cls) && at != null
+                && System.currentTimeMillis() - at < TTL) {
+            return devices.get(cls);
+        }
         Object d = null;
         try {
             Class<?> c = Class.forName(cls);
@@ -184,6 +192,7 @@ public final class BydBridge {
         } catch (Throwable ignored) {
         }
         devices.put(cls, d);
+        born.put(cls, System.currentTimeMillis());
         return d;
     }
 
