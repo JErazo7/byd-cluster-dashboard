@@ -174,6 +174,7 @@ public final class AdbShell {
      */
     private static final String WD_NAME = "shark_wd.sh";
     private static final String WD_SRC = "/sdcard/Android/data/com.xdja.clusterdemo/files/" + WD_NAME;
+    private static final String WD_BEAT = "/sdcard/Android/data/com.xdja.clusterdemo/files/beat";
 
     /**
      * Cão de guarda (como o do EvSound): um script no adbd que mora fora do nosso processo.
@@ -185,12 +186,20 @@ public final class AdbShell {
         try {
             java.io.File f = new java.io.File(ctx.getExternalFilesDir(null), WD_NAME);
             java.io.FileWriter w = new java.io.FileWriter(f, false);
+            /* batimento: se o app morre OU congela (o Android congela processo em cache, o pid
+               continua vivo e kill -0 mentiria), o carimbo para de avançar e o vigia solta */
             w.write("#!/system/bin/sh\n"
-                    + "P=$(pidof com.xdja.clusterdemo)\n"
-                    + "echo \"$(date) armado pid=$P\" >> /data/local/tmp/shark.log\n"
-                    + "[ -n \"$P\" ] || exit 0\n"
-                    + "while [ -n \"$(pidof com.xdja.clusterdemo)\" ]; do sleep 2; done\n"
-                    + "echo \"$(date) app morreu\" >> /data/local/tmp/shark.log\n"
+                    + "BEAT=" + WD_BEAT + "\n"
+                    + "echo \"$(date) armado\" >> /data/local/tmp/shark.log\n"
+                    + "sleep 20\n"
+                    + "while :; do\n"
+                    + "  now=$(date +%s)\n"
+                    + "  last=$(stat -c %Y $BEAT 2>/dev/null)\n"
+                    + "  case \"$last\" in ''|*[!0-9]*) last=0;; esac\n"
+                    + "  [ $((now - last)) -gt 12 ] && break\n"
+                    + "  sleep 3\n"
+                    + "done\n"
+                    + "echo \"$(date) app parou\" >> /data/local/tmp/shark.log\n"
                     + "for n in 46 18 0; do service call AutoContainer 2 i32 1000 i32 $n s16 null >/dev/null 2>&1; sleep 1.2; done\n"
                     + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
                     + "sleep 2\n"
@@ -200,10 +209,19 @@ public final class AdbShell {
         } catch (Throwable t) {
             return;
         }
-        /* o sleep mantém a sessão viva até o filho se desprender (sem isso o adbd mata tudo) */
         execOnce("cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
                 + "; chmod 755 /data/local/tmp/" + WD_NAME
                 + "; (nohup sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 &); sleep 1");
+    }
+
+    /** carimbo de vida: o vigia solta o painel quando ele para de avançar */
+    static void beat(Context ctx) {
+        if (ctx == null) return;
+        try {
+            java.io.File f = new java.io.File(ctx.getExternalFilesDir(null), "beat");
+            f.delete();
+            f.createNewFile();
+        } catch (Throwable ignored) { }
     }
 
     /** solta o painel: o laço para de mandar cmd 16 e a central volta ao original da BYD */

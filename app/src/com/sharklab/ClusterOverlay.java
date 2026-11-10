@@ -265,6 +265,8 @@ public final class ClusterOverlay {
                 } catch (Throwable ignored) {
                 }
                 ticks++;
+                /* batimento a cada ~2 s: o vigia do adbd solta o painel quando ele parar */
+                if (ticks % 5 == 0) AdbShell.beat(lastCtx);
                 /* batimento: mostra se o processo sobrevive ao apagamento do carro */
                 if (ticks % 5 == 0) {
                     AdbShell.trace(lastCtx, "vivo " + ticks + " estado=" + br.powerProbe());
