@@ -214,7 +214,7 @@
 
   /* ---------- fundo: paisagem ampliada (mais zoom que a foto original) ---------- */
   el('rect', { x: 0, y: 0, width: W, height: H, fill: '#04070c' });
-  var gBg = el('g', { 'clip-path': 'url(#clipFrame)' });
+  var gBg = el('g', { id: 'gBg', 'clip-path': 'url(#clipFrame)' });
   var bgNormal = el('image', {
     id: 'bgNight', href: 'assets/bg.jpg', opacity: 1,
     x: -306, y: -8, width: 1892, height: 340, preserveAspectRatio: 'xMidYMid slice'
@@ -345,10 +345,54 @@
     rrect(x + 3, y + 3, w - 6, h - 6, Math.max(2, r - 3), { class: 'edge-core', fill: 'none', 'stroke-width': 1, opacity: 0.18 }, parent);
     return rrect(x, y, w, h, r, { class: 'edge-mid', fill: 'none', 'stroke-width': 1.5 * f, opacity: 0.65 }, parent);
   }
+  /* vidro líquido: brilho diagonal que atravessa o cartão */
+  var gGlass = el('linearGradient', { id: 'gGlass', x1: '0', y1: '0', x2: '1', y2: '1' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#ffffff', 'stop-opacity': '0.17' }, gGlass);
+  el('stop', { offset: '0.42', 'stop-color': '#ffffff', 'stop-opacity': '0.05' }, gGlass);
+  el('stop', { offset: '0.62', 'stop-color': '#ffffff', 'stop-opacity': '0.02' }, gGlass);
+  el('stop', { offset: '1', 'stop-color': '#ffffff', 'stop-opacity': '0.12' }, gGlass);
+
+  var gGlassShade = el('linearGradient', { id: 'gGlassShade', x1: '0', y1: '0', x2: '0', y2: '1' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#000000', 'stop-opacity': '0' }, gGlassShade);
+  el('stop', { offset: '1', 'stop-color': '#000000', 'stop-opacity': '0.22' }, gGlassShade);
+
+  var cardSeq = 0;
+  /* desfoque só na área do cartão: barato no SoC do carro */
+  function glassBlur(x, w) {
+    var id = 'fGlass' + (++cardSeq);
+    var f = el('filter', {
+      id: id, filterUnits: 'userSpaceOnUse',
+      x: x - 4, y: 326, width: w + 8, height: 144
+    }, defs);
+    el('feGaussianBlur', { stdDeviation: '7' }, f);
+    return id;
+  }
+
   function card(x, w) {
     var g = el('g');
-    rrect(x, 330, w, 136, 18, { fill: 'url(#gCard)' }, g);
-    neon(g, x, 330, w, 136, 18, 1);
+    var blur = glassBlur(x, w);
+    var cid = 'cGlass' + cardSeq;
+    var cp = el('clipPath', { id: cid }, defs);
+    rrect(x, 330, w, 136, 18, {}, cp);
+    var inner = el('g', { 'clip-path': 'url(#' + cid + ')' }, g);
+    /* o que está atrás aparece desfocado: vidro fosco de verdade */
+    el('use', { href: '#gBg', filter: 'url(#' + blur + ')' }, inner);
+    rrect(x, 330, w, 136, 18, { fill: 'rgba(190,222,255,0.10)' }, inner);
+    rrect(x, 330, w, 136, 18, { fill: 'url(#gGlass)' }, inner);
+    /* borda clara + aro interno: a leitura do vidro do iOS */
+    rrect(x + 0.5, 330.5, w - 1, 135, 17.5, {
+      fill: 'none', stroke: 'rgba(255,255,255,0.42)', 'stroke-width': 1.1
+    }, g);
+    rrect(x + 3, 333, w - 6, 130, 15, {
+      fill: 'none', stroke: 'rgba(255,255,255,0.10)', 'stroke-width': 1
+    }, g);
+    /* fio de luz no topo, como a reflexão do vidro */
+    rrect(x + 14, 331.5, w - 28, 1.6, 0.8, {
+      fill: 'url(#gGlass)', opacity: 0.9
+    }, g);
+    /* sombra interna embaixo: dá espessura ao vidro */
+    rrect(x, 400, w, 66, 18, { fill: 'url(#gGlassShade)' }, g);
+    neon(g, x, 330, w, 136, 18, 0.3);
     return g;
   }
   function batteryIcon(x, y, parent) {

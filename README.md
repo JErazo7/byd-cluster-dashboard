@@ -21,6 +21,12 @@ trilhos laterais. Entra com 112 px de altura (~188 de largura) e os números (2.
 com folga em relação às bordas do cartão. A arte é **igual em todos os modos** — nenhum filtro
 de cena — e a antiga, desenhada em SVG, virou este PNG: mesma leitura, menos vértices.
 
+Os cartões são **vidro líquido**: cada um recorta uma cópia desfocada do fundo (`<use
+href="#gBg">` com `feGaussianBlur` numa região do tamanho do cartão, então só a área visível é
+filtrada), ganha uma tinta azul de 10%, um brilho diagonal, sombra interna embaixo, aro claro
+de 1,1 px + aro interno e um fio de luz no topo. O fundo muda com a cena e o vidro acompanha,
+porque a cópia é viva.
+
 Banda de baixo, três cartões: bateria (14..460), **pressões no meio** (470..810) e modos
 (820..1266), todos com o fundo `gCard`. Relógio, odômetro e temperatura continuam nas quinas
 do topo. Os aros cresceram de R 120 para R 146 com traço 17 (22 no SPORT), ticks e números
