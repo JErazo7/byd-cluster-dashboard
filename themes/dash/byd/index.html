@@ -687,10 +687,9 @@
     /* medido no carro: `opmode` é o modo de condução (1 NORMAL, 2 ECO, 3 SPORT) e
        `surfmode` é o terreno (1 montanha, 2 neve, 3 lama, 4 areia) — são controles diferentes;
        antes o pill mostrava o terreno e girar a rueda do modo não mudava nada. */
-    var terr = TR0[+d.surfmode] || '';
-    /* o modo mandante: terreno quando há terreno (montanha é montanha, não "eco montanha"),
-       senão ECO/NORMAL/SPORT pelo testigo do painel */
-    var mode = terr || driveMode(d);
+    /* só um modo fica ativo por vez: com o carro em ECO o `surfmode` continua em 1 (valor de
+       configuração, não de estado), então o pill segue o testigo do modo e nada mais */
+    var mode = driveMode(d);
     modeTxt.textContent = mode.toUpperCase();
     modeGlyph(mode);
 
