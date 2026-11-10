@@ -109,6 +109,10 @@ public final class BydBridge {
     private static final String[][] DC_MODE = {
             {P + "energy.BYDAutoEnergyDevice", "getDCWorkMode"}
     };
+    /* testigo do modo: 135298 = normal, 8353 = eco, 10306 = sport (medido no carro) */
+    private static final String[][] ECO_STATE = {
+            {P + "instrument.BYDAutoInstrumentDevice", "getECOIndicatorState"}
+    };
     private static final String[][] OP_MODE = {
             {P + "energy.BYDAutoEnergyDevice", "getOperationMode"}
     };
@@ -394,7 +398,8 @@ public final class BydBridge {
                 first(AUTO_MODE),                       /* 27 gearbox.getGearboxAutoModeType */
                 first(ENERGY_STATE),                    /* 28 energy.getEnergyState */
                 first(BCM_STATE),                       /* 29 energy.getBCMState */
-                first(DAY_MODE)                         /* 30 bodywork.getPowerDayMode */
+                first(DAY_MODE),                        /* 30 bodywork.getPowerDayMode */
+                first(ECO_STATE)                        /* 31 instrument.getECOIndicatorState */
         };
     }
 }

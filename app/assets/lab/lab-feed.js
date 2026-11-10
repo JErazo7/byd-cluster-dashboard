@@ -60,6 +60,7 @@
       dmode: s.dmode,
       drive: s.drive || '',
       opmode: s.opmode,        /* modo de condução: 1 NORMAL, 2 ECO, 3 SPORT */
+      ecoind: s.ecoind,        /* testigo do modo: 135298 normal, 8353 eco, 10306 sport */
       surfmode: s.surfmode,    /* terreno: 1 montanha, 2 neve, 3 lama, 4 areia */
       ready: s.ready,
       regen: s.regen,

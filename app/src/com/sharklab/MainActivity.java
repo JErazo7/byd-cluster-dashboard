@@ -848,7 +848,7 @@ public class MainActivity extends Activity {
                     + ",\"pw\":" + pw
                     + ",\"odo\":" + odo + ",\"range\":" + range
                     + ",\"tout\":" + temp + ",\"btemp\":30,\"dmode\":2,\"drive\":\"ECO\",\"ready\":1,\"regen\":0"
-                    + ",\"opmode\":" + i(b[25]) + ",\"surfmode\":" + i(b[23])
+                    + ",\"opmode\":" + i(b[25]) + ",\"surfmode\":" + i(b[23]) + ",\"ecoind\":" + i(b[31])
                     + ",\"fuel\":" + i(b[13]) + ",\"fuelKm\":" + i(b[14])
                     + ",\"ev\":" + (b[15] > -998 ? ((b[15] >= 200 && b[15] <= 8000) ? "0" : "1") : "null")
                     + ",\"tyre\":" + tyreJson(b)

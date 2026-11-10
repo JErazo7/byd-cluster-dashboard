@@ -496,8 +496,6 @@
     }
   }
   var modeTxt = txt(MCARD.cx, 384, '', 20, 'num', 'middle', 500);
-  /* terreno (montanha/neve/lama/areia) é outro controle: vai pequeno no canto do pill */
-  var terrainTxt = txt(pill.x + pill.w - 16, 381, '', 11, 'mut', 'end');
   modeTxt.setAttribute('letter-spacing', '1.5');
 
   /* marchas centradas no painel dos modos (sem o selo EV/HEV, a BYD já o mostra na faixa) */
@@ -527,6 +525,19 @@
 
   /* os números ficam nas pontas dos trilhos, dentro do cartão */
   var NUM = { xl: artX - 4, xr: artX + ART.w + 4, yf: 362, yr: 428 };
+
+  /* modo de condução: o testigo do painel distingue os três (medido: 135298 normal,
+     8353 eco, 10306 sport); `opmode` sozinho só separa dois deles */
+  function driveMode(d) {
+    var e = +d.ecoind;
+    if (e === 135298) return 'NORMAL';
+    if (e === 8353) return 'ECO';
+    if (e === 10306) return 'SPORT';
+    var op = +d.opmode;
+    if (op === 1) return 'NORMAL';
+    if (op === 2) return 'ECO';
+    return 'NORMAL';
+  }
 
   /* posição/âncora de cada número */
   var TYRE = [['fl', NUM.xl, NUM.yf, 'end'], ['fr', NUM.xr, NUM.yf, 'start'],
@@ -676,14 +687,12 @@
     /* medido no carro: `opmode` é o modo de condução (1 NORMAL, 2 ECO, 3 SPORT) e
        `surfmode` é o terreno (1 montanha, 2 neve, 3 lama, 4 areia) — são controles diferentes;
        antes o pill mostrava o terreno e girar a rueda do modo não mudava nada. */
-    var OPMODE = { 1: 'NORMAL', 2: 'ECO', 3: 'SPORT' };
-    var TERRAIN = { 1: 'MONTAÑA', 2: 'NIEVE', 3: 'LODO', 4: 'ARENA' };
-    var mode = OPMODE[+d.opmode] || ((typeof d.drive === 'string' && d.drive) ? d.drive : 'NORMAL');
-    mode = mode.replace(/^\s+|\s+$/g, '');
+    var terr = TR0[+d.surfmode] || '';
+    /* o modo mandante: terreno quando há terreno (montanha é montanha, não "eco montanha"),
+       senão ECO/NORMAL/SPORT pelo testigo do painel */
+    var mode = terr || driveMode(d);
     modeTxt.textContent = mode.toUpperCase();
     modeGlyph(mode);
-    var terr = TERRAIN[+d.surfmode] || '';
-    terrainTxt.textContent = terr;
 
     /* a paisagem e a paleta de destaque seguem o modo */
     scene = sceneFor(mode, terr);

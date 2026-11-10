@@ -105,7 +105,7 @@ public class ClusterSkinActivity extends Activity {
                     + ",\"mNormal\":" + num(b[19]) + ",\"mMud\":" + num(b[20])
                     + ",\"mSand\":" + num(b[21]) + ",\"mGrass\":" + num(b[22])
                     + ",\"surfmode\":" + num(b[23]) + ",\"dcmode\":" + num(b[24])
-                    + ",\"opmode\":" + num(b[25]) + ",\"menu\":" + num(b[26])
+                    + ",\"opmode\":" + num(b[25]) + ",\"ecoind\":" + num(b[31]) + ",\"menu\":" + num(b[26])
                     + ",\"automode\":" + num(b[27])
                     + ",\"estate\":" + num(b[28]) + ",\"bcm\":" + num(b[29]) + ",\"daymode\":" + num(b[30])
                     + ",\"v12\":" + (b[9] > -998 ? b[9] : 13.8)
