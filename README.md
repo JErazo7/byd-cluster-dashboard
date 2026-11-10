@@ -17,9 +17,9 @@ em y 560–700; faixa das luzes da BYD em x 700–1220, y 0–60.
 
 O cartão de pressão usa `assets/tyre-stage.png` — arte com alfa (1510×897, recortada pela
 caixa do alfa) que já traz o carro visto de cima, os quatro aros luminosos nas rodas e os
-trilhos laterais. Entra com a altura do cartão (124 px, ~209 de largura) e os números (2.5 bar)
-ficam nas pontas dos trilhos. A arte antiga, desenhada em SVG, virou este PNG: mesma leitura,
-menos vértices e nenhum ajuste fino de escala.
+trilhos laterais. Entra com 112 px de altura (~188 de largura) e os números (2.5 bar) nas pontas dos trilhos,
+com folga em relação às bordas do cartão. A arte é **igual em todos os modos** — nenhum filtro
+de cena — e a antiga, desenhada em SVG, virou este PNG: mesma leitura, menos vértices.
 
 Banda de baixo, três cartões: bateria (14..460), **pressões no meio** (470..810) e modos
 (820..1266), todos com o fundo `gCard`. Relógio, odômetro e temperatura continuam nas quinas

@@ -7,10 +7,8 @@
 <style>
   html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #04070c; }
   svg { display: block; }
-  /* carro visto de cima em PNG com alfa: só um leve ganho de contraste por cena */
-  #tyrecar { filter: brightness(1.16) contrast(1.06); }
-  #tyrecar.warm { filter: brightness(1.02) contrast(1.1) saturate(1.15); }
-  #tyrecar.cool { filter: brightness(1.06) contrast(1.05) hue-rotate(-8deg); }
+  /* arte do carro igual em todos os modos: sem filtro de cena */
+  #tyrecar { filter: none; }
   /* cores do overlay HUD de pressão: acompanham a cena, como o resto do painel */
   svg { --tire-color: #16c8ff; --tire-bright: #a8f4ff; --tire-dim: #087bce; }
   .tyre-link { fill: none; stroke: var(--tire-dim); stroke-width: 1.2; opacity: .75;
@@ -253,13 +251,12 @@
   el('path', { d: arcPath(640, 336, 270, 214, 326), fill: 'none', stroke: '#38cfff', 'stroke-width': 1.2, opacity: 0.2 });
 
   /* ---------- topo ---------- */
-  var clockTxt = txt(24, 34, '', 22, 'num', 'start');
-  el('rect', { x: 102, y: 16, width: 1, height: 22, fill: '#2a3d52' });
-  var outTxt = txt(118, 34, '', 22, 'num', 'start');
+  var clockTxt = txt(24, 32, '', 18, 'num', 'start');
+  el('rect', { x: 96, y: 18, width: 1, height: 18, fill: '#2a3d52' });
+  var outTxt = txt(112, 32, '', 18, 'num', 'start');
 
   /* à direita: odômetro total */
-  txt(1264, 18, 'ODO', 10, 'mut', 'end');
-  var odoTxt = txt(1264, 38, '', 19, 'num', 'end');
+  var odoTxt = txt(1264, 34, '', 19, 'num', 'end');
 
   /* ---------- aros ---------- */
   var RING_Y = 196, R = 146, LX = 176, RX = W - 176;
@@ -486,7 +483,7 @@
   var c2 = card(TYRES.x, TYRES.w);
   /* arte do pacote: carro visto de cima + aros das rodas + trilhos laterais, já com alfa
      (1510x897, recortada pela caixa do alfa). Entra com a altura do cartão. */
-  var ART = { h: 124, w: 1510 / 897 * 124 };            /* 209 de largura */
+  var ART = { h: 112, w: 1510 / 897 * 112 };            /* 188 de largura */
   var artX = TYRES.x + TYRES.w / 2 - ART.w / 2;
   var artY = 330 + (136 - ART.h) / 2;
   var tyrecarImg = el('image', { id: 'tyrecar', href: 'assets/tyre-stage.png',
@@ -494,9 +491,7 @@
     preserveAspectRatio: 'xMidYMid meet' }, c2);
 
   /* os números ficam nas pontas dos trilhos, dentro do cartão */
-  var NUM = { xl: Math.max(TYRES.x + 60, artX - 12),
-              xr: Math.min(TYRES.x + TYRES.w - 60, artX + ART.w + 12),
-              yf: 352, yr: 452 };
+  var NUM = { xl: artX - 4, xr: artX + ART.w + 4, yf: 362, yr: 428 };
 
   /* posição/âncora de cada número */
   var TYRE = [['fl', NUM.xl, NUM.yf, 'end'], ['fr', NUM.xr, NUM.yf, 'start'],
@@ -654,9 +649,6 @@
     svg.style.setProperty('--accent-core', pal[1]);
     svg.style.setProperty('--accent-soft', pal[2]);
     svg.style.setProperty('--accent-icon', pal[3]);
-    tyrecarImg.setAttribute('class',
-      (scene === 'sport' || scene === 'mud' || scene === 'sand') ? 'warm'
-        : (scene === 'mountain' ? 'cool' : ''));
 
   /* no SPORT os aros ficam mais grossos, com halo forte e zona vermelha no fim */
   [thrRing, powRing].forEach(function (rg) {
