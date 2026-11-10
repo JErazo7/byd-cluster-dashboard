@@ -688,6 +688,24 @@ public class MainActivity extends Activity {
     private void testHooks(Intent it) {
         if (it == null) return;
         if (it.getBooleanExtra("dumplog", false)) AdbShell.dumpLog(getApplicationContext());
+        /* o Android re-entrega o intent original quando recria a activity: sem consumir os
+           extras, um `--ez apply true` de teste reaplicava a skin a cada reinício do processo
+           (foi o que fazia o tema aparecer com o carro apagado) */
+        if (it.hasExtra("apply") || it.hasExtra("release") || it.hasExtra("bootapply")
+                || it.hasExtra("dumpstate") || it.hasExtra("dumplog")
+                || it.hasExtra("bydtrace") || it.hasExtra("bydpoll") || it.hasExtra("bydset")
+                || it.hasExtra("dumpapi")) {
+            it.removeExtra("apply");
+            it.removeExtra("release");
+            it.removeExtra("bootapply");
+            it.removeExtra("dumpstate");
+            it.removeExtra("dumplog");
+            it.removeExtra("bydtrace");
+            it.removeExtra("bydpoll");
+            it.removeExtra("bydset");
+            it.removeExtra("dumpapi");
+            setIntent(it);
+        }
     /* ganchos de teste (não aparecem na interface):
        --ez bootapply true  roda a decisão do arranque
        --ez apply true      é o botão APLICAR

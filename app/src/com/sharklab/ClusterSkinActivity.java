@@ -79,6 +79,13 @@ public class ClusterSkinActivity extends Activity {
             byd = new BydBridge(ctx);
         }
 
+        /** leituras que mudam quando o carro apaga (para achar o sinal de "desligado") */
+        public String powerProbe() {
+            double[] b = byd.snapshot();
+            return "estate=" + (int) b[28] + " bcm=" + (int) b[29] + " day=" + (int) b[30]
+                    + " spd=" + (int) b[0] + " gear=" + (int) b[1];
+        }
+
         @android.webkit.JavascriptInterface
         public String state() {
             double[] b = byd.snapshot();

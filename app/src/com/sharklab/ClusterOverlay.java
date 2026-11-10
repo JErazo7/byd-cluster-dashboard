@@ -32,6 +32,7 @@ public final class ClusterOverlay {
        quem alimenta o desenho é este empurrador, de fora da página */
     private static volatile boolean pushing;
     private static volatile Context lastCtx;
+    private static int ticks;
     private static DisplayManager jetDm;
     private static DisplayManager.DisplayListener jetListener;
     private static final int W = 1920, H = 720;
@@ -262,6 +263,11 @@ public final class ClusterOverlay {
                         return;
                     }
                 } catch (Throwable ignored) {
+                }
+                ticks++;
+                /* batimento: mostra se o processo sobrevive ao apagamento do carro */
+                if (ticks % 5 == 0) {
+                    AdbShell.trace(lastCtx, "vivo " + ticks + " estado=" + br.powerProbe());
                 }
                 try {
                     String js = "window.BrasaDriveUpdate&&window.BrasaDriveUpdate(" + br.state() + ")";
