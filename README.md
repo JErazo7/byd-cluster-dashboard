@@ -23,9 +23,9 @@ de cena — e a antiga, desenhada em SVG, virou este PNG: mesma leitura, menos v
 
 Os cartões são **vidro transparente**: cada um recorta uma cópia desfocada do fundo (`<use
 href="#gBg">` com `feGaussianBlur` σ 14 numa região do tamanho do cartão, então só a área
-visível é filtrada). Não há tinta nem sombra interna — o que se vê dentro do cartão é o fundo
-borrado —, só o aro claro de 1,1 px, um aro interno tenue, um fio de luz no topo e o brilho
-diagonal. O fundo muda com a cena e o vidro acompanha, porque a cópia é viva.
+visível é filtrada). Não há **nenhuma cor por cima**: nem tinta, nem brilho diagonal, nem neón, nem sombra interna.
+O que se vê dentro do cartão é só o fundo borrado, fechado por um aro claro de 1,1 px. O fundo
+muda com a cena e o vidro acompanha, porque a cópia é viva.
 
 Banda de baixo, três cartões: bateria (14..460), **pressões no meio** (470..810) e modos
 (820..1266), todos com o fundo `gCard`. Relógio, odômetro e temperatura continuam nas quinas

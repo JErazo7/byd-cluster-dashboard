@@ -378,19 +378,10 @@
     /* o que está atrás aparece desfocado: vidro fosco de verdade */
     el('use', { href: '#gBg', filter: 'url(#' + blur + ')' }, inner);
     
-    rrect(x, 330, w, 136, 18, { fill: 'url(#gGlass)' }, inner);
     /* borda clara + aro interno: a leitura do vidro do iOS */
     rrect(x + 0.5, 330.5, w - 1, 135, 17.5, {
       fill: 'none', stroke: 'rgba(255,255,255,0.5)', 'stroke-width': 1.1
     }, g);
-    rrect(x + 3, 333, w - 6, 130, 15, {
-      fill: 'none', stroke: 'rgba(255,255,255,0.10)', 'stroke-width': 1
-    }, g);
-    /* fio de luz no topo, como a reflexão do vidro */
-    rrect(x + 14, 331.5, w - 28, 1.6, 0.8, {
-      fill: 'url(#gGlass)', opacity: 0.9
-    }, g);
-    neon(g, x, 330, w, 136, 18, 0.3);
     return g;
   }
   function batteryIcon(x, y, parent) {
