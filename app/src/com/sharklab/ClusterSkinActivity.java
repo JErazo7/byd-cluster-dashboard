@@ -75,6 +75,7 @@ public class ClusterSkinActivity extends Activity {
 
         PanelBridge(android.content.Context c) {
             ctx = c.getApplicationContext();
+            app = ctx;
             byd = new BydBridge(ctx);
         }
 
@@ -131,23 +132,47 @@ public class ClusterSkinActivity extends Activity {
         /** número inteiro ou -999 (o contrato das skins usa -999 como "sem leitura") */
         /* último valor válido: no arranque do carro os getters devolvem 8322/-999 e o modo
            aparecia trocado até a leitura assentar */
-        private static int lastEco = 135298;
-        private static int lastSurf = 1;
+        private static int lastEco = Integer.MIN_VALUE;
+        private static int lastSurf = Integer.MIN_VALUE;
         private static final long STARTED = System.currentTimeMillis();
         /* segurar o último valor só nos primeiros 15 s do processo; depois vale o que o carro diz,
            senão a rueda deixa de mudar o modo (o teste com 8322 ficava eterno) */
         private static final long HOLD = 15000;
 
+        private android.content.Context app;
+
+        private void loadMode() {
+            if (lastEco != Integer.MIN_VALUE && lastSurf != Integer.MIN_VALUE) return;
+            if (app == null) { lastEco = 135298; lastSurf = 1; return; }
+            lastEco = app.getSharedPreferences("lab", android.content.Context.MODE_PRIVATE)
+                    .getInt("lastEco", 135298);
+            lastSurf = app.getSharedPreferences("lab", android.content.Context.MODE_PRIVATE)
+                    .getInt("lastSurf", 1);
+        }
+
         private int ecoValid(double v) {
+            loadMode();
             int e = (int) Math.round(v);
-            if (e == 135298 || e == 8353 || e == 10306) { lastEco = e; return e; }
+            if (e == 135298 || e == 8353) { lastEco = e; saveMode(); return e; }
+            if (e == 10306) { lastEco = e; saveMode(); return e; }
             return (System.currentTimeMillis() - STARTED < HOLD) ? lastEco : e;
         }
 
         private int surfValid(double v) {
+            loadMode();
             int sm = (int) Math.round(v);
-            if (sm >= 1 && sm <= 5) { lastSurf = sm; return sm; }
+            if (sm >= 1 && sm <= 5) { lastSurf = sm; saveMode(); return sm; }
             return (System.currentTimeMillis() - STARTED < HOLD) ? lastSurf : sm;
+        }
+
+        /** guarda o último modo válido: no re-arranque do app ele aparece certo de imediato */
+        private void saveMode() {
+            try {
+                if (app != null) {
+                    app.getSharedPreferences("lab", android.content.Context.MODE_PRIVATE).edit()
+                            .putInt("lastEco", lastEco).putInt("lastSurf", lastSurf).apply();
+                }
+            } catch (Throwable ignored) { }
         }
 
         private String num(double v) {

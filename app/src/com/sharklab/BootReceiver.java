@@ -42,6 +42,15 @@ public class BootReceiver extends BroadcastReceiver {
             PanelRelease.release(ctx);
             return;
         }
+        /* com o carro desligado a BYD acende o quadro só para a alerta de porta aberta: a tela da
+           central apagada é o sinal de "não estamos dirigindo", então não aplica nada */
+        android.os.PowerManager pm =
+                (android.os.PowerManager) ctx.getSystemService(android.content.Context.POWER_SERVICE);
+        if (pm != null && !pm.isInteractive()) {
+            p.edit().putBoolean("applied", false).putBoolean("enabled", false).apply();
+            PanelRelease.release(ctx);
+            return;
+        }
         p.edit().putBoolean("applied", true).putBoolean("enabled", true).apply();
         /* ligado: aplica a skin no painel sem abrir a interface da central */
         PanelBoot.apply(ctx);

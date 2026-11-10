@@ -27,6 +27,13 @@ public final class PanelBoot {
         String skin = p.getString("skin", "byd");
         boolean overlay = p.getBoolean("overlay", true);
 
+        final Context appCtx = ctx.getApplicationContext();
+        android.os.PowerManager pm =
+                (android.os.PowerManager) appCtx.getSystemService(Context.POWER_SERVICE);
+        if (pm != null && !pm.isInteractive()) {
+            AdbShell.trace(appCtx, "boot: central apagada, nada aplicado");
+            return;
+        }
         PanelRelease.session = true;
         AdbShell.start(ctx);
         AdbShell.resume();
