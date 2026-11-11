@@ -117,8 +117,11 @@ La app lo consulta cada **1 s** (`MainActivity`, el bucle que también rearma el
 mira cada **2 s**: el ciclo completo apagar → puerta → encender se resuelve en 2–5 s medidos en
 el carro (el resto es lo que tarda el WebView en pintar).
 
-**Vigía en adbd** (`/data/local/tmp/shark_wd.sh`): lo único que hace es relanzar la app
-(`am start`) si no hay proceso y la pantalla está `Awake`, cada 5 s. Es el mismo truco que usa
+**Vigía en adbd** (`/data/local/tmp/shark_wd.sh`): lo único que hace es relanzar
+`PanelService` (`am start-foreground-service`) si no hay proceso y la pantalla está `Awake`,
+cada 2 s. **Nunca arranca la activity**: eso abría la interfaz de la central y le robaba el
+diálogo "¿Cargar el coche ahora?" que la BYD muestra 10 s al apagar. El bucle de encendido vive
+en el servicio. Es el mismo truco que usa
 el EvSound (`while [ -z "$(pidof …)" ]; do am start …`), con candado `mkdir` para no duplicarse.
 Existe porque BYD mata el proceso al apagar: sin él, nadie volvería a mirar el estado al
 prender. Se arma en cada APLICAR y se rearma cada 60 s desde el bucle de la app.

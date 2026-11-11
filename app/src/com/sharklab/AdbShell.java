@@ -207,7 +207,7 @@ public final class AdbShell {
                     + "  if [ -z \"$(pidof com.xdja.clusterdemo)\" ]; then\n"
                     + "    if dumpsys power 2>/dev/null | grep -q 'mWakefulness=Awake'; then\n"
                     + "      echo \"$(date) relançando\" >> /data/local/tmp/shark.log\n"
-                    + "      am start -n com.xdja.clusterdemo/com.sharklab.MainActivity >/dev/null 2>&1\n"
+                    + "      am start-foreground-service -n com.xdja.clusterdemo/com.sharklab.PanelService >/dev/null 2>&1\n"
                     + "    fi\n"
                     + "  fi\n"
                     + "  sleep 2\n"

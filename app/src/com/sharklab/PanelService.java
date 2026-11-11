@@ -50,6 +50,36 @@ public class PanelService extends Service {
         f.addAction("android.intent.action.QUICKBOOT_POWEROFF");
         registerReceiver(screenOff, f);
         AdbShell.trace(getApplicationContext(), "servico: receptor registrado");
+        startPowerLoop();
+    }
+
+    /**
+     * Quem decide aplicar/soltar é o serviço, não a activity: assim o vigia do adbd pode
+     * acordar a SharkLab sem abrir a interface na central (o `am start` da activity roubava
+     * o diálogo de "carregar agora" que a BYD mostra ao desligar).
+     */
+    private void startPowerLoop() {
+        final android.os.Handler h = new android.os.Handler(getMainLooper());
+        final BydBridge[] bridge = new BydBridge[1];
+        h.post(new Runnable() {
+            public void run() {
+                try {
+                    if (bridge[0] == null) bridge[0] = new BydBridge(getApplicationContext());
+                    double[] b = bridge[0].snapshot();
+                    int pc = b[36] > -998 ? (int) b[36] : -1;
+                    boolean bootApply = getSharedPreferences("lab", MODE_PRIVATE).getBoolean("bootApply", false);
+                    if (pc == 1 && bootApply && !ClusterOverlay.running()) {
+                        AdbShell.trace(getApplicationContext(), "serviço: carro ligado -> aplica");
+                        PanelBoot.apply(getApplicationContext());
+                    } else if (pc == 0 && ClusterOverlay.running()) {
+                        AdbShell.trace(getApplicationContext(), "serviço: carro desligado -> solta");
+                        PanelRelease.release(getApplicationContext());
+                    }
+                } catch (Throwable ignored) {
+                }
+                h.postDelayed(this, 1000);
+            }
+        });
     }
 
     @Override
