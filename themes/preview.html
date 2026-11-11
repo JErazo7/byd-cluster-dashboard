@@ -59,9 +59,22 @@
   var booted = false;
   f.addEventListener('load', function () { booted = true; feed(); });
 
+  /* el tema no lee `drive`: lo que lo mueve son las señales del coche, `surfmode` (terreno) y
+     `ecoind`/`opmode` (modo de conducción). Los selectores se traducen a esos códigos. */
+  var MODE_SIGNAL = {
+    'ECO':     { opmode: 1, ecoind: 8353,   surfmode: 0 },
+    'NORMAL':  { opmode: 1, ecoind: 135298, surfmode: 0 },
+    'SPORT':   { opmode: 2, ecoind: 10306,  surfmode: 0 },
+    'MONTAÑA': { opmode: 1, ecoind: 135298, surfmode: 5 },
+    'NIEVE':   { opmode: 1, ecoind: 135298, surfmode: 2 },
+    'ARENA':   { opmode: 1, ecoind: 135298, surfmode: 4 },
+    'LODO':    { opmode: 1, ecoind: 135298, surfmode: 3 }
+  };
+
   function feed() {
     if (!booted || !f.contentWindow || !f.contentWindow.BrasaDriveUpdate) return;
     var turn = $('turn').value;
+    var mode = $('drive').value, sig = MODE_SIGNAL[mode] || MODE_SIGNAL.NORMAL;
     f.contentWindow.EvsPU = 1; f.contentWindow.EvsDU = 1; f.contentWindow.EvsSU = 1;
     f.contentWindow.BrasaDriveUpdate({
       speed: +$('speed').value, rpm: 1800, gear: '3', tps: +$('tps').value, map: 1.2, boostBar: 0,
@@ -69,7 +82,8 @@
       fuel: Math.round(+$('fuelKm').value / 950 * 100), lambda: 1, brake: 0,
       turnLeft: turn === '1' ? 1 : 0, turnRight: turn === '2' ? 1 : 0,
       on: true, sel: $('sel').value, ev: $('ev').value === '' ? null : +$('ev').value, car: 'V8', pw: +$('pw').value, odo: 12843, range: 412, tout: 24, btemp: 32,
-      dmode: 2, drive: $('drive').value, ready: 1, regen: 0, v12: 13.8, phone: -1, tt: {}, rhd: false, warn: [],
+      dmode: 2, drive: mode, opmode: sig.opmode, ecoind: sig.ecoind, surfmode: sig.surfmode,
+      ready: 1, regen: 0, v12: 13.8, phone: -1, tt: {}, rhd: false, warn: [],
       adas: {}, tyre: { fl: +$('tfl').value, fr: +$('tfr').value, rl: +$('trl').value, rr: +$('trr').value }, cam: null,
       nmv: { text: 'Gire a la derecha en 200 m' }, ext: null, trip: { km: 12.4 },
       media: { title: 'Highway to Hell', artist: 'AC/DC' }
