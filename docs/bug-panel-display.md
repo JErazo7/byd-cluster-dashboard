@@ -1,6 +1,33 @@
-# Bug: el tema no vuelve al encender
+# Panel al encender/apagar — resuelto
 
-Rama actual: `9366118` (hard reset desde `b48bac9`). Lo medido, lo descartado y el siguiente paso.
+**Estado: resuelto y verificado en el auto (encendido normal y remoto).**
+
+## Solución aplicada
+
+| Pieza | Qué hace |
+|---|---|
+| Detección | `power.getPowerCtlStatus(3)`: `1` encendido, `0` apagado. La app lo consulta cada 1 s |
+| Apagado | `pc == 0` → `PanelRelease.release()`: esconde la ventana y devuelve el panel a BYD (queda solo la alerta de puerta) |
+| Encendido | `pc == 1` → `PanelBoot.apply()`, que crea la ventana y manda `16` → `45` |
+| Proceso muerto | el vigía en adbd lanza `WakeActivity` (`Theme.NoDisplay`, sin layout, `finish()` inmediato) cada vez que no hay proceso |
+| Arranque | `WakeActivity` sube `PanelService`, que es quien corre el bucle de `pc` |
+
+Claves que costó encontrar:
+
+1. Los **eventos BYD no arrancan la app**: un listener sólo entrega si el proceso vive. Por eso hace
+   falta el vigía externo (igual que el `evs_keep` del EvSound).
+2. `am start-foreground-service` sobre un paquete parado se rechaza (`Not found; no service started`)
+   aunque el servicio esté exportado. `am start` de una **activity** sí se acepta: es lo que hace
+   EvSound con `ArmActivity --ez wake_only true`.
+3. El vigía no debe lanzar la **activity principal**: abre la interfaz en la central y le roba el
+   diálogo "¿Cargar el coche ahora?". Por eso la `WakeActivity` invisible.
+4. Al lanzar el daemon hay que dejar la sesión adb viva un segundo (`sleep 1` tras `setsid`), o el
+   adbd se lleva el hijo.
+5. Frenos anti-piscado: el vigía sólo despierta si la última vez fue hace >15 s y `PanelBoot.apply`
+   es idempotente (<12 s o ventana ya creada).
+
+Todo esto se verificó con el auto: apagado + puerta (sin skin), encendido normal y arranque remoto
+por aire (skin aplicada una sola vez).
 
 ## Síntomas
 

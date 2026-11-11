@@ -204,16 +204,6 @@ public class MainActivity extends Activity {
             }
         });
 
-        /* reinício do processo com "iniciar automáticamente" ligado: se não foi o vigia quem
-           soltou o painel há instantes, é uma ignição — aplica sozinho */
-        if (p.getBoolean("bootApply", false) && !justReleasedByWatchdog()) {
-            ui.postDelayed(new Runnable() {
-                public void run() {
-                    if (!ClusterOverlay.running()) bridge.overlayShow();
-                }
-            }, 4000);
-        }
-
         testHooks(getIntent());
 
         if (getIntent() != null && getIntent().hasExtra("festate")) {
@@ -743,10 +733,23 @@ public class MainActivity extends Activity {
     /** ganchos de teste (não aparecem na interface da central) */
     private void testHooks(Intent it) {
         if (it == null) return;
+        final boolean hWake = it.getBooleanExtra("wake", false);
         final boolean hBoot = it.getBooleanExtra("bootapply", false);
         final boolean hApply = it.getBooleanExtra("apply", false);
         final boolean hRelease = it.getBooleanExtra("release", false);
         if (it.getBooleanExtra("dumplog", false)) AdbShell.dumpLog(getApplicationContext());
+        if (hWake) {
+            /* acorda como o EvSound (activity com flag, nunca serviço): sobe o serviço e sai
+               sem interface, para não roubar o diálogo "carregar agora" da central */
+            try {
+                Intent svc = new Intent(this, PanelService.class);
+                if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(svc);
+                else startService(svc);
+                AdbShell.trace(this, "wake: activity acordou");
+            } catch (Throwable ignored) { }
+            finish();
+            return;
+        }
     /* ganchos de teste (não aparecem na interface):
        --ez bootapply true  roda a decisão do arranque
        --ez apply true      é o botão APLICAR

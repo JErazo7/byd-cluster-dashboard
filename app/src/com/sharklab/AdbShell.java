@@ -205,9 +205,16 @@ public final class AdbShell {
                     + "echo \"$(date) armado\" >> /data/local/tmp/shark.log\n"
                     + "while [ -f $AUTO ]; do\n"
                     + "  if [ -z \"$(pidof com.xdja.clusterdemo)\" ]; then\n"
-                    + "    if dumpsys power 2>/dev/null | grep -q 'mWakefulness=Awake'; then\n"
+                    /* só desperta se a última tentativa foi há mais de 15 s: sem isso o vigia
+                       relançava a cada volta enquanto a app subia e o tema piscava 2-3 vezes */
+                    + "    now=$(date +%s); last=$(cat shark_wake.ts 2>/dev/null)\n"
+                    + "    case \"$last\" in ''|*[!0-9]*) last=0;; esac\n"
+                    + "    if [ $((now - last)) -gt 15 ]; then\n"
+                    + "      date +%s > shark_wake.ts\n"
                     + "      echo \"$(date) relançando\" >> /data/local/tmp/shark.log\n"
-                    + "      am start-foreground-service -n com.xdja.clusterdemo/com.sharklab.PanelService >/dev/null 2>&1\n"
+                    + "      am start -n com.xdja.clusterdemo/com.sharklab.WakeActivity >>/data/local/tmp/shark.log 2>&1\n"
+                    + "      echo \"$(date) am rc=$?\" >> /data/local/tmp/shark.log\n"
+                    + "      sleep 8\n"
                     + "    fi\n"
                     + "  fi\n"
                     + "  sleep 2\n"
@@ -224,7 +231,9 @@ public final class AdbShell {
                 /* lock órfão de um vigia morto à força: remove antes de lançar */
                 + "; if [ -n \"$P\" ] && [ ! -d /proc/$P ]; then rm -rf /data/local/tmp/shark_wd.lock; fi"
                 + "; if [ -z \"$P\" ] || [ ! -d /proc/$P ]; then "
-                + "setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi");
+                + "setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi"
+                /* a sessão fecha logo depois do comando: sem este sleep o adbd leva o filho junto */
+                + "; sleep 1");
     }
 
     /** carimbo de vida: o vigia solta o painel quando ele para de avançar */

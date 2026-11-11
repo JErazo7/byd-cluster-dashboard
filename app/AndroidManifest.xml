@@ -84,10 +84,20 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- exportado: o vigia roda como shell e precisa inicia-lo com `am start-foreground-service`.
+             O servico so aplica com power.getPowerCtlStatus(3) == 1, entao a alerta de porta
+             aberta (carro desligado) continua sem skin. -->
         <service
             android:name=".PanelService"
-            android:exported="false"
+            android:exported="true"
             android:foregroundServiceType="mediaProjection" />
+        <activity
+            android:name=".WakeActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"

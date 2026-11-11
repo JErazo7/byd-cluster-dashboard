@@ -22,7 +22,13 @@ public final class PanelBoot {
     private PanelBoot() {
     }
 
+    /* não reaplica em rajada: o tema piscava (animação) quando duas chamadas caíam juntas */
+    private static long lastApply;
+
     public static void apply(Context ctx) {
+        long now = System.currentTimeMillis();
+        if (now - lastApply < 12000 || ClusterOverlay.running()) return;
+        lastApply = now;
         SharedPreferences p = ctx.getSharedPreferences("lab", Context.MODE_PRIVATE);
         String skin = p.getString("skin", "byd");
         boolean overlay = p.getBoolean("overlay", true);
