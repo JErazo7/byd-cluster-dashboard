@@ -177,6 +177,7 @@ public class MainActivity extends Activity {
 
         /* Ligado/desligado vem do próprio carro: power.getPowerCtlStatus(3) — 1 ligado, 0
            desligado (medido). Aplica assim que liga (mesmo em P) e solta assim que desliga. */
+        final int[] tick = {0};
         ui.post(new Runnable() {
             public void run() {
                 try {
@@ -196,6 +197,8 @@ public class MainActivity extends Activity {
                     }
                 } catch (Throwable ignored) {
                 }
+                /* rearma o vigia a cada ~60 s: é ele que devolve a app depois do apagamento */
+                if (++tick[0] % 30 == 0) AdbShell.watchdog(MainActivity.this);
                 ui.postDelayed(this, 2000);
             }
         });

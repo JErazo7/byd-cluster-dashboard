@@ -200,6 +200,7 @@ public final class AdbShell {
                é a app, lendo getPowerCtlStatus(3) (1 = ligado, 0 = desligado). */
             w.write("#!/system/bin/sh\n"
                     + "AUTO=" + WD_AUTO + "\n"
+                    + "mkdir /data/local/tmp/shark_wd.lock 2>/dev/null || exit 0\n"
                     + "echo $$ > /data/local/tmp/shark_wd.pid\n"
                     + "echo \"$(date) armado\" >> /data/local/tmp/shark.log\n"
                     + "while [ -f $AUTO ]; do\n"
@@ -211,7 +212,8 @@ public final class AdbShell {
                     + "  fi\n"
                     + "  sleep 5\n"
                     + "done\n"
-                    + "rm -f /data/local/tmp/shark_wd.pid\n");
+                    + "rm -f /data/local/tmp/shark_wd.pid\n"
+                    + "rmdir /data/local/tmp/shark_wd.lock 2>/dev/null\n");
             w.close();
         } catch (Throwable t) {
             return;
@@ -219,6 +221,8 @@ public final class AdbShell {
         execOnce("cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
                 + "; chmod 755 /data/local/tmp/" + WD_NAME
                 + "; P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null)"
+                /* lock órfão de um vigia morto à força: remove antes de lançar */
+                + "; if [ -n \"$P\" ] && [ ! -d /proc/$P ]; then rm -rf /data/local/tmp/shark_wd.lock; fi"
                 + "; if [ -z \"$P\" ] || [ ! -d /proc/$P ]; then "
                 + "setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi");
     }

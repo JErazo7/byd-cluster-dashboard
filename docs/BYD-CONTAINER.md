@@ -215,3 +215,23 @@ Medido com o EvSound **desabilitado** (`pm disable-user com.mdemetrio.evsoundbyd
 16, `dumpsys display` passa de 1 para 2 displays e a skin da SharkLab aparece no painel — já não
 depende do EvSound. Falta acertar a escala: a skin sai ampliada e cortada (viewport do painel é
 960 CSS px para um viewBox de 1280×480).
+
+
+## Encendido y apagado del carro (medido 2026-11-10)
+
+| Lectura | Encendido | Apagado (puerta abierta) |
+|---|---|---|
+| `power.getPowerCtlStatus(3)` | **1** | **0** |
+| `power.getShutdownInfo(1)` | 0 | 0 |
+| `bodywork.getAutoSystemState` | 0 | 0 |
+| `bodywork.getPowerLevel` | 2 | 0 |
+| `power.getMcuStatus` | 1 | 1 |
+| `energy.getEnergyState` | 0/1 | 0 |
+
+`AbsBYDAutoPowerListener.onPowerCtlStatusChanged(int, int)` publica ese mismo valor.
+`getPowerCtlStatus` sólo acepta el índice 3; los demás devuelven `-2147482645`.
+
+Regla de la app: `pc == 1` → aplicar; `pc == 0` → `PanelRelease.release()` (el panel vuelve a BYD
+y queda sólo la alerta de puerta). Se consulta cada 2 s.
+
+`ACTION_SCREEN_OFF` y `ACTION_SHUTDOWN` **no llegan** al apagarse: la IVI no los emite.

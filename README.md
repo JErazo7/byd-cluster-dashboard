@@ -96,6 +96,46 @@ no puede quedar encima de eso: `PanelRelease.release(ctx)` esconde la ventana **
 devolver el panel y limpia `applied`, y `ScreenReceiver` dispara lo mismo con `SCREEN_OFF`,
 `ACTION_SHUTDOWN` y `QUICKBOOT_POWEROFF`.
 
+## Apagado y encendido (documentado, no tocar)
+
+El panel se gobierna con **un solo dato del carro**, medido en la unidad:
+
+```
+power.getPowerCtlStatus(3)   1 = carro ligado      0 = carro apagado (puerta abierta)
+```
+
+Su evento oficial es `AbsBYDAutoPowerListener.onPowerCtlStatusChanged(int, int)`.
+
+**Comportamiento:**
+
+| Estado | Qué hace la app |
+|---|---|
+| `1` y panel libre | `overlayShow()` → tema aplicado en ≤2 s, **también en P** |
+| `0` y panel tomado | `PanelRelease.release()` → el panel vuelve a BYD en ≤2 s (solo la alerta) |
+
+La app lo consulta cada 2 s (`MainActivity`, el bucle que también rearma el vigía).
+
+**Vigía en adbd** (`/data/local/tmp/shark_wd.sh`): lo único que hace es relanzar la app
+(`am start`) si no hay proceso y la pantalla está `Awake`, cada 5 s. Es el mismo truco que usa
+el EvSound (`while [ -z "$(pidof …)" ]; do am start …`), con candado `mkdir` para no duplicarse.
+Existe porque BYD mata el proceso al apagar: sin él, nadie volvería a mirar el estado al
+prender. Se arma en cada APLICAR y se rearma cada 60 s desde el bucle de la app.
+
+**Lo que se probó y NO sirve** (no repetir el camino):
+
+| Candidato | Resultado |
+|---|---|
+| `ACTION_SCREEN_OFF` / `SHUTDOWN` | no llegan: la IVI no los emite al apagar |
+| `power.getShutdownInfo(1)` | devuelve 0 **encendido y apagado** |
+| `bodywork.getAutoSystemState` / `getPowerLevel`, `power.getMcuStatus` | iguales en ambos estados |
+| Latido en archivo + ventana de 12 s | funcionaba pero sobra: hay señal real y es más lento |
+| Ventana de 40 s "puerta vs ignición" | eliminada: `powerCtlStatus` las distingue |
+
+**Trampa de la plataforma:** la lista de auto-inicio de BYD es una *lista negra con los
+interruptores invertidos* y se indexa por directorio del APK, así que **hay que revisarla
+después de cada instalación** (Settings → Apps → Auto-start Management; fila en OFF = habilitado).
+Por eso el vigía relanza la app en vez de confiar en `BOOT_COMPLETED`.
+
 ## Cómo toma el panel
 
 El clúster no es un display Android común: es otra instancia (`fission`) y el panel solo
