@@ -1,8 +1,8 @@
-# AutoContainer — o canal entre a IVI e o painel do motorista
+# AutoContainer — the channel between the head unit and the cluster panel
 
-Medido nesta unidade (`BYD_AUTO`, DiLink 3.0, Android 10) por sonda de shell (`app_process`).
+Measured on this unit (`BYD_AUTO`, DiLink 3.0, Android 10) with a shell probe (`app_process`).
 
-## Interface (verificada)
+## Interface (verified)
 
 ```
 service list → AutoContainer: [android.os.IAutoContainer]
@@ -15,167 +15,172 @@ int sendJson(int type, String json)
 ```
 
 `ProjectionDisplayInfoParcel` — `{ int width; int height; String name; IBinder surface; }`.
-Ler o estado atual devolve `0` com todos os campos vazios (nenhuma projeção registrada).
+Reading the current state returns `0` with every field empty (no projection registered).
 
-## O que funciona
+## What works
 
-`sendInfo(1000, cmd, "")` — o canal de comandos do painel:
+`sendInfo(1000, cmd, "")` — the panel command channel:
 
-| cmd | efeito |
+| cmd | effect |
 |---|---|
-| 16 | espelha a IVI no painel (tela cheia) |
-| 17 | metade |
-| 18 | desliga o espelho |
+| 16 | mirrors the head unit on the panel (full screen) |
+| 17 | half |
+| 18 | turns the mirror off |
 
-Executável por adb: `service call AutoContainer 2 i32 1000 i32 16 s16 ""`.
+Runnable over adb: `service call AutoContainer 2 i32 1000 i32 16 s16 ""`.
 
-## O que NÃO funciona daqui
+## What does NOT work from here
 
-- `sendJson(1000, ...)` devolve `-1` para qualquer payload testado (inclusive
-  `{"auto_container":true}` e o nome do display de projeção).
-- `registerCallback(...)` com um proxy de `IContainerCallback` **mata o processo** (Killed),
-  então o transporte de callback não é acessível de um processo de app/shell comum.
-- Criar um `VirtualDisplay` privado com o nome que o compositor procura
-  (`shared_fission_bg_XDJAScreenProjection_0`, 1920×720, `FLAG_PRESENTATION`) funciona e
-  renderiza a skin perfeitamente (capturável com `screencap -d <id>`), mas o clúster **não
-  o exibe** — falta o attach, que é justamente o passo privilegiado.
-- `VIRTUAL_DISPLAY_FLAG_PUBLIC` exige `CAPTURE_VIDEO_OUTPUT` (SecurityException).
+- `sendJson(1000, ...)` returns `-1` for every payload tested (including
+  `{"auto_container":true}` and the name of the projection display).
+- `registerCallback(...)` with an `IContainerCallback` proxy **kills the process** (Killed), so
+  the callback transport is not reachable from an ordinary app/shell process.
+- Creating a private `VirtualDisplay` with the name the compositor looks for
+  (`shared_fission_bg_XDJAScreenProjection_0`, 1920×720, `FLAG_PRESENTATION`) works and renders
+  the skin perfectly (capturable with `screencap -d <id>`), but the cluster **does not show
+  it** — the attach is missing, and that is precisely the privileged step.
+- `VIRTUAL_DISPLAY_FLAG_PUBLIC` requires `CAPTURE_VIDEO_OUTPUT` (SecurityException).
 
-## Consequência prática
+## Practical consequence
 
-Do que é acessível sem assinatura de plataforma, o clúster só recebe **espelho da IVI**.
-Logo: a skin tem de estar na central (sem barras, 1920×720 no topo do quadro) e os ajustes
-aparecem por cima quando abertos. Separar "ajustes na central / skin no painel" exige o
-attach privilegiado (root, ou app de sistema).
+From what is reachable without a platform signature, the cluster only receives a **mirror of the
+head unit**. So: the skin must be on the head unit (no bars, 1920×720 at the top of the frame)
+and the settings appear on top when opened. Separating "settings on the head unit / skin on the
+panel" requires the privileged attach (root, or a system app).
 
-## Quem pode falar com o AutoContainer (verificado)
+## Who can talk to AutoContainer (verified)
 
-`/system/etc/container_comm_cfg.json` lista os pacotes autorizados; nesta unidade só
-`com.xdja.clusterdemo` (tipos 0–134217727). Qualquer outro nome recebe
-`SecurityException: Not allowed package` e o painel continua na BYD. Por isso o build da
-SharkLab sai com `--rename-manifest-package com.xdja.clusterdemo`.
+`/system/etc/container_comm_cfg.json` lists the authorised packages; on this unit only
+`com.xdja.clusterdemo` (types 0–134217727). Any other name gets
+`SecurityException: Not allowed package` and the panel stays on BYD. That is why the SharkLab
+build comes out with `--rename-manifest-package com.xdja.clusterdemo`.
 
-O app (uid de aplicação, sem adb) chama `sendInfo(1000, cmd, "")` por binder e o comando é
-aceito. O `EvSound` faz o mesmo por ADB (`service call AutoContainer ...`) porque foi
-instalado com outro nome; não é necessário para nós.
+The app (application uid, no adb) calls `sendInfo(1000, cmd, "")` over binder and the command is
+accepted. The reference cluster app does the same over ADB (`service call AutoContainer ...`)
+because it was installed under another name; it is not needed for us.
 
-## O que cada comando faz no painel
+## What each command does on the panel
 
-| cmd | efeito observado |
+| cmd | observed effect |
 |---|---|
-| 16 | painel mostra o display virtual `fission_bg_xdjaVirtualSurface` (1920×720) a tela cheia |
-| 17 | metade |
-| 18 | volta para a interface original da BYD |
-| 35 | aceito, sem mudança visível quando o painel já está no modo 16 |
+| 16 | panel shows the virtual display `fission_bg_xdjaVirtualSurface` (1920×720) full screen |
+| 17 | half |
+| 18 | back to the original BYD interface |
+| 35 | accepted, no visible change when the panel is already in mode 16 |
 
-O modo 16 fica ativo até alguém mandar 18. Enquanto ele está ativo, **qualquer** janela no
-display 1 aparece no painel — inclusive a overlay `TYPE_APPLICATION_OVERLAY` com título
-"EvSound painel" que a SharkLab cria. Sem o modo 16, essa mesma janela é desenhada mas o
-painel não a mostra (é exatamente o sintoma de "depende do EvSound").
+Mode 16 stays active until someone sends 18. While it is active, **any** window on display 1
+appears on the panel — including the `TYPE_APPLICATION_OVERLAY` overlay that SharkLab creates.
+Without mode 16, that same window is drawn but the panel does not show it (this is exactly the
+"it depends on the reference app" symptom).
 
-Verificação do painel físico sem olhar o carro:
+Checking the physical panel without looking at the car:
 
 ```bash
-adb shell fission_screencap -d 0 > panel.raw   # cabeçalho 8 bytes + RGBA 1920×720
+adb shell fission_screencap -d 0 > panel.raw   # 8-byte header + RGBA 1920×720
 ```
 
-## Flags da janela que esconde a barra nativa (medido)
+## Window flags that hide the native bar (measured)
 
-A overlay no display 1 precisa das MESMAS flags do EvSound: `FLAG_LAYOUT_NO_LIMITS` e mais
-nada. Com `FLAG_NOT_FOCUSABLE | FLAG_NOT_TOUCHABLE | FLAG_FULLSCREEN | FLAG_LAYOUT_IN_SCREEN`
-o container compõe a barra nativa da BYD (P/ECO, bateria, autonomia, ODO, ADAS) por cima da
-skin. Só com `FLAG_LAYOUT_NO_LIMITS` a tela cheia fica limpa.
+The overlay on display 1 needs the SAME flags as the reference window: `FLAG_LAYOUT_NO_LIMITS`
+and nothing else. With
+`FLAG_NOT_FOCUSABLE | FLAG_NOT_TOUCHABLE | FLAG_FULLSCREEN | FLAG_LAYOUT_IN_SCREEN` the container
+composes the native BYD bar (P/ECO, battery, range, ODO, ADAS) on top of the skin. Only with
+`FLAG_LAYOUT_NO_LIMITS` does full screen come out clean.
 
-Medição (16:54–16:57): com as flags antigas, `cmd 18` e `cmd 16` não mudavam a barra; com
-`FLAG_LAYOUT_NO_LIMITS`, `cmd 18` devolve a barra e `cmd 16` a remove, com o EvSound ativo
-ou parado. O cmd 35 não altera nada nesse estado.
+Measurement (16:54–16:57): with the old flags, `cmd 18` and `cmd 16` did not change the bar; with
+`FLAG_LAYOUT_NO_LIMITS`, `cmd 18` brings the bar back and `cmd 16` removes it, with the reference
+app running or stopped. Cmd 35 changes nothing in that state.
 
-## O que faz o cluster aceitar o cmd 16 (medido em 08/11)
+## What makes the cluster accept cmd 16 (measured on 08/11)
 
-O cluster só mostra o display 1 a tela cheia sem a barra nativa quando o processo que manda
-`sendInfo(1000, 16, "")` mantém uma **projeção de tela viva** (MediaProjection):
+The cluster only shows display 1 full screen without the native bar when the process that sends
+`sendInfo(1000, 16, "")` keeps a **live screen projection** (MediaProjection):
 
-- a SharkLab pede o consentimento de captura e cria o display virtual
+- SharkLab asks for the capture consent and creates the virtual display
   `shared_fission_bg_XDJAScreenProjection_0` (1920×720, flags 3);
-- com essa projeção registrada, `cmd 16` esconde a barra (P/ECO, bateria, autonomia, ODO);
-- sem projeção, o mesmo `16` é aceito (retorna 0) mas o cluster continua no layout nativo.
+- with that projection registered, `cmd 16` hides the bar (P/ECO, battery, range, ODO);
+- without a projection, the same `16` is accepted (returns 0) but the cluster stays on the native
+  layout.
 
-Verificado com o EvSound **desabilitado** (0 processos):
+Verified with the reference app **disabled** (0 processes):
 
-| ação | painel |
+| action | panel |
 |---|---|
-| SharkLab aberto e consentimento aceito | skin completa, sem barra |
-| `cmd 18` | barra da BYD volta em ~1 s |
-| laço de `cmd 16` a cada 5 s | SharkLab volta sozinho em ≤5 s |
+| SharkLab open and consent accepted | full skin, no bar |
+| `cmd 18` | BYD bar comes back in ~1 s |
+| loop of `cmd 16` every 5 s | SharkLab comes back by itself in ≤5 s |
 
-O consentimento do MediaProjection é por processo: ao abrir a SharkLab depois de um boot
-aparece o diálogo “Comenzar ahora” uma vez. O EvSound não usa MediaProjection: ele conecta
-por ADB Wi-Fi (`127.0.0.1:5555`) com chave RSA persistida (autoriza uma vez) e roda
-`service call AutoContainer ...` como shell; o vigilante dele reafirma o painel a cada ~60 s.
+The MediaProjection consent is per process: opening SharkLab after a boot shows the "Comenzar
+ahora" dialog once. The reference cluster app does not use MediaProjection: it connects over ADB
+Wi-Fi (`127.0.0.1:5555`) with a persisted RSA key (authorise once) and runs
+`service call AutoContainer ...` as shell; its watcher reaffirms the panel every ~60 s.
 
-Consequência: enquanto o EvSound estiver instalado e for **pausado**, ele manda `46 → 18 → 0`
-e o cluster recusa o `16` de outros processos até o EvSound voltar a ativar. Com o EvSound
-desabilitado/desinstalado não existe esse bloqueio.
+Consequence: while the reference cluster app is installed and gets **paused**, it sends
+`46 → 18 → 0` and the cluster refuses the `16` from other processes until the reference app
+activates again. With the reference app disabled/uninstalled that block does not exist.
 
-## Painel por ADB (rota final, sem diálogos)
+## Panel over ADB (final route, no dialogs)
 
-O EvSound não usa MediaProjection: ele conversa com o adbd local (`127.0.0.1:5555`) e manda
-`service call AutoContainer ...` como shell. Replicamos o cliente ADB dele:
+The reference cluster app does not use MediaProjection: it talks to the local adbd
+(`127.0.0.1:5555`) and sends `service call AutoContainer ...` as shell. We replicate the same
+ADB client approach:
 
-- chave RSA 2048 persistida; a do APK é a da estação de trabalho (já autorizada na central),
-  embutida só no build local (`build/assets/adbkey.pem` / `adbkey.pub`, fora do git);
-- assinatura do token: bloco PKCS#1 v1.5 de 256 bytes `00 01 FF..FF 00 || DigestInfo SHA-1
-  || token` com `RSA/ECB/NoPadding`. `SHA1withRSA` reassina o token e o adbd recusa;
-- socket ADB é mantido aberto e cada comando abre um stream shell nele; `cmd 16` a cada 60 s.
+- persisted RSA 2048 key; the one we ship is the workstation's (already authorised on the head
+  unit), bundled only in the local build (`build/assets/adbkey.pem` / `adbkey.pub`, outside git);
+- token signature: PKCS#1 v1.5 block of 256 bytes `00 01 FF..FF 00 || DigestInfo SHA-1
+  || token` with `RSA/ECB/NoPadding`. `SHA1withRSA` re-signs the token and adbd refuses it;
+- the ADB socket is kept open and each command opens a shell stream on it; `cmd 16` every 60 s.
 
-Verificado (EvSound desabilitado): conecta sem prompt, `cmd 16` assume o painel, `cmd 18`
-devolve a barra da BYD e o laço de 60 s retoma a skin sozinho.
+Verified (reference app disabled): connects without a prompt, `cmd 16` takes over the panel,
+`cmd 18` brings the BYD bar back and the 60 s loop retakes the skin on its own.
 
-## Cores no painel: o capture é RGBA, não BGRA
+## Colours on the panel: the capture is RGBA, not BGRA
 
-`fission_screencap` devolve 4 bytes por pixel e o cabeçalho de 16 bytes
-(`w, h, format, stride`), mas os canais vêm na ordem **RGBA**. Decodificar como BGRA
-troca R e B e faz a skin azul (`#0480ff`) aparecer laranja (`#ff8004`) na imagem
-analisada — no painel de verdade as cores sempre estiveram certas. Branco, cinza e
-magenta não denunciam o engano, o que torna o erro fácil de aceitar.
+`fission_screencap` returns 4 bytes per pixel and the 16-byte header
+(`w, h, format, stride`), but the channels come in **RGBA** order. Decoding it as BGRA swaps R
+and B and makes the blue skin (`#0480ff`) show up orange (`#ff8004`) in the analysed image — on
+the real panel the colours were always right. White, grey and magenta do not give the mistake
+away, which makes the error easy to accept.
 
-Antes de mexer em formato de janela (`PixelFormat`) ou em `setLayerType`, decodifique
-uma captura de teste com as duas ordens e compare com uma cor conhecida.
+Before touching window format (`PixelFormat`) or `setLayerType`, decode a test capture in both
+orders and compare against a known colour.
 
-## Tomar o painel: a ordem e as três coisas que precisam estar vivas
+## Taking the panel: the order and the three things that must be alive
 
-Medido em 2026-11-10, depois de perder uma sessão inteira achando que era regressão de código.
-Não é: é ordem de operações.
+Measured on 2026-11-10, after losing a whole session thinking it was a code regression. It is
+not: it is the order of operations.
 
-1. **Sessão ADB com a chave embutida.** O app fala com `127.0.0.1:5555` usando a chave RSA
-   embutida no APK (`AdbShell`). Autorizada uma vez no carro, não pede mais nada. Sem ela o
-   `cmd 16` não sai e o painel continua na interface da BYD.
-2. **`cmd 16` ANTES da janela.** Quem cria o display do painel é o container, ao receber o 16.
-   Se a janela da skin for criada antes, ela vai para um display que ainda não existe e o
-   painel fica **preto** (foi exatamente o sintoma: preto com os ícones da BYD por cima).
-   `takePanel()` e `PanelBoot` agora mandam 16, esperam ~1,2 s e só então criam a janela.
-3. **Um produtor para a superfície.** O container compõe
-   `shared_fission_bg_XDJAScreenProjection_0`; se ninguém desenhar nela, preto de novo.
-   A rota `auto_container` por JSON foi testada payload por payload e **todos devolvem `-1`**
-   (rejeitado), então o produtor é a `VirtualDisplay` de `ClusterProjection`, que exige o token
-   de captura (`Mirror.request` → diálogo do sistema, uma vez por processo).
+1. **ADB session with the bundled key.** The app talks to `127.0.0.1:5555` using the RSA key
+   embedded in the APK (`AdbShell`). Authorised once on the car, it never asks again. Without it
+   `cmd 16` does not go out and the panel stays on the BYD interface.
+2. **`cmd 16` BEFORE the window.** The container is what creates the panel display, when it
+   receives the 16. If the skin window is created first, it goes to a display that does not exist
+   yet and the panel comes out **black** (that was exactly the symptom: black with the BYD icons
+   on top). `takePanel()` and `PanelBoot` now send 16, wait ~1.2 s and only then create the
+   window.
+3. **A producer for the surface.** The container composites
+   `shared_fission_bg_XDJAScreenProjection_0`; if nobody draws on it, black again. The
+   `auto_container` JSON route was tested payload by payload and **all of them return `-1`**
+   (rejected), so the producer is the `ClusterProjection` `VirtualDisplay`, which needs the
+   capture token (`Mirror.request` → system dialog, once per process).
 
-Checklist de diagnóstico quando o painel não aparecer:
+Diagnostic checklist when the panel does not show up:
 
 ```bash
-adb -s <ip>:5555 shell dumpsys display | grep -c mDisplayId   # 1 = display do painel não existe
+adb -s <ip>:5555 shell dumpsys display | grep -c mDisplayId   # 1 = panel display does not exist
 adb -s <ip>:5555 shell service call AutoContainer 2 i32 1000 i32 16 s16 null
-adb -s <ip>:5555 exec-out fission_screencap -d 0 > panel.raw   # RGBA, cabeçalho de 16 bytes
+adb -s <ip>:5555 exec-out fission_screencap -d 0 > panel.raw   # RGBA, 16-byte header
 ```
 
-**Não rode o EvSound junto.** Ele também manda 16/18 no mesmo container e os dois ficam
-disputando o painel; quando o EvSound está ativo a nossa skin some. Deixe-o desinstalado ou
-parado. Se o painel voltar à interface da BYD do nada, é sinal de que algo mandou 18.
+**Do not run the reference cluster app along with SharkLab.** It also sends 16/18 to the same
+container and the two fight over the panel; when the reference app is active our skin vanishes.
+Leave it uninstalled or stopped. If the panel goes back to the BYD interface out of nowhere,
+that is a sign that something sent 18.
 
-## O display do painel existe só enquanto o container está projetando
+## The panel display only exists while the container is projecting
 
-Medido em 2026-11-10 com o EvSound **rodando** (pacote `com.mdemetrio.evsoundbyd`, atividade
-`.MainActivity`; ele não aparece na gaveta, se abre por `am start`):
+Measured on 2026-11-10 with the reference app **running** (it does not appear in the drawer, it
+is started with `am start`):
 
 ```
 DisplayDeviceInfo{"fission_bg_xdjaVirtualSurface", 1920x720, density 320, type VIRTUAL,
@@ -183,43 +188,45 @@ DisplayDeviceInfo{"fission_bg_xdjaVirtualSurface", 1920x720, density 320, type V
                   FLAG_PRESENTATION, mDisplayId=2}
 ```
 
-Camadas no SurfaceFlinger com ele ativo: `EvSound painel` e `EvSound botão do som`.
+SurfaceFlinger layers with it active: two layers from the reference cluster app (its panel
+window and its sound button window).
 
-Duas consequências:
+Two consequences:
 
-1. **Antes disso `dumpsys display` mostra um display só.** Era por isso que a janela da skin
-   respondia `display do painel nao encontrado`: o display não existe até o container entrar em
-   projeção com um cliente pendurado nele.
-2. **Com o display vivo a nossa skin pinta por cima normalmente** — verificado: com o EvSound
-   aberto, abrir a SharkLab desenha o tema `byd` no painel (acelerador, potência, bateria,
-   combustível, autonomia, pressões 2.5/2.6 bar, MONTAÑA, P R N D, ODO).
+1. **Before that, `dumpsys display` shows a single display.** That is why the skin window
+   answered `panel display not found`: the display does not exist until the container
+   enters projection with a client hanging on it.
+2. **With the display alive our skin paints on top normally** — verified: with the reference app
+   open, opening SharkLab draws the `byd` theme on the panel (throttle, power, battery, fuel,
+   range, 2.5/2.6 bar pressures, mountain mode, P R N D, ODO).
 
-Ou seja: o `ClusterOverlay` está correto; falta a SharkLab conseguir que o container publique o
-display. Enquanto isso não estiver resolvido, a ordem prática é: **EvSound inicia a projeção, a
-SharkLab desenha a skin**.
+In other words: `ClusterOverlay` is correct; what SharkLab is missing is getting the container to
+publish the display. Until that is solved, the practical order is: **the reference app starts the
+projection, SharkLab draws the skin**.
 
-## A sequência do container: 46 e depois 16
+## The container sequence: 46 and then 16
 
-Extraído do APK do EvSound (`/tmp/ev330.apk`, strings do dex) e confirmado no carro:
+Observed on the unit (the reference cluster app sends exactly this) and confirmed on the car:
 
 ```
 service call AutoContainer 2 i32 1000 i32 46 s16 null; sleep 1.2
 service call AutoContainer 2 i32 1000 i32 16 s16 null
 ```
 
-**O 46 é o que cria o display do painel** (`fission_bg_xdjaVirtualSurface`). O 16 sozinho
-projeta, mas sem o 46 não existe display nenhum e a janela da skin responde "display do painel
-nao encontrado". Ao devolver o painel a BYD o EvSound manda **46, 18 e 0**, nessa ordem.
+**The 46 is what creates the panel display** (`fission_bg_xdjaVirtualSurface`). The 16 alone
+projects, but without the 46 no display exists and the skin window answers "panel display not
+found". When giving the panel back to BYD, the reference app sends **46, 18 and 0**, in
+that order.
 
-Medido com o EvSound **desabilitado** (`pm disable-user com.mdemetrio.evsoundbyd`): mandando 46 e
-16, `dumpsys display` passa de 1 para 2 displays e a skin da SharkLab aparece no painel — já não
-depende do EvSound. Falta acertar a escala: a skin sai ampliada e cortada (viewport do painel é
-960 CSS px para um viewBox de 1280×480).
+Measured with the reference cluster app **disabled** (`pm disable-user <pkg>`):
+sending 46 and 16, `dumpsys display` goes from 1 to 2 displays and the SharkLab skin appears on
+the panel — it no longer depends on the reference app. The scale still needs fixing: the skin
+comes out enlarged and cropped (the panel viewport is 960 CSS px for a 1280×480 viewBox).
 
 
-## Encendido y apagado del carro (medido 2026-11-10)
+## Car on and off (measured 2026-11-10)
 
-| Lectura | Encendido | Apagado (puerta abierta) |
+| Reading | On | Off (door open) |
 |---|---|---|
 | `power.getPowerCtlStatus(3)` | **1** | **0** |
 | `power.getShutdownInfo(1)` | 0 | 0 |
@@ -228,10 +235,11 @@ depende do EvSound. Falta acertar a escala: a skin sai ampliada e cortada (viewp
 | `power.getMcuStatus` | 1 | 1 |
 | `energy.getEnergyState` | 0/1 | 0 |
 
-`AbsBYDAutoPowerListener.onPowerCtlStatusChanged(int, int)` publica ese mismo valor.
-`getPowerCtlStatus` sólo acepta el índice 3; los demás devuelven `-2147482645`.
+`AbsBYDAutoPowerListener.onPowerCtlStatusChanged(int, int)` publishes that same value.
+`getPowerCtlStatus` only accepts index 3; the others return `-2147482645`.
 
-Regla de la app: `pc == 1` → aplicar; `pc == 0` → `PanelRelease.release()` (el panel vuelve a BYD
-y queda sólo la alerta de puerta). Se consulta cada 2 s.
+App rule: `pc == 1` → apply; `pc == 0` → `PanelRelease.release()` (the panel goes back to BYD
+and only the door alert is left). It is polled every 2 s.
 
-`ACTION_SCREEN_OFF` y `ACTION_SHUTDOWN` **no llegan** al apagarse: la IVI no los emite.
+`ACTION_SCREEN_OFF` and `ACTION_SHUTDOWN` **do not arrive** on shut-down: the head unit does not
+emit them.

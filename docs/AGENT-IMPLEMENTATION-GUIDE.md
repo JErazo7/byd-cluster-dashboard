@@ -1,113 +1,172 @@
-# Tablero propio en un BYD con DiLink 3.0 — guía de implementación para agentes
+# Own dashboard on a BYD with DiLink 3.0 — implementation guide for agents
 
-Documento de trabajo para que un agente de IA (o una persona) pueda reproducir, desde cero, el
-tablero personalizado de este repo en una BYD Shark. Todo lo marcado como **medido** se verificó
-en esta unidad: `BYD_AUTO`, DiLink 3.0, Android 10, panel de 1920×720. Lo marcado como
-**inferencia** es lo que se espera en otras unidades DiLink 3.0 y hay que confirmarlo en el auto.
+Working document so that an AI agent (or a person) can reproduce, from scratch, the custom
+dashboard of this repo on a BYD Shark. Everything marked as **measured** was verified on this
+unit: `BYD_AUTO`, DiLink 3.0, Android 10, 1920×720 panel. What is marked as **inference** is what
+is expected on other DiLink 3.0 units and has to be confirmed on the car.
 
-Referencia ejecutable: `app/` (SharkLab). Contrato de plataforma crudo: `docs/BYD-CONTAINER.md`
-y `docs/bug-panel-display.md`. Este documento es el camino recomendado; esos dos son la evidencia.
+Executable reference: `app/` (SharkLab). Raw platform contract: `docs/BYD-CONTAINER.md` and
+`docs/bug-panel-display.md`. This document is the recommended path; those two are the evidence.
 
 ---
 
-## 0. Modelo mental: tres hechos que gobiernan todo
+## 0. Mental model: three facts that govern everything
 
-1. **El cuadro detrás del volante no es un display Android normal.** Es otra instancia del
-   sistema (`fission`). La central solo lo controla por el servicio binder `AutoContainer`.
-2. **El panel muestra un display virtual** llamado `fission_bg_xdjaVirtualSurface` (1920×720,
-   density 320), y ese display **solo existe mientras el container está en modo proyección**.
-   `dumpsys display` pasa de 1 a 2 displays cuando el container lo publica.
-3. **Cualquier ventana sobre ese display aparece en el panel** mientras el modo proyección esté
-   activo. No hace falta capturar la pantalla, ni MediaProjection, ni root para dibujar: hace
-   falta una ventana `TYPE_APPLICATION_OVERLAY` creada con el contexto del display del panel.
+1. **The display behind the steering wheel is not a normal Android display.** It is another
+   instance of the system (`fission`). The head unit only controls it through the `AutoContainer`
+   binder service.
+2. **The panel shows a virtual display** named `fission_bg_xdjaVirtualSurface` (1920×720,
+   density 320), and that display **only exists while the container is in projection mode**.
+   `dumpsys display` goes from 1 to 2 displays when the container publishes it.
+3. **Any window on that display appears on the panel** while projection mode is active. You do
+   not need screen capture, MediaProjection or root to draw: you need a
+   `TYPE_APPLICATION_OVERLAY` window created with the context of the panel display.
 
 ```mermaid
 flowchart LR
-  A[APK en la IVI] -->|binder sendInfo 1000/16/45| C[AutoContainer]
-  C -->|publica display virtual| D[fission_bg_xdjaVirtualSurface 1920x720]
+  A[APK on the head unit] -->|binder sendInfo 1000/16/45| C[AutoContainer]
+  C -->|publishes virtual display| D[fission_bg_xdjaVirtualSurface 1920x720]
   A -->|addView overlay 2038| D
   A -->|adb 127.0.0.1:5555| S[adbd shell]
   S -->|service call AutoContainer| C
-  S -->|relanza WakeActivity| A
-  D --> P[Panel físico]
+  S -->|relaunches WakeActivity| A
+  D --> P[Physical panel]
 ```
 
-**Consecuencia de diseño:** el tablero es un WebView (o cualquier View) en una overlay, más un
-cliente ADB local que pide los comandos. La app no "transmite" nada; solo dibuja en el display
-que el container ya compone.
+**Design consequence:** the dashboard is a WebView (or any View) inside an overlay, plus a local
+ADB client that sends the commands. The app does not "transmit" anything; it only draws on the
+display the container already composites.
 
 ---
 
-## 1. Paso 0 — confirmar la plataforma antes de escribir código
+## 1. Step 0 — confirm the platform before writing code
 
-Requisitos: la central con ADB habilitado (en esta unidad el adbd escucha en `5555`), SDK de
-Android (platform + build-tools) y JDK 17 en la máquina de build.
+Requirements: the head unit with ADB enabled (on this unit adbd listens on `5555`), the Android
+SDK (platform + build-tools) and JDK 17 on the build machine.
 
 ```bash
-adb connect <IP-DE-LA-CENTRAL>:5555
-adb devices                                   # debe figurar "device", no "unauthorized"
+adb connect <HEAD-UNIT-IP>:5555
+adb devices                                   # it must show "device", not "unauthorized"
 
-adb shell getprop ro.build.version.release     # 10 en esta unidad
+adb shell getprop ro.build.version.release     # 10 on this unit
 adb shell service list | grep -i AutoContainer
-adb shell dumpsys display | grep -E 'fission|mDisplayId'   # 1 display si no hay proyección
-adb shell cat /system/etc/container_comm_cfg.json          # paquetes autorizados
-adb shell pm list packages | grep -i evsound               # quién más pelea por el panel
+adb shell dumpsys display | grep -E 'fission|mDisplayId'   # 1 display if there is no projection
+adb shell cat /system/etc/container_comm_cfg.json          # authorised packages
+adb shell pm list packages | grep -i clusterdemo           # our app installed?
 ```
 
-Esperado en Shark: `AutoContainer: [android.os.IAutoContainer]`, un solo display, y la lista de
-`container_comm_cfg.json` incluyendo `com.xdja.clusterdemo`. Si el servicio existe pero tu
-paquete no está en la lista, el binder responde `SecurityException: Not allowed package` y el
-panel sigue en BYD: renombra el APK o edita la lista (requiere root/sistema).
+Expected on a Shark: `AutoContainer: [android.os.IAutoContainer]`, a single display, and the
+`container_comm_cfg.json` list including `com.xdja.clusterdemo`. If the service exists but your
+package is not in the list, the binder answers `SecurityException: Not allowed package` and the
+panel stays on BYD: rename the APK or edit the list (needs root/system).
 
-**Regla:** si `dumpsys display` no muestra `fission_bg_xdjaVirtualSurface`, el panel no está
-proyectando y ninguna ventana tuya puede aparecer. Es el estado normal antes de mandar `16`.
+**Rule:** if `dumpsys display` does not show `fission_bg_xdjaVirtualSurface`, the panel is not
+projecting and no window of yours can appear. That is the normal state before sending `16`.
+
+Once projection is on, the layers on the panel tell you who is competing for it:
+
+```bash
+adb shell dumpsys SurfaceFlinger --list | grep -i -E 'painel|cluster'
+```
 
 ---
 
-## 2. Restricciones duras (medidas)
+## ADB command reference
 
-| Restricción | Valor / consecuencia |
+Everything a newcomer needs, in one place. `<IP>` = head unit address, `com.xdja.clusterdemo` =
+the authorised package name (copy it exactly; another name gets `SecurityException`).
+
+| Goal | Command | Expected |
+|---|---|---|
+| Connect | `adb connect <IP>:5555` | `connected to <IP>:5555` |
+| List devices | `adb devices` | a row with `device` (not `unauthorized`) |
+| Build | `SDK=/opt/android-sdk ./app/build.sh` | `app/out/sharklab-cluster.apk` |
+| Install | `adb install -r app/out/sharklab-cluster.apk` | `Success` |
+| Overlay permission | `adb shell appops set com.xdja.clusterdemo SYSTEM_ALERT_WINDOW allow` | no output |
+| Panel commands | `adb shell service call AutoContainer 2 i32 1000 i32 <cmd> s16 null` | `Result: Parcel(...)` with 0 |
+| Displays | `adb shell dumpsys display` | `fission_bg_xdjaVirtualSurface` when projecting |
+| Windows | `adb shell dumpsys window windows` | the skin window (grep `painel`) |
+| Layers | `adb shell dumpsys SurfaceFlinger --list` | the panel layer (grep `painel`) |
+| Panel capture | `adb exec-out fission_screencap -d 0 > panel.raw` | RGBA 1920×720 + header |
+| App log | `adb shell tail -20 /sdcard/Android/data/com.xdja.clusterdemo/files/panel.log` | app traces |
+| Watchdog log | `adb shell tail -20 /data/local/tmp/shark.log` | `armed` / `relaunching` / `am rc=0` |
+| App alive? | `adb shell pidof com.xdja.clusterdemo` | pid, or empty when dead |
+| Watchdog alive? | `adb shell cat /data/local/tmp/shark_wd.pid` | pid of the adbd script |
+
+Panel command codes: `16` projection, `17` half, `18` back to BYD, `45` full screen without the
+BYD widgets, `46` recreate the panel display, `0` release.
+
+Raw block, in the order you normally need it:
+
+```bash
+adb connect <IP>:5555
+adb devices
+adb install -r app/out/sharklab-cluster.apk
+adb shell appops set com.xdja.clusterdemo SYSTEM_ALERT_WINDOW allow
+
+adb shell service call AutoContainer 2 i32 1000 i32 16 s16 null     # projection
+adb shell service call AutoContainer 2 i32 1000 i32 45 s16 null     # drop BYD widgets
+adb shell service call AutoContainer 2 i32 1000 i32 46 s16 null     # recreate the display (kills the window)
+adb shell service call AutoContainer 2 i32 1000 i32 18 s16 null     # back to BYD
+adb shell service call AutoContainer 2 i32 1000 i32 0  s16 null     # release
+
+adb shell dumpsys display | grep -c fission
+adb shell dumpsys window windows | grep -i painel
+adb shell dumpsys SurfaceFlinger --list | grep -i painel
+adb exec-out fission_screencap -d 0 > panel.raw
+
+adb shell pidof com.xdja.clusterdemo
+adb shell cat /data/local/tmp/shark_wd.pid
+adb shell tail -20 /data/local/tmp/shark.log
+adb shell tail -20 /sdcard/Android/data/com.xdja.clusterdemo/files/panel.log
+```
+
+---
+
+## 2. Hard constraints (measured)
+
+| Constraint | Value / consequence |
 |---|---|
-| Nombre de paquete | `com.xdja.clusterdemo` es el único autorizado por defecto en `container_comm_cfg.json`. Otro nombre = `SecurityException` y panel en BYD |
-| Servicio | `android.os.IAutoContainer` (binder); fallback `com.xdja.autocontainer.IAutoContainer` en algunas builds |
-| Canal de comandos | `sendInfo(int type, int cmd, String arg)`, `type = 1000`; `sendJson` devuelve `-1` para todo lo probado |
-| Display del panel | nombre `fission_bg_xdjaVirtualSurface`, 1920×720, density 320, `mDisplayId=2` en esta unidad. **Localízalo por nombre, nunca por id** |
-| Ventana | `TYPE_APPLICATION_OVERLAY` (2038), `PixelFormat.TRANSLUCENT`, 1920×720, `gravity=TOP|START`, `x=y=0` |
-| Contexto | `createDisplayContext(displayDelPanel)`; con el contexto de la Activity la ventana nace en el display 0 (pantalla central) |
-| Permiso de overlay | `SYSTEM_ALERT_WINDOW`; si `addView` lanza `SecurityException` es esto. Conceder con `adb shell appops set <pkg> SYSTEM_ALERT_WINDOW allow` |
-| Permisos BYD | declarar `android.permission.BYDAUTO_<DEVICE>_COMMON` (los usa la app, no el sistema); ver §3.2 |
-| Divisa de "sin lectura" | los getters devuelven `-999`, `8322` o `65535` según el caso; trata todo `< -998` como ausente |
+| Package name | `com.xdja.clusterdemo` is the only one authorised by default in `container_comm_cfg.json`. Another name = `SecurityException` and panel on BYD |
+| Service | `android.os.IAutoContainer` (binder); fallback `com.xdja.autocontainer.IAutoContainer` on some builds |
+| Command channel | `sendInfo(int type, int cmd, String arg)`, `type = 1000`; `sendJson` returns `-1` for everything tried |
+| Panel display | name `fission_bg_xdjaVirtualSurface`, 1920×720, density 320, `mDisplayId=2` on this unit. **Find it by name, never by id** |
+| Window | `TYPE_APPLICATION_OVERLAY` (2038), `PixelFormat.TRANSLUCENT`, 1920×720, `gravity=TOP\|START`, `x=y=0` |
+| Context | `createDisplayContext(panelDisplay)`; with the Activity context the window is born on display 0 (head unit screen) |
+| Overlay permission | `SYSTEM_ALERT_WINDOW`; if `addView` throws `SecurityException` it is this. Grant it with `adb shell appops set <pkg> SYSTEM_ALERT_WINDOW allow` |
+| BYD permissions | declare `android.permission.BYDAUTO_<DEVICE>_COMMON` (the app uses them, not the system); see §3.2 |
+| "No reading" sentinel | the getters return `-999`, `8322` or `65535` depending on the case; treat anything `< -998` as absent |
 
 ---
 
-## 3. Esqueleto de la app
+## 3. App skeleton
 
-### 3.1 Manifest mínimo
+### 3.1 Minimal manifest
 
 ```xml
 <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="26" />
 <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-<uses-permission android:name="android.permission.INTERNET" />          <!-- socket ADB local -->
+<uses-permission android:name="android.permission.INTERNET" />          <!-- local ADB socket -->
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-<!-- una por dispositivo BYD que vayas a leer; ejemplos -->
+<!-- one per BYD device you are going to read; examples -->
 <uses-permission android:name="android.permission.BYDAUTO_SPEED_COMMON" />
 <uses-permission android:name="android.permission.BYDAUTO_POWER_COMMON" />
 <uses-permission android:name="android.permission.BYDAUTO_TYRE_COMMON" />
 ```
 
-Declara además:
+Also declare:
 
-- `MainActivity` (launcher, `singleTask`) para la interfaz de la central.
-- `WakeActivity` con `android:theme="@android:style/Theme.NoDisplay"` y `exported="true"`:
-  es la puerta que usa el shell para despertar el proceso sin abrir interfaz.
-- `PanelService` `exported="true"` con `foregroundServiceType="mediaProjection"` (o `dataSync`):
-  mantiene el proceso vivo y corre el bucle de encendido/apagado. No necesita MediaProjection
-  real; el tipo solo evita restricciones de servicio en segundo plano.
+- `MainActivity` (launcher, `singleTask`) for the head unit interface.
+- `WakeActivity` with `android:theme="@android:style/Theme.NoDisplay"` and `exported="true"`:
+  it is the door the shell uses to wake the process without opening an interface.
+- `PanelService` `exported="true"` with `foregroundServiceType="mediaProjection"` (or `dataSync`):
+  it keeps the process alive and runs the on/off loop. It does not need a real MediaProjection;
+  the type only avoids background service restrictions.
 
-### 3.2 Leer datos del carro (API `android.hardware.bydauto.*`)
+### 3.2 Reading car data (API `android.hardware.bydauto.*`)
 
-Las clases del vehículo viven en el sistema, no en tu APK: accede por reflexión.
+The vehicle classes live in the system, not in your APK: reach them through reflection.
 
 ```java
 Class<?> c = Class.forName("android.hardware.bydauto.power.BYDAutoPowerDevice");
@@ -115,19 +174,19 @@ Object dev = c.getDeclaredMethod("getInstance", Context.class).invoke(null, ctx)
 int pc = (int) dev.getClass().getMethod("getPowerCtlStatus", int.class).invoke(dev, 3);
 ```
 
-Dos trampas medidas:
+Two measured traps:
 
-1. **El chequeo de `BYDAUTO_*` es del lado del cliente.** El framework evalúa el permiso contra
-   el `Context` que le pasas a `getInstance()`. Un `ContextWrapper` que devuelva `GRANTED` solo
-   para `android.permission.BYDAUTO_*` hace que los getters funcionen sin firma de plataforma
-   (ver `BydPermissionContext.java`). No cambies el resto de los permisos.
-2. **El singleton se queda con lecturas viejas.** Recrea el device cada ~1,5 s (o usa un contexto
-   nuevo por lectura) o el modo de conducción se queda pegado al anterior.
+1. **The `BYDAUTO_*` check is on the client side.** The framework evaluates the permission against
+   the `Context` you pass to `getInstance()`. A `ContextWrapper` that returns `GRANTED` only for
+   `android.permission.BYDAUTO_*` makes the getters work without a platform signature (see
+   `BydPermissionContext.java`). Do not change the rest of the permissions.
+2. **The singleton keeps stale readings.** Recreate the device every ~1.5 s (or use a new context
+   per read) or the driving mode sticks to the previous one.
 
-Además, cada `snapshot()` completo cuesta ~12 ms (37 llamadas al binder). Cachea 120 ms y
-comparte la lectura entre todos los consumidores.
+Also, a full `snapshot()` costs ~12 ms (37 binder calls). Cache for 120 ms and share the read
+between all consumers.
 
-### 3.3 Mandar comandos al container (binder, sin shell)
+### 3.3 Sending commands to the container (binder, no shell)
 
 ```java
 Object binder = Class.forName("android.os.ServiceManager")
@@ -138,23 +197,23 @@ svc.getClass().getMethod("sendInfo", int.class, int.class, String.class)
         .invoke(svc, 1000, cmd, "");
 ```
 
-Equivalente por shell (útil para diagnóstico y para el vigía):
+Equivalent through the shell (useful for diagnostics and for the watchdog):
 
 ```bash
 service call AutoContainer 2 i32 1000 i32 16 s16 null
 ```
 
-### 3.4 Crear la ventana del tablero
+### 3.4 Creating the dashboard window
 
 ```java
 Display panel = null;
 for (Display d : ((DisplayManager) ctx.getSystemService(Context.DISPLAY_SERVICE)).getDisplays())
     if (String.valueOf(d.getName()).contains("fission_bg_xdjaVirtualSurface")) panel = d;
-if (panel == null) return false;                       // el display aún no existe
+if (panel == null) return false;                       // the display does not exist yet
 
 Context panelCtx = ctx.createDisplayContext(panel);
 WindowManager wm = (WindowManager) panelCtx.getSystemService(Context.WINDOW_SERVICE);
-WebView web = new WebView(panelCtx);                   // o cualquier View
+WebView web = new WebView(panelCtx);                   // or any View
 WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
         1920, 720,
         WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -168,84 +227,87 @@ WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
         PixelFormat.TRANSLUCENT);
 lp.gravity = Gravity.TOP | Gravity.START;
 lp.x = 0; lp.y = 0;
-lp.setTitle("EvSound painel");                          // título observado en la capa del panel
+lp.setTitle(ClusterOverlay.WINDOW_TITLE);              // fixed literal — see the note below
 wm.addView(web, lp);
 ```
 
-Notas medidas:
+Measured notes:
 
-- La combinación de flags de arriba es la que deja la skin **sin** la barra nativa de BYD
-  (P/ECO, batería, autonomía, ODO). Con solo `FLAG_LAYOUT_NO_LIMITS` también se limpió; con
-  `NOT_FOCUSABLE|NOT_TOUCHABLE|FULLSCREEN|LAYOUT_IN_SCREEN` el container compone su barra encima.
-  Si aparece barra nativa, ajusta flags antes de tocar nada más.
-- El título no es el mecanismo (el modo proyección muestra cualquier ventana del display 1); se
-  usa el mismo título observado en la capa de referencia para no introducir variables.
-- El WebView del panel es una ventana virtual: **`requestAnimationFrame` se congela**. No
-  diseñes la skin para animarse sola; empuja el estado desde fuera (§7).
+- The flag combination above is the one that leaves the skin **without** the native BYD bar
+  (P/ECO, battery, range, ODO). With only `FLAG_LAYOUT_NO_LIMITS` it was also clean; with
+  `NOT_FOCUSABLE|NOT_TOUCHABLE|FULLSCREEN|LAYOUT_IN_SCREEN` the container composites its bar on
+  top. If the native bar shows up, adjust flags before touching anything else.
+- The window title is **not** the mechanism: while projection mode is active the container shows
+  any window on the panel display. The literal is copied from the layer observed on the reference
+  app, defined once as `ClusterOverlay.WINDOW_TITLE`, so the layer is easy to find in `dumpsys`
+  (`grep -i painel`). Changing it does not break the projection, but keep it consistent with the
+  tooling.
+- The panel WebView is a virtual window: **`requestAnimationFrame` freezes**. Do not design the
+  skin to animate by itself; push the state from outside (§7).
 
 ---
 
-## 4. Tomar el panel: la secuencia y sus tiempos
+## 4. Taking the panel: the sequence and its timings
 
-Comandos verificados en esta unidad (`type = 1000`):
+Commands verified on this unit (`type = 1000`):
 
-| cmd | Efecto observado |
+| cmd | Observed effect |
 |---|---|
-| `16` | el panel empieza a mostrar el display virtual, a pantalla completa, con los widgets nativos encima |
-| `17` | mitad |
-| `45` | el container deja de dibujar sus widgets: queda solo la skin |
-| `46` | recrea el display del panel (necesario si no existe; **mata la ventana actual**) |
-| `18` | vuelve al layout original de BYD |
-| `0` | suelta |
+| `16` | the panel starts showing the virtual display, full screen, with the native widgets on top |
+| `17` | half |
+| `45` | the container stops drawing its widgets: only the skin is left |
+| `46` | recreates the panel display (needed when it does not exist; **kills the current window**) |
+| `18` | back to the original BYD layout |
+| `0` | release |
 
-### Secuencia de toma (medida)
-
-```text
-1. display existe y ventana añadida
-2. sendInfo(1000, 16)          # proyección
-3. sleep 1,5 s
-4. sendInfo(1000, 45)          # pantalla completa sin widgets BYD
-```
-
-Si el display **no** existe (`panelDisplay == null`):
+### Take sequence (measured)
 
 ```text
-46 → sleep 1,2–1,8 s → crear ventana → 16 → sleep 1,5 s → 45
+1. display exists and window added
+2. sendInfo(1000, 16)          # projection
+3. sleep 1.5 s
+4. sendInfo(1000, 45)          # full screen without BYD widgets
 ```
 
-`46` **nunca** con la ventana viva: recrea el display y deja la ventana huérfana; el panel vuelve
-al layout nativo. La implementación de referencia ya no lo usa en la toma normal, solo como
-rescate y en el release.
+If the display does **not** exist (`panelDisplay == null`):
 
-**Reafirmación:** un lazo cada 60 s reenvía `16` y `45` (nunca `46`). Aguanta que otro proceso
-mande `18`. Medido: 3 minutos en pantalla completa sin intervención.
+```text
+46 → sleep 1.2–1.8 s → create window → 16 → sleep 1.5 s → 45
+```
 
-**Idempotencia:** no reapliques en ráfaga. `PanelBoot.apply` corta si la última aplicación fue
-hace <12 s o si la ventana ya existe; sin eso el tema parpadea 2–3 veces al arrancar.
+`46` **never** with the window alive: it recreates the display and leaves the window orphaned;
+the panel goes back to the native layout. The reference implementation no longer uses it on the
+normal take, only as a rescue and on release.
+
+**Reaffirmation:** a loop every 60 s resends `16` and `45` (never `46`). It survives another
+process sending `18`. Measured: 3 minutes full screen without intervention.
+
+**Idempotence:** do not reapply in a burst. `PanelBoot.apply` bails out if the last application
+was <12 s ago or if the window already exists; without that the theme flickers 2–3 times at boot.
 
 ---
 
-## 5. Devolver el panel (release)
+## 5. Giving the panel back (release)
 
 ```text
-1. ocultar la ventana del tablero        # primero: la BYD enciende el cuadro con la alerta de puerta
-2. sendInfo(1000, 46)  → sleep 1,2 s
-3. sendInfo(1000, 18)  → sleep 1,0 s
+1. hide the dashboard window              # first: BYD turns the cluster on with the door alert
+2. sendInfo(1000, 46)  → sleep 1.2 s
+3. sendInfo(1000, 18)  → sleep 1.0 s
 4. sendInfo(1000, 0)
-5. marcar "applied=false", "enabled=false" y parar el lazo ADB
+5. mark "applied=false", "enabled=false" and stop the ADB loop
 ```
 
-El orden del paso 1 no es cosmético: con el auto apagado, BYD enciende el cuadro para mostrar
-la alerta de puerta abierta y una skin encima la tapa. Si la ventana queda viva, el panel vuelve
-a BYD pero el aviso desaparece.
+The order of step 1 is not cosmetic: with the car off, BYD turns the cluster display on to show
+the open-door alert and a skin on top of it covers it. If the window stays alive, the panel goes
+back to BYD but the warning disappears.
 
 ---
 
-## 6. Encendido y apagado del auto
+## 6. Car on and off
 
-### 6.1 La única señal que sirve
+### 6.1 The only signal that works
 
-| Lectura | Encendido | Apagado (puerta abierta) |
+| Reading | On | Off (door open) |
 |---|---|---|
 | `power.getPowerCtlStatus(3)` | **1** | **0** |
 | `power.getShutdownInfo(1)` | 0 | 0 |
@@ -254,24 +316,24 @@ a BYD pero el aviso desaparece.
 | `power.getMcuStatus` | 1 | 1 |
 | `energy.getEnergyState` | 0/1 | 0 |
 
-Regla: `pc == 1` → aplicar; `pc == 0` → `release()`. Se consulta cada 1 s desde el servicio.
-`getPowerCtlStatus` solo acepta el índice `3`; los demás devuelven `-2147482645`.
+Rule: `pc == 1` → apply; `pc == 0` → `release()`. Polled every 1 s from the service.
+`getPowerCtlStatus` only accepts index `3`; the others return `-2147482645`.
 
-### 6.2 Por qué hace falta un vigía externo
+### 6.2 Why an external watchdog is needed
 
-**BYD mata el proceso al apagar.** Los listeners BYD solo entregan eventos si el proceso vive,
-`ACTION_SCREEN_OFF` y `ACTION_SHUTDOWN` **no llegan** al apagarse, y `am start-foreground-service`
-sobre un paquete parado se rechaza (`Not found; no service started`) aunque el servicio esté
-exportado. Por eso:
+**BYD kills the process on shut-down.** BYD listeners only deliver events if the process is
+alive, `ACTION_SCREEN_OFF` and `ACTION_SHUTDOWN` **do not arrive** on shut-down, and
+`am start-foreground-service` on a stopped package is refused (`Not found; no service started`)
+even when the service is exported. Therefore:
 
-- un script en el adbd (`/data/local/tmp/…`) vigila cada 2 s y relanza **una activity**
-  invisible (`WakeActivity`) cuando no hay proceso;
-- `WakeActivity` arranca el `PanelService` y hace `finish()` sin primer cuadro.
+- a script in adbd (`/data/local/tmp/…`) watches every 2 s and relaunches an **invisible
+  activity** (`WakeActivity`) when there is no process;
+- `WakeActivity` starts `PanelService` and calls `finish()` without a first frame.
 
-No lances la activity principal desde el vigía: abre la interfaz en la central y le roba el
-diálogo "¿cargar el coche ahora?" que BYD muestra ~10 s al apagar.
+Do not launch the main activity from the watchdog: it opens the interface on the head unit and
+steals the "load the car now?" dialog that BYD shows for ~10 s when shutting down.
 
-### 6.3 Vigía de referencia
+### 6.3 Reference watchdog
 
 ```sh
 #!/system/bin/sh
@@ -294,162 +356,165 @@ rm -f /data/local/tmp/wd.pid
 rmdir /data/local/tmp/wd.lock 2>/dev/null
 ```
 
-Detalles que costaron una sesión:
+Details that cost a session:
 
-- `setsid` para desprenderlo del adbd y **`sleep 1` antes de cerrar la sesión**, o adbd se lleva
-  el hijo.
-- candado `mkdir` + `pid` para no duplicar vigías; si el pid no existe, borrar el lock huérfano.
-- throttle de 15 s en el relanzamiento; sin él, el tema parpadea mientras la app sube.
-- el archivo `autostart` existe **solo** si el usuario activó "iniciar automáticamente": es el
-  interruptor del vigía. Sin ese archivo, la app no revive al encender.
-- se arma en cada APLICAR y se rearma cada 60 s desde el bucle de la app.
+- `setsid` to detach it from adbd and **`sleep 1` before closing the session**, or adbd takes the
+  child away.
+- `mkdir` lock + `pid` so you do not duplicate watchdogs; if the pid does not exist, delete the
+  orphan lock.
+- 15 s throttle on the relaunch; without it the theme flickers while the app comes up.
+- the `autostart` file exists **only** if the user enabled "start automatically": it is the
+  watchdog switch. Without that file, the app does not come back on power-on.
+- it is armed on every `APLICAR` and re-armed every 60 s from the app loop.
 
-### 6.4 Apagado visto desde dentro
+### 6.4 Shut-down seen from the inside
 
-Además del bucle de `pc`, el `PanelService` registra `SCREEN_OFF`, `ACTION_SHUTDOWN` y
-`QUICKBOOT_POWEROFF` (el receptor del manifest no recibe broadcasts implícitos en Android 8+), y
-la ventana del panel escucha `DisplayManager` para soltar cuando el display del panel pasa a
-`STATE_OFF`/`DOZE`. El apagado del auto no emite esos broadcasts medidos; valen para el sueño de
-la central y como tercera red. La señal que decide es `pc`.
+Besides the `pc` loop, `PanelService` registers `SCREEN_OFF`, `ACTION_SHUTDOWN` and
+`QUICKBOOT_POWEROFF` (the manifest receiver does not receive implicit broadcasts on Android 8+),
+and the panel window listens to `DisplayManager` to release when the panel display goes to
+`STATE_OFF`/`DOZE`. The car shut-down does not emit those broadcasts as measured; they are worth
+it for the head unit going to sleep and as a third net. The deciding signal is `pc`.
 
 ---
 
-## 7. Contrato de la skin
+## 7. Skin contract
 
-La skin es un HTML/SVG autónomo dentro del APK (`assets/dash/<id>/index.html`) o en
+The skin is a self-contained HTML/SVG inside the APK (`assets/dash/<id>/index.html`) or in
 `/sdcard/Android/data/<pkg>/files/dash/<id>/`.
 
-### 7.1 Geometría y viewport
+### 7.1 Geometry and viewport
 
-- Lienzo real: **1920×720** px, density 320 → viewport CSS de **960 px** de ancho. Usa un SVG
-  con proporción 8:3 (`viewBox="0 0 1280 480"` en el tema de referencia, o `0 0 1920 720`) y
-  `width/height="100%"`: escala solo. No metas `setInitialScale` ni zoom: un valor mal elegido
-  recorta la skin.
-- Mantén el contenido crítico lejos de los bordes (aros a x≈300/1620, y≈400 en la referencia) y
-  deja una franja superior limpia si algún día el panel vuelve a componer widgets nativos.
+- Real canvas: **1920×720** px, density 320 → CSS viewport **960 px** wide. Use an SVG with an
+  8:3 ratio (`viewBox="0 0 1280 480"` in the reference theme, or `0 0 1920 720`) and
+  `width/height="100%"`: it scales by itself. Do not set `setInitialScale` or zoom: a badly
+  chosen value crops the skin.
+- Keep the critical content away from the edges (rings at x≈300/1620, y≈400 in the reference)
+  and leave a clean top strip in case the panel ever composites native widgets again.
 
-### 7.2 Datos: un solo contrato
+### 7.2 Data: a single contract
 
-El app llama, cada 400 ms:
+The app calls, every 400 ms:
 
 ```js
 window.__pushedByApp = 1;
-window.BrasaDriveUpdate({ /* estado plano */ });
+window.BrasaDriveUpdate({ /* flat state */ });
 ```
 
-La página **no** debe leer el carro por su cuenta cuando `__pushedByApp` está en 1: duplicaría
-las 37 lecturas del binder por ciclo y dejaría la thread del renderer ocupada. Si tu skin trae
-el `lab-feed.js` de referencia, ya respeta esa bandera.
+The page must **not** read the car by itself when `__pushedByApp` is 1: it would duplicate the 37
+binder reads per cycle and leave the renderer thread busy. If your skin brings the reference
+`lab-feed.js`, it already respects that flag.
 
-Campos de referencia (`PanelBridge.state()`, valores enteros; `-999` = sin lectura):
+Reference fields (`PanelBridge.state()`, integer values; `-999` = no reading):
 
-| Campo | Significado |
+| Field | Meaning |
 |---|---|
-| `speed`, `gsel`, `reverse` | km/h; marcha cruda (0 N, 1 R, 2 D, 3 P, 4 N); reversa |
-| `ped`, `load`, `brk` | pedal 0–100; carga 0–1; freno |
-| `soc`, `range`, `fuel`, `fuelKm` | batería %; autonomía eléctrica; combustible %; autonomía térmica |
-| `pw`, `odo`, `tout`, `v12` | potencia kW; odómetro; temperatura exterior; tensión 12 V |
-| `pu`, `du`, `su` | unidades del panel: 1 métrico, 2 imperial (kW/hp, km/mi, km/h/mph) |
-| `drive`, `surfmode`, `ecoind` | modo de terreno (`getRoadSurfaceMode`: 1 montaña, 2 nieve, 3 lodo, 4 arena, 5 normal); testigo ECO |
-| `tyre` | `{fl,fr,rl,rr}` en **bar** (el carro devuelve kPa; divide por 100 si >20) |
-| `adas`, `warn`, `cv`, `nmv` | ADAS por radar, avisos, cámaras, navegación (opcionales) |
+| `speed`, `gsel`, `reverse` | km/h; raw gear (0 N, 1 R, 2 D, 3 P, 4 N); reverse |
+| `ped`, `load`, `brk` | pedal 0–100; load 0–1; brake |
+| `soc`, `range`, `fuel`, `fuelKm` | battery %; electric range; fuel %; combustion range |
+| `pw`, `odo`, `tout`, `v12` | power kW; odometer; outside temperature; 12 V voltage |
+| `pu`, `du`, `su` | panel units: 1 metric, 2 imperial (kW/hp, km/mi, km/h/mph) |
+| `drive`, `surfmode`, `ecoind` | terrain mode (`getRoadSurfaceMode`: 1 mountain, 2 snow, 3 mud, 4 sand, 5 normal); ECO telltale |
+| `tyre` | `{fl,fr,rl,rr}` in **bar** (the car returns kPa; divide by 100 if >20) |
+| `adas`, `warn`, `cv`, `nmv` | radar ADAS, warnings, cameras, navigation (optional) |
 
-Reglas de datos medidas: el pedal puede venir en 0–255 (normaliza si >100); el odómetro total
-puede requerir EV+HEV; las presiones llegan en kPa; los valores de modo en el arranque pueden ser
-`8322`/`65535` y hay que sostener el último válido durante ~15 s.
+Measured data rules: the pedal may come as 0–255 (normalise if >100); the total odometer may
+need EV+HEV; pressures arrive in kPa; the mode values at boot may be `8322`/`65535` and the last
+valid one has to be held for ~15 s.
 
-### 7.3 Fluidez
+### 7.3 Smoothness
 
-- Empuja a 2,5 Hz (400 ms). Cada lectura completa son ~12 ms de binder.
-- La página del panel no puede medir su propio `requestAnimationFrame` (ventana virtual
-  congelada). Mide con SurfaceFlinger:
+- Push at 2.5 Hz (400 ms). Each full read is ~12 ms of binder.
+- The panel page cannot measure its own `requestAnimationFrame` (virtual window frozen). Measure
+  with SurfaceFlinger:
 
 ```bash
 ./tools/panel-fps.sh <IP>:5555
 adb shell dumpsys SurfaceFlinger --list | grep -i 'painel\|cluster\|sharklab'
 ```
 
-- Para depurar dentro del WebView: `WebView.setWebContentsDebuggingEnabled(true)` **antes** del
-  primer WebView del proceso, luego
-  `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>` y `chrome://inspect`.
+- To debug inside the WebView: `WebView.setWebContentsDebuggingEnabled(true)` **before** the
+  first WebView of the process, then
+  `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>` and `chrome://inspect`.
 
 ---
 
-## 8. Compilar e instalar (sin Gradle)
+## 8. Build and install (no Gradle)
 
 ```bash
-SDK=/opt/android-sdk ./app/build.sh          # sale en app/out/sharklab-cluster.apk
+SDK=/opt/android-sdk ./app/build.sh          # lands in app/out/sharklab-cluster.apk
 adb install -r app/out/sharklab-cluster.apk
 adb shell appops set com.xdja.clusterdemo SYSTEM_ALERT_WINDOW allow
 ```
 
-- El APK sale con `--rename-manifest-package com.xdja.clusterdemo`; es lo que autoriza el
-  container. Con otro nombre la skin se dibuja pero el panel no la muestra.
-- La clave ADB de la estación se embute en `build/assets/adbkey.pem`/`.pub` (fuera del git) si
-  existe `~/.android/adbkey`. En el auto, autoriza una vez; después la conexión a `127.0.0.1:5555`
-  entra sin diálogo.
-- La firma es propia (`app/lab.keystore`); reinstalar con la misma firma o desinstalar antes.
-- **Revisa la lista de auto-inicio de BYD después de cada instalación**: es una lista negra con
-  los interruptores invertidos y se indexa por directorio del APK (fila en OFF = habilitado).
+- The APK is built with `--rename-manifest-package com.xdja.clusterdemo`; that is what authorises
+  it with the container. Under another name the skin is drawn but the panel does not show it.
+- The workstation ADB key is embedded in `build/assets/adbkey.pem`/`.pub` (outside git) if
+  `~/.android/adbkey` exists. On the car, authorise once; after that the connection to
+  `127.0.0.1:5555` goes through without a dialog.
+- The signature is our own (`app/lab.keystore`); reinstall with the same signature or uninstall
+  first.
+- **Check the BYD auto-start list after every installation**: it is a blocklist with the switches
+  inverted and it is indexed by APK directory (row OFF = enabled).
 
 ---
 
-## 9. Diagnóstico: síntoma → causa
+## 9. Diagnostics: symptom → cause
 
 ```bash
-adb -s <IP>:5555 shell dumpsys display | grep -c fission        # 0 = display del panel no existe
-adb -s <IP>:5555 shell pidof com.xdja.clusterdemo               # vacío = nadie despertó la app
-adb -s <IP>:5555 shell dumpsys window windows | grep -i painel  # ventana viva?
-adb -s <IP>:5555 exec-out fission_screencap -d 0 > panel.raw    # captura del panel
+adb -s <IP>:5555 shell dumpsys display | grep -c fission        # 0 = panel display does not exist
+adb -s <IP>:5555 shell pidof com.xdja.clusterdemo               # empty = nobody woke the app
+adb -s <IP>:5555 shell dumpsys window windows | grep -i painel  # window alive?
+adb -s <IP>:5555 exec-out fission_screencap -d 0 > panel.raw    # panel capture
 adb -s <IP>:5555 shell tail -20 /data/local/tmp/shark.log
-adb -s <IP>:5555 shell tail -20 /sdcard/Android/data/com.xdja.clusterdemo/files/painel.log
+adb -s <IP>:5555 shell tail -20 /sdcard/Android/data/com.xdja.clusterdemo/files/panel.log
 ```
 
-| Síntoma | Causa probable | Acción |
+| Symptom | Probable cause | Action |
 |---|---|---|
-| Panel en BYD, `fission` = 0 | modo proyección nunca entró | manda `16` (o `46`→`16` si el display no existe) |
-| `fission` > 0, `pidof` vacío | nadie despertó la app | revisa vigía, lock, `autostart` y lista de auto-inicio |
-| `fission` > 0, pid vivo, sin ventana | `addView` falló | mira `painel.log`: `display do painel nao encontrado` o `SecurityException` de overlay |
-| Panel negro con iconos BYD encima | ventana creada antes de que existiera el display | `46`, espera, recrea ventana, `16`, `45` |
-| Skin ampliada y cortada | zoom/viewport del WebView | quita `setInitialScale`, deja `viewBox` 1920×720 y `100%` |
-| Skin azul aparece naranja en la captura | decodificaste RGBA como BGRA | el capture es **RGBA**; el panel real estaba bien |
-| Panel vuelve solo a BYD | otro proceso mandó `18` (EvSound) | desinstala/para el EvSound; el lazo de 60 s retoma |
-| Skin cubre la alerta de puerta | se soltó después de ocultar la ventana | oculta la ventana **antes** de `46/18/0` |
+| Panel on BYD, `fission` = 0 | projection mode never entered | send `16` (or `46`→`16` if the display does not exist) |
+| `fission` > 0, `pidof` empty | nobody woke the app | check the watchdog, lock, `autostart` and the auto-start list |
+| `fission` > 0, pid alive, no window | `addView` failed | look at `panel.log`: `panel display not found` or an overlay `SecurityException` |
+| Black panel with BYD icons on top | window created before the display existed | `46`, wait, recreate the window, `16`, `45` |
+| Skin enlarged and cropped | WebView zoom/viewport | remove `setInitialScale`, keep a 1920×720 `viewBox` and `100%` |
+| Blue skin shows up orange in the capture | you decoded RGBA as BGRA | the capture is **RGBA**; the real panel was fine |
+| Panel goes back to BYD on its own | another process sent `18` (the reference cluster app) | uninstall/stop the reference app; the 60 s loop retakes it |
+| Skin covers the door alert | released after hiding the window | hide the window **before** `46/18/0` |
 
-Captura del panel: `fission_screencap` devuelve 4 bytes por píxel y una cabecera de tamaño
-variable según la build (8 o 16 bytes: `w, h[, format, stride]`). No asumas el offset: prueba
-ambos y compara un color conocido. Canales en orden **RGBA**, no BGRA.
+Panel capture: `fission_screencap` returns 4 bytes per pixel and a header whose size varies with
+the build (8 or 16 bytes: `w, h[, format, stride]`). Do not assume the offset: try both and
+compare a known colour. Channels are in **RGBA** order, not BGRA.
 
 ---
 
-## 10. Camino cerrado: lo que se probó y NO funciona
+## 10. Closed path: what was tried and does NOT work
 
-No repitas estas rutas; están medidas en esta unidad.
+Do not repeat these routes; they are measured on this unit.
 
-| Intento | Resultado |
+| Attempt | Result |
 |---|---|
-| Crear un `VirtualDisplay` privado con el nombre `shared_fission_bg_XDJAScreenProjection_0` | renderiza y se captura, pero el clúster no lo muestra: falta el attach privilegiado |
-| `sendJson(1000, …)` con cualquier payload (`{"auto_container":true}`, nombres de display) | siempre `-1` |
-| `registerCallback(IContainerCallback)` desde app/shell | mata el proceso |
-| `VIRTUAL_DISPLAY_FLAG_PUBLIC` | `SecurityException` (exige `CAPTURE_VIDEO_OUTPUT`) |
-| `ACTION_SCREEN_OFF` / `ACTION_SHUTDOWN` en el manifest | no llegan al apagar |
-| `power.getShutdownInfo(1)`, `bodywork.getAutoSystemState/getPowerLevel`, `power.getMcuStatus` | iguales encendido y apagado: no sirven como señal |
-| Latido en archivo con ventana de 12 s | funcionaba pero es más lento y menos fiable que `pc` |
-| `am start-foreground-service` sobre paquete parado | `Not found; no service started`; usa `am start` de la activity |
-| Correr junto al EvSound | los dos mandan 16/18 al mismo container y la skin desaparece; desinstálalo o páralo |
+| Creating a private `VirtualDisplay` with the name `shared_fission_bg_XDJAScreenProjection_0` | it renders and can be captured, but the cluster does not show it: the privileged attach is missing |
+| `sendJson(1000, …)` with any payload (`{"auto_container":true}`, display names) | always `-1` |
+| `registerCallback(IContainerCallback)` from an app/shell | kills the process |
+| `VIRTUAL_DISPLAY_FLAG_PUBLIC` | `SecurityException` (needs `CAPTURE_VIDEO_OUTPUT`) |
+| `ACTION_SCREEN_OFF` / `ACTION_SHUTDOWN` in the manifest | they do not arrive on shut-down |
+| `power.getShutdownInfo(1)`, `bodywork.getAutoSystemState/getPowerLevel`, `power.getMcuStatus` | identical on and off: useless as a signal |
+| File heartbeat with a 12 s window | it worked but is slower and less reliable than `pc` |
+| `am start-foreground-service` on a stopped package | `Not found; no service started`; use `am start` of the activity |
+| Running alongside the reference cluster app | both send 16/18 to the same container and the skin disappears; uninstall it or stop it |
 
 ---
 
-## 11. Portar a otra BYD con DiLink 3.0
+## 11. Porting to another BYD with DiLink 3.0
 
-Lo único específico de la Shark en este diseño es el **nombre del display** y los códigos de
-comando. Verifica en la unidad nueva, en este orden:
+The only Shark-specific things in this design are the **display name** and the command codes.
+Verify on the new unit, in this order:
 
-1. `service list | grep AutoContainer` → si el binder no existe, la unidad no expone el panel.
-2. `cat /system/etc/container_comm_cfg.json` → tu paquete (o el nombre que debas usar).
-3. `dumpsys display` con proyección activa → nombre y tamaño real del display del panel
-   (busca `type VIRTUAL`, `FLAG_PRESENTATION`). Ajusta el `contains(...)` y el `1920×720`.
-4. Barrido de comandos con reversión segura:
+1. `service list | grep AutoContainer` → if the binder does not exist, the unit does not expose
+   the panel.
+2. `cat /system/etc/container_comm_cfg.json` → your package (or the name you have to use).
+3. `dumpsys display` with projection active → real name and size of the panel display (look for
+   `type VIRTUAL`, `FLAG_PRESENTATION`). Adjust the `contains(...)` and the `1920×720`.
+4. Command sweep with a safe rollback:
 
 ```bash
 for c in 16 45 17 46 18; do
@@ -461,62 +526,64 @@ for c in 16 45 17 46 18; do
 done
 ```
 
-5. Repite la medición de encendido/apagado (§6.1) antes de confiar en `getPowerCtlStatus(3)`:
-   otras carrocerías pueden exponer la señal en otro índice o clase.
-6. Revisa si otra app de la unidad ya pelea por el panel (EvSound u otra): dos dueños = panel
-   inestable.
+5. Repeat the on/off measurement (§6.1) before trusting `getPowerCtlStatus(3)`: other body styles
+   may expose the signal under another index or class.
+6. Check whether another app on the unit already fights for the panel (the reference cluster app
+   or any other): two owners = unstable panel.
 
-Si `45` no existe o pinta negro en la unidad nueva, el fallback es `16` solo: la skin aparece a
-pantalla completa con los widgets nativos encima. No es aceptable como entrega final, pero
-mantiene el tablero usable mientras adaptas el código.
+If `45` does not exist or paints black on the new unit, the fallback is `16` alone: the skin
+appears full screen with the native widgets on top. That is not acceptable as a final delivery,
+but it keeps the dashboard usable while you adapt the code.
 
-**Inferencia, no medido:** que `45`, `46` y el nombre del display sean idénticos en todo DiLink
-3.0. Son plausibles por compartir la misma base, pero cada modelo (Seal, Song, Dolphin…) debe
-confirmarlos con el barrido de arriba.
-
----
-
-## 12. Checklist de aceptación (en el auto, no en el emulador)
-
-1. APK instalado con el paquete autorizado; `SYSTEM_ALERT_WINDOW` concedido.
-2. APLICAR: ventana creada → `16` → `45`; el panel queda solo con la skin, sin barra BYD.
-3. La skin se actualiza sin tocar la pantalla central (velocidad, pedal, batería, marcha).
-4. DESACTIVAR: el panel vuelve a BYD en ≤2 s y la ventana desaparece.
-5. Apagar el auto y abrir la puerta: se ve la alerta de puerta, **sin** skin encima.
-6. Encender normal: con "iniciar automáticamente" ON, la skin vuelve en ≤5 s sin abrir la app.
-7. Encender remoto (app BYD): mismo resultado, sin diálogos ni interfaz en la central.
-8. `am kill <pkg>` con el auto encendido: el vigía relanza la app y el panel se recupera.
-9. Dejar 3 minutos sin tocar: el panel sigue en pantalla completa (reafirmación de 60 s).
-10. `./tools/panel-fps.sh`: sin jank sostenido; fps cercano al vsync.
-11. Revisar `painel.log`: sin `display do painel nao encontrado` ni `SecurityException`.
-12. Reiniciar la central: el estado "aplicado" no revive solo si el toggle está apagado.
+**Inference, not measured:** that `45`, `46` and the display name are identical across all
+DiLink 3.0. They are plausible because they share the same base, but every model (Shark, Song,
+Dolphin…) must confirm them with the sweep above.
 
 ---
 
-## 13. Mapa del código de referencia
+## 12. Acceptance checklist (on the car, not in the emulator)
 
-| Archivo | Responsabilidad |
+1. APK installed with the authorised package; `SYSTEM_ALERT_WINDOW` granted.
+2. `APLICAR`: window created → `16` → `45`; the panel is left with only the skin, no BYD bar.
+3. The skin updates without touching the head unit screen (speed, pedal, battery, gear).
+4. `DESACTIVAR`: the panel goes back to BYD in ≤2 s and the window disappears.
+5. Switch the car off and open the door: the door alert is visible, **without** the skin on top.
+6. Normal power-on: with "start automatically" ON, the skin comes back in ≤5 s without opening
+   the app.
+7. Remote power-on (BYD app): same result, no dialogs and no interface on the head unit.
+8. `am kill <pkg>` with the car on: the watchdog relaunches the app and the panel recovers.
+9. Leave it 3 minutes untouched: the panel stays full screen (60 s reaffirmation).
+10. `./tools/panel-fps.sh`: no sustained jank; fps close to vsync.
+11. Check `panel.log`: no `panel display not found` and no `SecurityException`.
+12. Restart the head unit: the "applied" state does not come back on its own if the toggle is off.
+
+---
+
+## 13. Reference code map
+
+| File | Responsibility |
 |---|---|
-| `PanelBoot.java` | aplica en arranque sin abrir la central: ventana → `16` → `45`, con idempotencia |
-| `ClusterOverlay.java` | ventana del panel, flags, display listener, push de estado a 400 ms |
-| `PanelRelease.java` | oculta la ventana y devuelve el panel (`46`→`18`→`0`); bandera de sesión |
-| `PanelService.java` | proceso vivo, receptor `SCREEN_OFF`, bucle de `powerCtlStatus` cada 1 s |
-| `AdbShell.java` | cliente ADB local, canal de comandos, script del vigía, rastro en archivo |
-| `WakeActivity.java` | activity invisible que arranca el servicio y termina |
-| `BootReceiver.java` | decisión de arranque según el toggle y `PowerManager.isInteractive()` |
-| `BydBridge.java` / `BydPermissionContext.java` | lectura por reflexión y bypass del chequeo cliente |
-| `ClusterSkinActivity.java` | `PanelBridge`: contrato JSON de la skin y unidades |
-| `themes/dash/byd/index.html` | skin 8:3 (`viewBox` 1280×480), transparencias y `BrasaDriveUpdate` |
+| `PanelBoot.java` | applies at boot without opening the head unit: window → `16` → `45`, with idempotence |
+| `ClusterOverlay.java` | panel window, flags, display listener, state push at 400 ms |
+| `PanelRelease.java` | hides the window and gives the panel back (`46`→`18`→`0`); session flag |
+| `PanelService.java` | keeps the process alive, `SCREEN_OFF` receiver, `powerCtlStatus` loop every 1 s |
+| `AdbShell.java` | local ADB client, command channel, watchdog script, file tracing |
+| `WakeActivity.java` | invisible activity that starts the service and finishes |
+| `BootReceiver.java` | boot decision based on the toggle and `PowerManager.isInteractive()` |
+| `BydBridge.java` / `BydPermissionContext.java` | reflection reads and client-side check bypass |
+| `ClusterSkinActivity.java` | `PanelBridge`: the skin's JSON contract and units |
+| `themes/dash/byd/index.html` | 8:3 skin (`viewBox` 1280×480), transparencies and `BrasaDriveUpdate` |
 
 ---
 
-## 14. Reglas de oro
+## 14. Golden rules
 
-1. Localiza el display **por nombre**, nunca por id ni por índice.
-2. `16` antes de `45`; `46` solo si el display no existe o al soltar.
-3. Ventana primero en la toma normal (sin ventana, `45` muestra el layout nativo); pero si el
-   display aún no existe, `46` y espera antes de crearla.
-4. Al soltar, oculta la ventana antes de devolver el panel.
-5. Una sola app puede mandar comandos al container. Si hay otra, desinstálala o despáchala.
-6. No confíes en eventos: `pc`, pantalla y display se vigilan por sondeo.
-7. Todo lo que no esté medido en el auto, no está implementado.
+1. Find the display **by name**, never by id or index.
+2. `16` before `45`; `46` only if the display does not exist or on release.
+3. Window first on the normal take (without a window, `45` shows the native layout); but if the
+   display does not exist yet, `46` and wait before creating it.
+4. On release, hide the window before giving the panel back.
+5. Only one app may send commands to the container. If there is another one, uninstall it or stop
+   it.
+6. Do not trust events: `pc`, screen and display are watched by polling.
+7. Anything not measured on the car is not implemented.

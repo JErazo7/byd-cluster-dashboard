@@ -1,252 +1,228 @@
 # SharkLab
 
-Panel propio para el BYD Shark, con **código propio**: skins en HTML/SVG que se editan como
-texto y una app Android que las pinta en la pantalla central y en el panel detrás del volante,
-**sin depender del EvSound**.
+Own cluster panel for the BYD Shark, with **its own code**: HTML/SVG skins you edit as text and
+an Android app that paints them on the head unit and on the cluster behind the steering wheel,
+**without depending on the reference cluster app**.
 
-| Carpeta | Qué es | Estado |
+| Folder | What it is | Status |
 |---|---|---|
-| `app/` | SharkLab: app Android que pinta la skin (APK 36 KB, sin Gradle) | **compila y firma** |
-| `themes/` | Tema `byd` (único que la app muestra) | funcionando |
-| `tools/` | Reempaquetador para meter tus temas en el EvSound que ya compraste | funcionando |
+| `app/` | SharkLab: Android app that paints the skin (36 KB APK, no Gradle) | **builds and signs** |
+| `themes/` | `byd` theme (the only one the app shows) | working |
+| `tools/` | Diagnostics and helper scripts: panel FPS, preview server, deploy, keepalive | working |
 
-**Grelha da skin:** o `byd` desenha em **1920×720** com `viewBox` — o quadro exato do painel —
-e `width/height="100%"`, então escala sozinho. Aros laterais com raio ~200 e traço 14, centros
-em x 300/1620 e y 400; número do mostrador 96 (herói 120 no centro); cartões da faixa de baixo
-em y 560–700; faixa das luzes da BYD em x 700–1220, y 0–60.
+**Skin grid:** `byd` draws at **1920×720** with a `viewBox` — the exact cluster frame — and
+`width/height="100%"`, so it scales on its own. Side rings with radius ~200 and stroke 14,
+centres at x 300/1620 and y 400; dial number 96 (hero 120 in the centre); bottom band cards at
+y 560–700; BYD light band at x 700–1220, y 0–60.
 
-O cartão de pressão usa `assets/tyre-stage.png` — arte com alfa (1510×897, recortada pela
-caixa do alfa) que já traz o carro visto de cima, os quatro aros luminosos nas rodas e os
-trilhos laterais. Entra com 112 px de altura (~188 de largura) e os números (2.5 bar) nas pontas dos trilhos,
-com folga em relação às bordas do cartão. A arte é **igual em todos os modos** — nenhum filtro
-de cena — e a antiga, desenhada em SVG, virou este PNG: mesma leitura, menos vértices.
+The pressure card uses `assets/tyre-stage.png` — art with alpha (1510×897, cropped by the alpha
+box) that already carries the top-down car, the four glowing rings on the wheels and the side
+rails. It goes in at 112 px of height (~188 wide) and the numbers (2.5 bar) sit at the rail
+ends, with margin from the card edges. The art is **the same in every mode** — no scene
+filter — and the old art, drawn in SVG, became this PNG: same reading, fewer vertices.
 
-Os cartões são **vidro transparente**: cada um recorta uma cópia desfocada do fundo (`<use
-href="#gBg">` com `feGaussianBlur` σ 14 numa região do tamanho do cartão, então só a área
-visível é filtrada). Não há **nenhuma cor por cima**: nem tinta, nem brilho diagonal, nem neón, nem sombra interna.
-O que se vê dentro do cartão é só o fundo borrado, fechado por um aro claro de 1,1 px. O fundo
-muda com a cena e o vidro acompanha, porque a cópia é viva.
+The cards are **transparent glass**: each one clips a blurred copy of the background (`<use
+href="#gBg">` with `feGaussianBlur` σ 14 in a region the size of the card, so only the visible
+area is filtered). There is **no colour on top**: no tint, no diagonal glow, no neon, no inner
+shadow. What you see inside the card is only the blurred background, closed by a light 1.1 px
+ring. The background changes with the scene and the glass follows, because the copy is live.
 
-Banda de baixo, três cartões: bateria (14..460), **pressões no meio** (470..810) e modos
-(820..1266), todos com o fundo `gCard`. Relógio, odômetro e temperatura continuam nas quinas
-do topo. Os aros cresceram de R 120 para R 146 com traço 17 (22 no SPORT), ticks e números
-escalados, centro em y 196.
+Bottom band, three cards: battery (14..460), **pressures in the middle** (470..810) and modes
+(820..1266), all with the `gCard` background. Clock, odometer and temperature stay in the top
+corners. The rings grew from R 120 to R 146 with stroke 17 (22 in SPORT), ticks and numbers
+scaled, centre at y 196.
 
-O `byd` é o único tema com foto, tudo em `themes/dash/byd/assets/`: `bg.jpg` (paisagem),
-`bg-sport.jpg` (estrada em brasa, modo SPORT), `bg-mountain.jpg` (serra verde, modo
-MONTAÑA), `bg-mud.jpg` (estrada na selva, modo LODO), `bg-snow.jpg` (serra nevada com aurora, modo
-NIEVE), `bg-sand.jpg` (deserto com dunas, modo ARENA), `truck.png`
-(caminhonete recortada com alfa) e `tyre.jpg` (carro visto de cima no cartão de pressão,
-composto com `mix-blend-mode: screen`).
+`byd` is the only theme with photos, all of them in `themes/dash/byd/assets/`: `bg.jpg`
+(landscape), `bg-sport.jpg` (road on embers, SPORT mode), `bg-mountain.jpg` (green mountain
+range, mountain mode), `bg-mud.jpg` (jungle road, mud mode), `bg-snow.jpg` (snowy range with
+aurora, snow mode), `bg-sand.jpg` (desert with dunes, sand mode), `truck.png` (cut-out
+pickup with alpha) and `tyre-stage.png` / `tyre-car.png` (top-down car art for the pressure
+card; the skin draws `tyre-stage.png`).
 
-## Estado real de las funcionalidades
+## Actual feature status
 
-| Función | Estado |
+| Feature | Status |
 |---|---|
-| Panel/skin propio (SVG, 1920×720, claro/oscuro, panel entero, ancho variable) | ✅ |
-| Skin en el panel detrás del volante a pantalla completa, sin depender del EvSound | ✅ |
-| El app toma el panel solo: manda `AutoContainer` cmd 16 al abrir la ventana y al volver a primer plano | ✅ |
-| La app muestra solo los temas instalados (hoy: `byd`) en una grilla | ✅ |
-| Pantalla única: grilla de temas + APLICAR/DESACTIVAR + toggle iniciar automáticamente | ✅ |
-| Lectura de datos reales del BYD (CAN/DiLink) | ⏳ pendiente |
-| Cámaras, ADAS, mapa, Android Auto / CarPlay | ⏳ pendiente (AA/CarPlay requieren licencia de Google/Apple) |
+| Own panel/skin (SVG, 1920×720, light/dark, whole panel, variable width) | ✅ |
+| Skin on the cluster behind the wheel, full screen, without depending on the reference cluster app | ✅ |
+| The app takes the panel by itself: it sends `AutoContainer` cmd 16 when the window opens and when it comes back to the foreground | ✅ |
+| The app shows only the installed themes (today: `byd`) in a grid | ✅ |
+| Single screen: theme grid + `APLICAR`/`DESACTIVAR` + auto-start toggle | ✅ |
+| Reading real BYD data (CAN/DiLink) | ⏳ pending |
+| Cameras, ADAS, map, Android Auto / CarPlay | ⏳ pending (AA/CarPlay need a Google/Apple licence) |
 
-## Compilar la app
+## Building the app
 
 ```bash
-SDK=/opt/android-sdk ./app/build.sh      # sale en app/out/sharklab-cluster.apk
+SDK=/opt/android-sdk ./app/build.sh      # lands in app/out/sharklab-cluster.apk
 ```
 
-Sin Gradle: `aapt2` + `javac` + `d8` + `apksigner`. Requisitos: JDK 17, Android SDK
+No Gradle: `aapt2` + `javac` + `d8` + `apksigner`. Requirements: JDK 17, Android SDK
 (platform + build-tools), `keytool`.
 
-El APK sale con el paquete **`com.xdja.clusterdemo`**: es el único nombre que
-`/system/etc/container_comm_cfg.json` autoriza a hablar con el servicio `AutoContainer`.
-Con otro nombre la app dibuja la skin, pero el panel sigue en la interfaz original de BYD.
-Se puede cambiar con `PKG=... OUT=... ./app/build.sh`.
+The APK is built with the package **`com.xdja.clusterdemo`**: it is the only name that
+`/system/etc/container_comm_cfg.json` authorises to talk to the `AutoContainer` service. Under
+another name the app draws the skin, but the panel stays on the original BYD interface. It can
+be changed with `PKG=... OUT=... ./app/build.sh`.
 
-La app carga `assets/dash/<id>/index.html`, le inyecta `lab/*.js` y alimenta la skin con
-datos simulados (`Lab.state()`), igual que el feed de referencia.
+The app loads `assets/dash/<id>/index.html`, injects `lab/*.js` into it and feeds the skin with
+simulated data (`Lab.state()`), just like the reference feed.
 
-## La app (una sola pantalla)
+## The app (a single screen)
 
-`assets/lab/home.html` es toda la interface:
+`assets/lab/home.html` is the whole interface:
 
-| elemento | qué hace |
+| element | what it does |
 |---|---|
-| grilla | una tarjeta por tema instalado (`themes/dash/<id>/index.html`); tocar una la pone en el panel |
-| APLICAR / DESACTIVAR | toma el panel (ventana → `16` → `45`) o lo devuelve a BYD (`46` → `18` → `0`) |
-| iniciar automáticamente | `bootApply`: si está encendido, al arrancar el auto se aplica el tema; si está apagado, el panel queda con BYD y la skin **no** sube sola |
+| grid | one card per installed theme (`themes/dash/<id>/index.html`); tapping one puts it on the panel |
+| `APLICAR` / `DESACTIVAR` | takes the panel (window → `16` → `45`) or gives it back to BYD (`46` → `18` → `0`) |
+| start automatically | `bootApply`: when it is on, the theme is applied when the car starts; when it is off, the panel stays with BYD and the skin does **not** come up on its own |
 
-No hay ajustes, galería, logbook ni menús: se borraron `settings.html`, `skins.html`,
-`lab-logbook.js` y `lab-ui.js`, y con ellos los temas `industria`, `muscle`, `shark` y
-`sharkmap`.
+There are no settings, gallery, logbook or menus: `settings.html`, `skins.html`, `lab-logbook.js`
+and `lab-ui.js` were deleted, and with them the `industria`, `muscle`, `shark` and `sharkmap`
+themes.
 
-El panel lee la copia editable en `files/dash/<id>/`; si el APK es más nuevo que esa copia,
-`ThemeSync` la reemplaza por la del APK al abrir la app (antes se quedaba vieja para siempre y
-el panel seguía dibujando el tema anterior).
+The panel reads the editable copy in `files/dash/<id>/`; if the APK is newer than that copy,
+`ThemeSync` replaces it with the one from the APK when the app opens (before, it stayed stale
+forever and the panel kept drawing the previous theme).
 
-El estado "aplicado" es la preferencia `applied`: la pone APLICAR y la limpia DESACTIVAR o el
-arranque con el toggle apagado. Abrir la app ya no toma el panel por su cuenta.
+The "applied" state is the `applied` preference: `APLICAR` sets it and `DESACTIVAR` or a boot
+with the toggle off clears it. Opening the app no longer takes the panel on its own.
 
-### Apagado y alerta de puerta
+### Power off and door alert
 
-Con el auto apagado, BYD enciende el cuadro para mostrar la alerta de puerta abierta. La skin
-no puede quedar encima de eso: `PanelRelease.release(ctx)` esconde la ventana **antes** de
-devolver el panel y limpia `applied`, y `ScreenReceiver` dispara lo mismo con `SCREEN_OFF`,
-`ACTION_SHUTDOWN` y `QUICKBOOT_POWEROFF`.
+With the car off, BYD turns the cluster display on to show the open-door alert. The skin must
+not stay on top of that: `PanelRelease.release(ctx)` hides the window **before** giving the panel
+back and clears `applied`, and `ScreenReceiver` fires the same thing with `SCREEN_OFF`,
+`ACTION_SHUTDOWN` and `QUICKBOOT_POWEROFF`.
 
-## Apagado y encendido (documentado, no tocar)
+## Power off and on (documented, do not touch)
 
-El panel se gobierna con **un solo dato del carro**, medido en la unidad:
+The panel is governed by **a single car datum**, measured on the unit:
 
 ```
-power.getPowerCtlStatus(3)   1 = carro ligado      0 = carro apagado (puerta abierta)
+power.getPowerCtlStatus(3)   1 = car on      0 = car off (door open)
 ```
 
-Su evento oficial es `AbsBYDAutoPowerListener.onPowerCtlStatusChanged(int, int)`.
+Its official event is `AbsBYDAutoPowerListener.onPowerCtlStatusChanged(int, int)`.
 
-**Comportamiento:**
+**Behaviour:**
 
-| Estado | Qué hace la app |
+| State | What the app does |
 |---|---|
-| `1` y panel libre | `overlayShow()` → tema aplicado en ≤2 s, **también en P** |
-| `0` y panel tomado | `PanelRelease.release()` → el panel vuelve a BYD en ≤2 s (solo la alerta) |
+| `1` and panel free | `overlayShow()` → theme applied in ≤2 s, **also in P** |
+| `0` and panel taken | `PanelRelease.release()` → the panel goes back to BYD in ≤2 s (only the alert) |
 
-La app lo consulta cada **1 s** (`MainActivity`, el bucle que también rearma el vigía) y el vigía
-mira cada **2 s**: el ciclo completo apagar → puerta → encender se resuelve en 2–5 s medidos en
-el carro (el resto es lo que tarda el WebView en pintar).
+The app polls it every **1 s** (`MainActivity`, the loop that also re-arms the watchdog) and the
+watchdog looks every **2 s**: the whole cycle off → door → on is resolved in 2–5 s measured on
+the car (the rest is how long the WebView takes to paint).
 
-**Vigía en adbd** (`/data/local/tmp/shark_wd.sh`): lo único que hace es relanzar
-`PanelService` (`am start-foreground-service`) si no hay proceso y la pantalla está `Awake`,
-cada 2 s. **Nunca arranca la activity**: eso abría la interfaz de la central y le robaba el
-diálogo "¿Cargar el coche ahora?" que la BYD muestra 10 s al apagar. El bucle de encendido vive
-en el servicio. Es el mismo truco que usa
-el EvSound (`while [ -z "$(pidof …)" ]; do am start …`), con candado `mkdir` para no duplicarse.
-Existe porque BYD mata el proceso al apagar: sin él, nadie volvería a mirar el estado al
-prender. Se arma en cada APLICAR y se rearma cada 60 s desde el bucle de la app.
+**Watchdog in adbd** (`/data/local/tmp/shark_wd.sh`): all it does is relaunch `PanelService`
+(`am start-foreground-service`) if there is no process and the screen is `Awake`, every 2 s.
+**It never starts the activity**: that opened the head unit interface and stole the "load the
+car now?" dialog that BYD shows for 10 s when shutting down. The power-on loop lives in the
+service. It is the same trick the reference cluster app uses
+(`while [ -z "$(pidof …)" ]; do am start …`), with a `mkdir` lock so it cannot duplicate itself.
+It exists because BYD kills the process when the car is switched off: without it, nobody would
+look at the state again on power-on. It is armed on every `APLICAR` and re-armed every 60 s from
+the app loop.
 
-**Lo que se probó y NO sirve** (no repetir el camino):
+**What was tested and does NOT work** (do not go down that road again):
 
-| Candidato | Resultado |
+| Candidate | Result |
 |---|---|
-| `ACTION_SCREEN_OFF` / `SHUTDOWN` | no llegan: la IVI no los emite al apagar |
-| `power.getShutdownInfo(1)` | devuelve 0 **encendido y apagado** |
-| `bodywork.getAutoSystemState` / `getPowerLevel`, `power.getMcuStatus` | iguales en ambos estados |
-| Latido en archivo + ventana de 12 s | funcionaba pero sobra: hay señal real y es más lento |
-| Ventana de 40 s "puerta vs ignición" | eliminada: `powerCtlStatus` las distingue |
+| `ACTION_SCREEN_OFF` / `SHUTDOWN` | they do not arrive: the head unit does not emit them when shutting down |
+| `power.getShutdownInfo(1)` | returns 0 **on and off** |
+| `bodywork.getAutoSystemState` / `getPowerLevel`, `power.getMcuStatus` | the same in both states |
+| File heartbeat + 12 s window | it worked but it is redundant: there is a real signal and it is slower |
+| 40 s "door vs ignition" window | removed: `powerCtlStatus` tells them apart |
 
-**Trampa de la plataforma:** la lista de auto-inicio de BYD es una *lista negra con los
-interruptores invertidos* y se indexa por directorio del APK, así que **hay que revisarla
-después de cada instalación** (Settings → Apps → Auto-start Management; fila en OFF = habilitado).
-Por eso el vigía relanza la app en vez de confiar en `BOOT_COMPLETED`.
+**Platform trap:** the BYD auto-start list is a *blocklist with the switches inverted* and it is
+indexed by APK directory, so **it has to be checked after every installation** (Settings → Apps →
+Auto-start Management; row OFF = enabled). That is why the watchdog relaunches the app instead
+of trusting `BOOT_COMPLETED`.
 
-## Guía de implementación para agentes
+## Implementation guide for agents
 
-`docs/IMPLEMENTACION-TABLERO-AGENTE.md` reúne, en un solo documento, cómo reproducir este
-tablero desde cero en una BYD Shark (y qué medir para portarlo a otro BYD con DiLink 3.0):
-plataforma, restricciones, secuencia de comandos, encendido/apagado, vigía, contrato de la skin,
-diagnóstico y checklist de aceptación en el auto.
+`docs/AGENT-IMPLEMENTATION-GUIDE.md` gathers, in a single document, how to reproduce this
+dashboard from scratch on a BYD Shark (and what to measure to port it to another BYD with
+DiLink 3.0): platform, restrictions, command sequence, power on/off, watchdog, skin contract,
+diagnostics and acceptance checklist on the car.
 
-## Cómo toma el panel
+## How it takes the panel
 
-El clúster no es un display Android común: es otra instancia (`fission`) y el panel solo
-muestra el display virtual (`fission_bg_xdjaVirtualSurface`, 1920×720) **mientras el
-AutoContainer está en modo proyección**. Ese modo se pide por binder, tipo 1000:
+The cluster is not a regular Android display: it is another instance (`fission`) and the panel
+only shows the virtual display (`fission_bg_xdjaVirtualSurface`, 1920×720) **while the
+AutoContainer is in projection mode**. That mode is requested over binder, type 1000:
 
-| cmd | efecto |
+| cmd | effect |
 |---|---|
-| 16 | proyección: el panel empieza a mostrar el display virtual |
-| 17 | mitad |
-| 18 | vuelvo al panel original de BYD |
-| 45 | tela cheia: el container deja de dibujar sus widgets (P/NORMAL, batería, pneus, ODO) encima |
-| 46 | recria el display del panel |
-| 0 | suelta |
+| 16 | projection: the panel starts showing the virtual display |
+| 17 | half |
+| 18 | back to the original BYD panel |
+| 45 | full screen: the container stops drawing its own widgets (P/NORMAL, battery, tyres, ODO) on top |
+| 46 | recreates the panel display |
+| 0 | release |
 
-**Secuencia medida en el carro (2026-11-10), orden importa:**
+**Sequence measured on the car (2026-11-10), order matters:**
 
-| paso | qué hace | efecto |
+| step | what it does | effect |
 |---|---|---|
-| ventana de la skin primero | overlay `EvSound painel` en el display 2 | sin ella el 45 no tiene qué mostrar |
-| `16` | proyección | la skin aparece con los widgets nativos encima |
-| `45` | tela cheia | los widgets nativos desaparecen; queda solo la skin |
+| skin window first | overlay window on display 2 | without it, `45` has nothing to show |
+| `16` | projection | the skin appears with the native widgets on top |
+| `45` | full screen | the native widgets disappear; only the skin is left |
 
-`46` **no** va en esa secuencia: recria el display y deja la ventana huérfana, y el panel
-vuelve al layout nativo. Solo se usa al soltar (`46` → `18` → `0`) y como rescate cuando la
-ventana no se puede crear porque el display no existe.
+`46` is **not** part of that sequence: it recreates the display, leaves the window orphaned and
+the panel goes back to the native layout. It is only used when releasing (`46` → `18` → `0`) and
+as a rescue when the window cannot be created because the display does not exist.
 
-El lazo de 60 s reafirma `16` + `45` (nunca `46`), así que el panel aguanta aunque otro app
-mande `18`. Verificado: 3 minutos en pantalla completa sin reenviar comandos a mano.
+The 60 s loop reaffirms `16` + `45` (never `46`), so the panel holds even if another app sends
+`18`. Verified: 3 minutes full screen without sending commands by hand.
 
-La skin es una ventana `TYPE_APPLICATION_OVERLAY` creada con el contexto del display del
-panel. El app manda el cmd 16 al crear la ventana y en `onResume`; con el EvSound
-desinstalado, nada más devuelve el panel a BYD.
+The skin is a `TYPE_APPLICATION_OVERLAY` window created with the context of the panel display.
+The app sends cmd 16 when the window is created and in `onResume`; with the reference cluster app
+uninstalled, nothing else gives the panel back to BYD.
 
-Para inspeccionar el panel desde la PC:
-
-```bash
-adb -s <IP>:5555 exec-out fission_screencap -d 0 > panel.raw   # 1920×720 RGBA + cabecera de 8 bytes
-adb -s <IP>:5555 exec-out screencap -p > central.png           # pantalla central
-```
-
-## Poner tu tema en el EvSound que ya tenés
+To inspect the panel from the PC:
 
 ```bash
-cp -r themes/dash/shark themes/dash/mitema
-ANDROID_BUILD_TOOLS=/ruta/build-tools ./tools/evsound-build.sh themes
+adb -s <IP>:5555 exec-out fission_screencap -d 0 > panel.raw   # 1920×720 RGBA + 8-byte header
+adb -s <IP>:5555 exec-out screencap -p > central.png           # head unit screen
 ```
 
-(usa `tools/pack.py` + `tools/register.py`; ver `docs/EvSound-engenharia.md`)
+Symptom → cause table, log locations and the panel/display checks: see `## 9. Diagnostics` and
+`## ADB command reference` in `docs/AGENT-IMPLEMENTATION-GUIDE.md`.
 
-## Aviso
+## Notice
 
-Código propio, escrito desde cero a partir del comportamiento observable del panel (contrato
-de datos documentado en `docs/`). El repo **no incluye** el APK de EvSound, sus assets ni su
-código. Los temas son de quien los escribe.
+Own code, written from scratch from the observable behaviour of the panel (data contract
+documented in `docs/`). The repo **does not include** the reference cluster app, its assets or
+its code. The themes belong to whoever writes them.
 
-## Temas do EvSound (uso pessoal, fora do repo)
+## Boot
 
-Os temas pagos do EvSound **não** entram no repositório (APK público redistribuindo assets de
-outra licença). Para usá-los só no seu carro:
+When the car is switched on the panel goes back to the original BYD layout. The SharkLab skin
+only takes over the panel when the app is opened; when the head unit goes off/sleeps it releases
+the panel again (`cmd 18`) and closes the screen. `autostart` is off by default.
+
+## Measuring panel smoothness
+
+The panel is a virtual window: Chromium freezes the page's `requestAnimationFrame`, so the skin
+cannot measure its own pace. The two readings that work:
 
 ```bash
-./tools/import-evsound-assets.sh /caminho/EvSound.apk [serial]
+./tools/panel-fps.sh                  # fps and jank of the panel layer (SurfaceFlinger)
 ```
 
-Isso descompacta o APK licenciado e copia `dash/<tema>/` para
-`/sdcard/Android/data/com.xdja.clusterdemo/files/dash/`, que a SharkLab carrega. No APK
-gratuito só `pilot`, `muscle` e `vision` trazem `index.html`; os outros temas têm apenas a
-miniatura — a skin completa vem do pack Pro/motor do EvSound.
-
-## Backup dos temas do EvSound
-
-`themes/evsound/dash/` guarda os assets extraídos do APK licenciado (backup pessoal, repo privado).
-Não entram no APK da SharkLab; para instalar no carro use `tools/import-evsound-assets.sh`.
-
-## Arranque
-
-Ao ligar o carro o painel volta ao layout original da BYD. A skin da SharkLab só assume o
-painel quando o app é aberto; ao desligar/dormir a central ela solta o painel de novo
-(`cmd 18`) e fecha a tela. `autostart` fica desligado por padrão.
-
-## Medir a fluidez do painel
-
-O painel é uma janela virtual: o Chromium congela o `requestAnimationFrame` da página, então a
-skin não consegue medir o próprio ritmo. As duas leituras que servem:
-
-```bash
-./tools/panel-fps.sh                  # fps e engasgos da camada do painel (SurfaceFlinger)
-```
-
-Para olhar dentro do WebView (custos de script/estilo, perfil de CPU, forçar um estado), o
-devtools fica ligado no painel:
+To look inside the WebView (script/style costs, CPU profile, force a state), devtools is left on
+in the panel:
 
 ```bash
 adb forward tcp:9222 localabstract:webview_devtools_remote_$(adb shell pidof com.xdja.clusterdemo)
-curl -s http://127.0.0.1:9222/json     # a página "BYD" é o painel
+curl -s http://127.0.0.1:9222/json     # the "BYD" page is the panel
 ```
 
-Medido no carro (parado, skin `byd`): `Lab.state()` custa ~12 ms por leitura (37 chamadas ao
-binder da BYD) e a thread principal do renderer fica em ~16% ociosa com o app empurrando o
-estado a 2,5 Hz. Quem alimenta a página é **só** o empurrador do `ClusterOverlay`: o
-`lab/lab-feed.js` desliga sozinho quando a página recebe `window.__pushedByApp`.
+Measured on the car (standing, `byd` skin): `Lab.state()` costs ~12 ms per read (37 calls to the
+BYD binder) and the renderer main thread stays ~16% idle with the app pushing the state at
+2.5 Hz. The only thing feeding the page is the `ClusterOverlay` pusher: `lab/lab-feed.js` turns
+itself off when the page receives `window.__pushedByApp`.
