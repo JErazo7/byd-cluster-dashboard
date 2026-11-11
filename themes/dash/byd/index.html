@@ -288,11 +288,15 @@
     }
     var glow = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 36, 'stroke-linecap': 'round', opacity: 0.16 }, g);
     var val = el('path', { d: '', fill: 'none', stroke: grad, 'stroke-width': 17, 'stroke-linecap': 'round' }, g);
-    return { glow: glow, val: val, red: red, track: track, cx: cx, a0: a0, dir: dir };
+    return { glow: glow, val: val, red: red, track: track, cx: cx, a0: a0, dir: dir, f: -1, d: '' };
   }
   function setRing(rg, frac) {
     var f = Math.max(0, Math.min(0.9995, frac));   /* 360° exatos não desenham nada em SVG */
+    if (Math.abs(f - rg.f) < 0.0004) return;       /* parado: não reescreve a geometria */
+    rg.f = f;
     var d = f > 0.004 ? arcPath(rg.cx, RING_Y, R, rg.a0, rg.a0 + rg.dir * SWEEP * f) : '';
+    if (rg.d === d) return;
+    rg.d = d;
     rg.val.setAttribute('d', d);
     rg.glow.setAttribute('d', d);
   }
@@ -407,6 +411,8 @@
   }
   function drawSegBar(cells, frac) {
     var lit = Math.round(Math.max(0, Math.min(1, frac)) * cells.length);
+    if (cells.lit === lit) return;                  /* mesma quantidade acesa: nada a fazer */
+    cells.lit = lit;
     cells.forEach(function (r, i) {
       if (i < lit) {
         r.setAttribute('class', 'bar-lit');
@@ -568,6 +574,30 @@
   }
   function pct(v) { return (v === null || v === undefined || v === -999) ? null : Math.max(0, Math.min(100, v)); }
 
+  /* Escrita com memória. O SVG não deduplica `setAttribute` com o mesmo valor, e há escritas
+     caríssimas no SoC do carro: o véu da cena e os gradientes ficam DENTRO do `gBg`, que os
+     três cartões de vidro recortam com `feGaussianBlur` — tocar em qualquer um obriga o WebView
+     a refazer os três desfoques. Com o guarda, um empurrão de 400 ms que não mudou nada custa
+     quase zero. */
+  function attr(n, k, v) {
+    var m = n.__a || (n.__a = {});
+    if (m[k] === v) return false;
+    m[k] = v;
+    n.setAttribute(k, v);
+    return true;
+  }
+  /* número do mostrador: o primeiro filho é o texto, a unidade vem no tspan */
+  function num(node, s) {
+    var t = node.firstChild;
+    if (!t || t.nodeValue === s) return;
+    t.nodeValue = s;
+  }
+  function setText(node, s) {
+    if (node.__t === s) return;
+    node.__t = s;
+    node.textContent = s;
+  }
+
   /* pedal: mesma paleta da potência, só a ponta do aro esquenta conforme o curso */
   function mixRgb(a, b, t) {
     var x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
@@ -587,10 +617,10 @@
   function tintThrottle(f, scene) {
     var heat = Math.max(0, Math.min(1, (f - 0.25) / 0.75));
     var r = THR_RAMP[scene] || THR_RAMP.night;
-    thrStop[0].setAttribute('stop-color', r[0]);
-    thrStop[1].setAttribute('stop-color', r[1]);
-    thrStop[2].setAttribute('stop-color', mixRgb(r[2], r[3], heat));
-    thrRing.glow.setAttribute('opacity', ((scene === 'sport' ? 0.22 : 0.12) + (scene === 'sport' ? 0.34 : 0.3) * f).toFixed(2));
+    attr(thrStop[0], 'stop-color', r[0]);
+    attr(thrStop[1], 'stop-color', r[1]);
+    attr(thrStop[2], 'stop-color', mixRgb(r[2], r[3], heat));
+    attr(thrRing.glow, 'opacity', ((scene === 'sport' ? 0.22 : 0.12) + (scene === 'sport' ? 0.34 : 0.3) * f).toFixed(2));
   }
 
   var MODES = { 1: 'ECO', 2: 'NORMAL', 3: 'SPORT' };
@@ -656,69 +686,84 @@
   function draw(d) {
     /* mesma leitura do pill: terreno ou modo de condução */
     var mode0 = TERRAIN[+d.surfmode] || driveMode(d);
-    var kmh = Math.max(0, d.speed || 0);
-    spdNum.textContent = String(Math.round(spd(kmh)));
+    /* o que se move (velocidade, pedal, potência) entra como ALVO; quem desenha é o passo
+       de animação, que interpola entre um empurrão do app e o seguinte (ver animStep) */
+    TGT.speed = Math.max(0, d.speed || 0);
 
     /* o feed do carro manda `ped`; `tps` é o nome do contrato antigo */
     var pedalRaw = (d.tps != null) ? d.tps : d.ped;
-    var tps = Math.max(0, Math.min(100, pedalRaw || 0));
-    thrNum.firstChild.nodeValue = String(Math.round(tps));
+    TGT.tps = Math.max(0, Math.min(100, pedalRaw || 0));
     var sport = /SPORT/i.test(mode0);
     var scene = sceneFor(mode0);
-    setRing(thrRing, tps / 100);
-    tintThrottle(tps / 100, scene);
+    curScene = scene;
 
     /* potência com sinal: negativo quando está regenerando. No arranque a BYD devolve um valor
        cru fora de faixa (3095 kW); acima de 400 kW não é leitura, é sentinela: mostra '--' */
     var raw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
-    var valid = Math.abs(raw) <= 400;
-    var kw = valid ? raw : 0;
-    var p = Math.round(powTo(kw));
-    powNum.firstChild.nodeValue = valid ? String(p) : '--';
-    powUnit.textContent = powU();
-    setRing(powRing, Math.min(1, Math.abs(kw) / 200));
-    var regen = kw < -1;
+    TGT.powValid = Math.abs(raw) <= 400;
+    TGT.pw = TGT.powValid ? raw : 0;
+    /* '--' não é número: quando a validade troca, o passo de animação precisa rodar de novo
+       mesmo que o valor numérico não tenha mudado */
+    if (TGT.powValid !== lastPowValid) {
+      lastPowValid = TGT.powValid;
+      animDirty = true;
+    }
+    var regen = TGT.pw < -1;
     var powStroke = regen ? 'url(#gRegen)' : 'url(#gPow)';
-    powRing.val.setAttribute('stroke', powStroke);
-    powRing.glow.setAttribute('stroke', powStroke);
-    powLabel.textContent = regen ? T.regen : (kw < 1 ? '' : T.cons);
-    powLabel.setAttribute('class', regen ? 'cy' : 'mut');
-    powLine.setAttribute('fill', regen ? '#38cfff' : '#ff9a3c');
-    bolt.setAttribute('fill', regen ? '#38cfff' : '#ff9a3c');
+    attr(powRing.val, 'stroke', powStroke);
+    attr(powRing.glow, 'stroke', powStroke);
+    setText(powLabel, regen ? T.regen : (TGT.pw < 1 ? '' : T.cons));
+    attr(powLabel, 'class', regen ? 'cy' : 'mut');
+    attr(powLine, 'fill', regen ? '#38cfff' : '#ff9a3c');
+    attr(bolt, 'fill', regen ? '#38cfff' : '#ff9a3c');
+    setText(powUnit, powU());
 
     /* medido no carro: `opmode` é o modo de condução (1 NORMAL, 2 ECO, 3 SPORT) e
        `surfmode` é o terreno (1 montanha, 2 neve, 3 lama, 4 areia) — são controles diferentes;
        antes o pill mostrava o terreno e girar a rueda do modo não mudava nada. */
     /* só um modo fica ativo por vez: terreno quando a rueda direita escolheu um, senão o modo */
     var mode = TERRAIN[+d.surfmode] || driveMode(d);
-    modeTxt.textContent = mode.toUpperCase();
-    modeGlyph(mode);
+    setText(modeTxt, mode.toUpperCase());
+    /* o ícone é remontado no DOM: só quando o modo muda */
+    if (mode !== lastMode) {
+      lastMode = mode;
+      modeGlyph(mode);
+    }
 
     /* a paisagem e a paleta de destaque seguem o modo */
 
     fadeBackground(scene);
-    var pal = SCENES[scene].accent;
-    sceneDim.setAttribute('opacity', SCENES[scene].dim || 0);
-    truckGlow.setAttribute('fill',
-      scene === 'sport' ? '#ff7a3c' : (scene === 'mountain' ? '#17d3a5'
-        : (scene === 'mud' ? '#ffb02e' : (scene === 'snow' ? '#35dcff'
-        : (scene === 'sand' ? '#ffc247' : '#2f9df5')))));
-    svg.style.setProperty('--accent', pal[0]);
-    svg.style.setProperty('--accent-core', pal[1]);
-    svg.style.setProperty('--accent-soft', pal[2]);
-    svg.style.setProperty('--accent-icon', pal[3]);
+    /* paleta e véu entram no `gBg`, que os vidros desfocados dos cartões recortam: só na troca */
+    if (lastScene !== scene) {
+      lastScene = scene;
+      var pal = SCENES[scene].accent;
+      attr(sceneDim, 'opacity', SCENES[scene].dim || 0);
+      attr(truckGlow, 'fill',
+        scene === 'sport' ? '#ff7a3c' : (scene === 'mountain' ? '#17d3a5'
+          : (scene === 'mud' ? '#ffb02e' : (scene === 'snow' ? '#35dcff'
+          : (scene === 'sand' ? '#ffc247' : '#2f9df5')))));
+      svg.style.setProperty('--accent', pal[0]);
+      svg.style.setProperty('--accent-core', pal[1]);
+      svg.style.setProperty('--accent-soft', pal[2]);
+      svg.style.setProperty('--accent-icon', pal[3]);
+    }
 
   /* no SPORT os aros ficam mais grossos, com halo forte e zona vermelha no fim */
-  [thrRing, powRing].forEach(function (rg) {
-    rg.val.setAttribute('stroke-width', sport ? 22 : 17);
-    rg.glow.setAttribute('stroke-width', sport ? 48 : 36);
-    rg.red.setAttribute('stroke-width', sport ? 22 : 17);
-    rg.red.setAttribute('opacity', sport ? '0.9' : '0');
-    rg.track.setAttribute('stroke',
-      scene === 'sport' ? '#3a1f1a' : (scene === 'mountain' ? '#1e4b42'
-        : (scene === 'mud' ? '#4a3a1c' : (scene === 'snow' ? '#244a5e'
-        : (scene === 'sand' ? '#4a3a1e' : '#22405c')))));
-  });
+  /* a trilha também muda de cor por cena: o guarda é o par modo+cena */
+  var ringStyle = sport + '|' + scene;
+  if (lastRingStyle !== ringStyle) {
+    lastRingStyle = ringStyle;
+    [thrRing, powRing].forEach(function (rg) {
+      attr(rg.val, 'stroke-width', sport ? 22 : 17);
+      attr(rg.glow, 'stroke-width', sport ? 48 : 36);
+      attr(rg.red, 'stroke-width', sport ? 22 : 17);
+      attr(rg.red, 'opacity', sport ? '0.9' : '0');
+      attr(rg.track, 'stroke',
+        scene === 'sport' ? '#3a1f1a' : (scene === 'mountain' ? '#1e4b42'
+          : (scene === 'mud' ? '#4a3a1c' : (scene === 'snow' ? '#244a5e'
+          : (scene === 'sand' ? '#4a3a1e' : '#22405c')))));
+    });
+  }
   var POW_RAMP = {
     night: ['#1b6fe0', '#2f9df5', '#ff8a2b', '#ffd08a'],
     sport: ['#ff2d12', '#ff5a1f', '#ffb020', '#ffe9a8'],
@@ -728,14 +773,14 @@
     sand: ['#a8661a', '#ffc247', '#ffe0a3', '#fffaf0']
   };
   var pr = POW_RAMP[scene] || POW_RAMP.night;
-  powStop[0].setAttribute('stop-color', pr[0]);
-  powStop[1].setAttribute('stop-color', pr[1]);
-  powStop[2].setAttribute('stop-color', pr[2]);
-  powStop[3].setAttribute('stop-color', pr[3]);
+  attr(powStop[0], 'stop-color', pr[0]);
+  attr(powStop[1], 'stop-color', pr[1]);
+  attr(powStop[2], 'stop-color', pr[2]);
+  attr(powStop[3], 'stop-color', pr[3]);
 
     var soc = pct(d.soc);
-    batNum.firstChild.nodeValue = soc === null ? '--' : String(Math.round(soc));
-    batUnit.textContent = soc === null ? '' : '%';
+    num(batNum, soc === null ? '--' : String(Math.round(soc)));
+    setText(batUnit, soc === null ? '' : '%');
     drawSegBar(batBar, soc === null ? 0 : soc / 100);
 
     /* o combustível aparece em km (autonomia): `fuelKm`; se só vier a porcentagem do tanque,
@@ -743,17 +788,17 @@
     var fuel = pct(d.fuel);
     var fuelKm = (d.fuelKm == null || d.fuelKm === -999) ? null : d.fuelKm;
     if (fuelKm !== null) {
-      fuelNum.firstChild.nodeValue = String(Math.round(dist(fuelKm)));
-      fuelUnit.textContent = DIST_U;
+      num(fuelNum, String(Math.round(dist(fuelKm))));
+      setText(fuelUnit, DIST_U);
     } else {
-      fuelNum.firstChild.nodeValue = fuel === null ? '--' : String(Math.round(fuel));
-      fuelUnit.textContent = fuel === null ? '' : '%';
+      num(fuelNum, fuel === null ? '--' : String(Math.round(fuel)));
+      setText(fuelUnit, fuel === null ? '' : '%');
     }
     var fuelFrac = fuel !== null ? fuel / 100 : (fuelKm !== null ? Math.min(1, fuelKm / 900) : 0);
     drawSegBar(fuelBar, fuelFrac);
 
     var rg = (d.range === -999 || d.range == null) ? null : d.range;
-    rangeNum.textContent = rg === null ? '--' : (Math.round(dist(rg)) + ' ' + DIST_U);
+    setText(rangeNum, rg === null ? '--' : (Math.round(dist(rg)) + ' ' + DIST_U));
 
     /* pressão: o feed pode mandar bar (2.4) ou psi (34) — a unidade acompanha a grandeza */
     var y = d.tyre;
@@ -761,8 +806,8 @@
       var large = Math.max(+y.fl, +y.fr, +y.rl, +y.rr) > 10;
       TYRE.forEach(function (t) {
         var box = tyreNum[t[0]];
-        box.num.firstChild.nodeValue = fmt(y[t[0]], large ? 0 : 1);
-        box.unit.textContent = large ? 'PSI' : 'bar';
+        num(box.num, fmt(y[t[0]], large ? 0 : 1));
+        setText(box.unit, large ? 'PSI' : 'bar');
       });
     }
 
@@ -771,23 +816,76 @@
     var GSEL = { 0: 'N', 1: 'R', 2: 'D', 3: 'P', 4: 'N' };
     var sel = (typeof d.sel === 'string' && d.sel) ? d.sel.toUpperCase()
       : (GSEL[+d.gsel] || 'P');
-    gearCells.forEach(function (c, i) {
-      var on = SEL_ORDER[i] === sel;
-      c.bg.setAttribute('fill', on ? 'rgba(4,128,255,0.3)' : 'rgba(11,24,38,0.9)');
-      c.ring.setAttribute('class', on ? 'ring on' : 'ring');
-      c.ring.setAttribute('opacity', on ? '1' : '0.55');
-      c.ring.setAttribute('stroke-width', on ? '2' : '1.3');
-      c.tx.setAttribute('class', on ? 'num' : 'mut');
-      c.tx.setAttribute('fill', on ? '#eaf7ff' : '#5d7891');
-    });
+    if (lastSel !== sel) {
+      lastSel = sel;
+      gearCells.forEach(function (c, i) {
+        var on = SEL_ORDER[i] === sel;
+        attr(c.bg, 'fill', on ? 'rgba(4,128,255,0.3)' : 'rgba(11,24,38,0.9)');
+        attr(c.ring, 'class', on ? 'ring on' : 'ring');
+        attr(c.ring, 'opacity', on ? '1' : '0.55');
+        attr(c.ring, 'stroke-width', on ? '2' : '1.3');
+        attr(c.tx, 'class', on ? 'num' : 'mut');
+        attr(c.tx, 'fill', on ? '#eaf7ff' : '#5d7891');
+      });
+    }
 
-    odoTxt.textContent = (d.odo === -999 || d.odo == null) ? '--' : (Math.round(dist(d.odo)) + ' ' + DIST_U);
+    setText(odoTxt, (d.odo === -999 || d.odo == null) ? '--' : (Math.round(dist(d.odo)) + ' ' + DIST_U));
 
     var now = new Date();
-    clockTxt.textContent = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-    outTxt.textContent = (d.tout === -999 || d.tout == null) ? '' : Math.round(d.tout) + ' °C';
+    setText(clockTxt, ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2));
+    setText(outTxt, (d.tout === -999 || d.tout == null) ? '' : Math.round(d.tout) + ' °C');
 
-    warnTxt.textContent = (d.warn && d.warn.length) ? d.warn.join('  ') : '';
+    setText(warnTxt, (d.warn && d.warn.length) ? d.warn.join('  ') : '');
+
+    startAnim();
+  }
+
+  /* ---------- animação ----------
+     O painel é uma janela virtual: o Chromium congela o requestAnimationFrame da página (é o
+     que ClusterOverlay.java documenta), então quem move os aros é este temporizador — o mesmo
+     recurso que o cross-fade da paisagem já usa. O app empurra o estado a 2,5 Hz: sem
+     interpolação o aro anda em degraus de 400 ms, que é o que se lê como "travado"; com ela o
+     movimento é contínuo e o número não pisca. */
+  var TGT = { speed: 0, tps: 0, pw: 0, powValid: true };
+  var CUR = { speed: 0, tps: 0, pw: 0 };
+  var TAU = 90;                 /* ms: alcança o alvo em ~300 ms, dentro do passo de 400 ms */
+  var anim = { timer: 0, last: 0 };
+  var lastMode = null, lastScene = null, lastRingStyle = null, lastSel = null, curScene = 'night';
+  var lastPowValid = true, animDirty = false;
+
+  function startAnim() {
+    /* liga o passo só com diferença pendente: parado, o painel não gasta quadro nenhum */
+    if (anim.timer) return;
+    if (!animDirty
+        && Math.abs(TGT.speed - CUR.speed) < 0.05 && Math.abs(TGT.tps - CUR.tps) < 0.05
+        && Math.abs(TGT.pw - CUR.pw) < 0.05) return;
+    anim.last = 0;
+    anim.timer = setTimeout(animStep, 16);
+  }
+
+  function animStep() {
+    anim.timer = 0;
+    animDirty = false;
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    var dt = anim.last ? now - anim.last : 16;
+    anim.last = now;
+    if (dt > 250) dt = 250;                      /* aba congelada: retoma sem salto */
+    var k = 1 - Math.exp(-dt / TAU), moving = false;
+    ['speed', 'tps', 'pw'].forEach(function (name) {
+      var delta = TGT[name] - CUR[name];
+      if (Math.abs(delta) < 0.05) { CUR[name] = TGT[name]; return; }
+      CUR[name] += delta * k;
+      moving = true;
+    });
+    setText(spdNum, String(Math.round(spd(CUR.speed))));
+    num(thrNum, String(Math.round(CUR.tps)));
+    setRing(thrRing, CUR.tps / 100);
+    tintThrottle(CUR.tps / 100, curScene);
+    num(powNum, TGT.powValid ? String(Math.round(powTo(CUR.pw))) : '--');
+    setRing(powRing, Math.min(1, Math.abs(CUR.pw) / 200));
+    /* a cor do aro e o rótulo seguem o sinal do alvo (regenerando ou não) */
+    if (moving) anim.timer = setTimeout(animStep, 16);
+    else startAnim();
   }
 
   window.BrasaDriveUpdate = function (d) { if (d) draw(d); };
