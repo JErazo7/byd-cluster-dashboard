@@ -109,6 +109,21 @@ public final class BydBridge {
     private static final String[][] DC_MODE = {
             {P + "energy.BYDAutoEnergyDevice", "getDCWorkMode"}
     };
+    /* candidatos a "carro ligado": medidos com o carro em marcha e com o carro apagado */
+    private static final String[][] AUTO_STATE = {
+            {P + "bodywork.BYDAutoBodyworkDevice", "getAutoSystemState"}
+    };
+    private static final String[][] PWR_LEVEL = {
+            {P + "bodywork.BYDAutoBodyworkDevice", "getPowerLevel"}
+    };
+    /* estado de encendido do veículo: índice 3 é o válido (1 = ligado, medido) */
+    private static final String[][] PWR_CTL = {
+            {P + "power.BYDAutoPowerDevice", "getPowerCtlStatus|3"}
+    };
+    private static final String[][] MCU = {
+            {P + "power.BYDAutoPowerDevice", "getMcuStatus"}
+    };
+
     /* testigo do modo: 135298 = normal, 8353 = eco, 10306 = sport (medido no carro) */
     private static final String[][] ECO_STATE = {
             {P + "instrument.BYDAutoInstrumentDevice", "getECOIndicatorState"}
@@ -377,6 +392,11 @@ public final class BydBridge {
         return numInt(P + "tyre.BYDAutoTyreDevice", "getTyrePressureValue", n);
     }
 
+    /** 1 = carro ligado; -999 quando a leitura falha */
+    private double powerCtl() {
+        return numInt(P + "power.BYDAutoPowerDevice", "getPowerCtlStatus", 3);
+    }
+
     /** info de desligamento: com o carro ligado devolve 0 (medido) */
     private double shutdownInfo() {
         return numInt(P + "power.BYDAutoPowerDevice", "getShutdownInfo", 1);
@@ -419,7 +439,11 @@ public final class BydBridge {
                 first(BCM_STATE),                       /* 29 energy.getBCMState */
                 first(DAY_MODE),                        /* 30 bodywork.getPowerDayMode */
                 first(ECO_STATE),                       /* 31 instrument.getECOIndicatorState */
-                shutdownInfo()                          /* 32 power.getShutdownInfo(1) */
+                shutdownInfo(),                         /* 32 power.getShutdownInfo(1) */
+                first(AUTO_STATE),                      /* 33 bodywork.getAutoSystemState */
+                first(PWR_LEVEL),                       /* 34 bodywork.getPowerLevel */
+                first(MCU),                             /* 35 power.getMcuStatus */
+                powerCtl()                              /* 36 power.getPowerCtlStatus(3) */
         };
     }
 }

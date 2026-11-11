@@ -196,32 +196,17 @@ public final class AdbShell {
         try {
             java.io.File f = new java.io.File(ctx.getExternalFilesDir(null), WD_NAME);
             java.io.FileWriter w = new java.io.FileWriter(f, false);
+            /* Igual ao EvSound: só garante que a app esteja viva. Quem decide aplicar ou soltar
+               é a app, lendo getPowerCtlStatus(3) (1 = ligado, 0 = desligado). */
             w.write("#!/system/bin/sh\n"
-                    + "BEAT=" + WD_BEAT + "\n"
                     + "AUTO=" + WD_AUTO + "\n"
                     + "echo $$ > /data/local/tmp/shark_wd.pid\n"
                     + "echo \"$(date) armado\" >> /data/local/tmp/shark.log\n"
-                    + "sleep 10\n"
-                    /* 1) vigia: solta o painel quando o latido para (app morto ou congelado) */
-                    + "while :; do\n"
-                    + "  now=$(date +%s)\n"
-                    + "  last=$(stat -c %Y $BEAT 2>/dev/null)\n"
-                    + "  case \"$last\" in ''|*[!0-9]*) last=0;; esac\n"
-                    + "  [ $((now - last)) -gt 4 ] && break\n"
-                    + "  sleep 1\n"
-                    + "done\n"
-                    + "echo \"$(date) app parou\" >> /data/local/tmp/shark.log\n"
-                    + "for n in 46 18 0; do service call AutoContainer 2 i32 1000 i32 $n s16 null >/dev/null 2>&1; sleep 1.2; done\n"
-                    + "date +%s > " + WD_OFF_TS + "\n"
-                    + "echo \"$(date) painel devolvido\" >> /data/local/tmp/shark.log\n"
-                    /* 2) reviver, igual ao EvSound: app morta -> sobe de novo, sem janela de tempo.
-                       Quem decide aplicar é a própria app (marcha fora de P = arrancou) */
                     + "while [ -f $AUTO ]; do\n"
-                    + "  if [ -z " + Q + "$(pidof com.xdja.clusterdemo)" + Q + " ]; then\n"
+                    + "  if [ -z \"$(pidof com.xdja.clusterdemo)\" ]; then\n"
                     + "    if dumpsys power 2>/dev/null | grep -q 'mWakefulness=Awake'; then\n"
-                    + "      echo " + Q + "$(date) revivendo" + Q + " >> /data/local/tmp/shark.log\n"
+                    + "      echo \"$(date) relançando\" >> /data/local/tmp/shark.log\n"
                     + "      am start -n com.xdja.clusterdemo/com.sharklab.MainActivity >/dev/null 2>&1\n"
-                    + "      exit 0\n"
                     + "    fi\n"
                     + "  fi\n"
                     + "  sleep 5\n"
@@ -231,7 +216,6 @@ public final class AdbShell {
         } catch (Throwable t) {
             return;
         }
-        /* setsid: sessão própria, então o filho sobrevive ao fechamento da nossa sessão adb */
         execOnce("cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
                 + "; chmod 755 /data/local/tmp/" + WD_NAME
                 + "; P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null)"

@@ -175,26 +175,28 @@ public class MainActivity extends Activity {
 
         startGps();
 
-        /* o auto-início também se decide pelo carro: marcha fora de P (e velocidade) é o
-           evento real de "arrancou", não um tempo. Vale enquanto a app está viva, inclusive
-           depois de um revive. */
+        /* Ligado/desligado vem do próprio carro: power.getPowerCtlStatus(3) — 1 ligado, 0
+           desligado (medido). Aplica assim que liga (mesmo em P) e solta assim que desliga. */
         ui.post(new Runnable() {
             public void run() {
                 try {
                     SharedPreferences pa = getSharedPreferences("lab", MODE_PRIVATE);
-                    if (pa.getBoolean("bootApply", false) && !ClusterOverlay.running()
-                            && !justReleasedByWatchdog()) {
-                        double[] b = byd.snapshot();
-                        int gear = b[1] > -998 ? (int) b[1] : -1;   /* 3 = P */
-                        boolean moved = (gear >= 0 && gear != 3) || b[0] > 1;
-                        if (moved) {
-                            AdbShell.trace(MainActivity.this, "auto: marcha " + gear + " -> aplica");
+                    double[] b = byd.snapshot();
+                    int pc = b[36] > -998 ? (int) b[36] : -1;
+                    if (pc == 1) {
+                        if (pa.getBoolean("bootApply", false) && !ClusterOverlay.running()) {
+                            AdbShell.trace(MainActivity.this, "auto: carro ligado -> aplica");
                             bridge.overlayShow();
+                        }
+                    } else if (pc == 0) {
+                        if (ClusterOverlay.running()) {
+                            AdbShell.trace(MainActivity.this, "auto: carro desligado -> solta");
+                            bridge.panelRelease();
                         }
                     }
                 } catch (Throwable ignored) {
                 }
-                ui.postDelayed(this, 3000);
+                ui.postDelayed(this, 2000);
             }
         });
 

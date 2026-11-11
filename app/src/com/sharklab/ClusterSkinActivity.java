@@ -83,7 +83,7 @@ public class ClusterSkinActivity extends Activity {
         public String powerProbe() {
             double[] b = byd.snapshot();
             return "estate=" + (int) b[28] + " bcm=" + (int) b[29] + " day=" + (int) b[30]
-                    + " spd=" + (int) b[0] + " gear=" + (int) b[1] + " off=" + (int) b[32];
+                    + " spd=" + (int) b[0] + " gear=" + (int) b[1] + " off=" + (int) b[32] + " auto=" + (int) b[33] + " pwr=" + (int) b[34] + " mcu=" + (int) b[35] + " pc=" + (int) b[36];
         }
 
         @android.webkit.JavascriptInterface
