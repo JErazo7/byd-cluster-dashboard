@@ -9,7 +9,11 @@ D="${1:-127.0.0.1:5555}"
 echo "aparelho: $D"
 
 layer=$(adb -s "$D" shell "dumpsys SurfaceFlinger --list" 2>/dev/null | tr -d '\r' \
-        | grep -i -E "painel|cluster|sharklab" | grep -v -i "bot.o" | head -1)
+        | grep -i "EvSound painel" | head -1)
+if [ -z "$layer" ]; then
+  layer=$(adb -s "$D" shell "dumpsys SurfaceFlinger --list" 2>/dev/null | tr -d '\r' \
+          | grep -i -E "painel|cluster|sharklab" | grep -v -i "bot.o" | head -1)
+fi
 if [ -z "$layer" ]; then
   echo "camada do painel nao encontrada. camadas de agora:"
   adb -s "$D" shell "dumpsys SurfaceFlinger --list" 2>/dev/null | tr -d '\r' | head -25
