@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Captura o painel (display 1) e as janelas dele para comparar com o outro app.
-#   ./tools/panel_probe.sh <rótulo> [serial]
+# Captures the panel (display 1) and its windows to compare against the other app.
+#   ./tools/panel_probe.sh <label> [serial]
 set -uo pipefail
 L="${1:-probe}"; D="${2:-127.0.0.1:5555}"
 O="/tmp/panel-$L"

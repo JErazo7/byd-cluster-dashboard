@@ -5,10 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 
 /**
- * BootReceiver — sobe a skin no painel quando o carro liga.
+ * BootReceiver — brings the skin up on the panel when the car turns on.
  *
- * Com o pacote na lista branca do AutoContainer (com.xdja.clusterdemo), o próprio app
- * consegue mandar o espelho para o painel; não é preciso adb, nem daemon de shell.
+ * With the package in the AutoContainer whitelist (com.xdja.clusterdemo), the app itself can
+ * send the mirror to the panel; no adb and no shell daemon needed.
  */
 public class BootReceiver extends BroadcastReceiver {
 
@@ -30,20 +30,20 @@ public class BootReceiver extends BroadcastReceiver {
     }
 
     /**
-     * Decide o que fazer no arranque conforme o toggle "iniciar automáticamente".
-     * Extraído para poder ser exercitado sem reiniciar o carro (ver MainActivity).
+     * Decides what to do at startup according to the "start automatically" toggle.
+     * Extracted so it can be exercised without rebooting the car (see MainActivity).
      */
     public static void applyChoice(Context ctx) {
         android.content.SharedPreferences p = ctx.getSharedPreferences("lab", Context.MODE_PRIVATE);
         boolean bootApply = p.getBoolean("bootApply", p.getBoolean("autostart", false));
         if (!bootApply) {
-            /* toggle desligado: o painel fica com a BYD e a skin não sobe sozinha */
+            /* toggle off: the panel stays with BYD and the skin does not come up by itself */
             p.edit().putBoolean("enabled", false).putBoolean("applied", false).apply();
             PanelRelease.release(ctx);
             return;
         }
-        /* com o carro desligado a BYD acende o quadro só para a alerta de porta aberta: a tela da
-           central apagada é o sinal de "não estamos dirigindo", então não aplica nada */
+        /* with the car off BYD lights the display only for the open-door alert: the head unit
+           screen being off is the "we are not driving" signal, so nothing is applied */
         android.os.PowerManager pm =
                 (android.os.PowerManager) ctx.getSystemService(android.content.Context.POWER_SERVICE);
         if (pm != null && !pm.isInteractive()) {
@@ -52,7 +52,7 @@ public class BootReceiver extends BroadcastReceiver {
             return;
         }
         p.edit().putBoolean("applied", true).putBoolean("enabled", true).apply();
-        /* ligado: aplica a skin no painel sem abrir a interface da central */
+        /* on: applies the skin to the panel without opening the head unit UI */
         PanelBoot.apply(ctx);
     }
 }

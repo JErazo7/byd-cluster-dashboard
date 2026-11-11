@@ -66,7 +66,7 @@
         <service
             android:name=".WheelKeys"
             android:exported="true"
-            android:label="SharkLab volante"
+            android:label="SharkLab steering wheel"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -78,15 +78,15 @@
         <service
             android:name=".NavWatch"
             android:exported="true"
-            android:label="SharkLab navegação"
+            android:label="SharkLab navigation"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
-        <!-- exportado: o vigia roda como shell e precisa inicia-lo com `am start-foreground-service`.
-             O servico so aplica com power.getPowerCtlStatus(3) == 1, entao a alerta de porta
-             aberta (carro desligado) continua sem skin. -->
+        <!-- exported: the watchdog runs as shell and has to start it with `am start-foreground-service`.
+             The service only applies with power.getPowerCtlStatus(3) == 1, so the door-open
+             alert (car off) stays without the skin. -->
         <service
             android:name=".PanelService"
             android:exported="true"

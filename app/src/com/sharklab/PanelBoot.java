@@ -10,10 +10,10 @@ import java.io.File;
 import java.util.Locale;
 
 /**
- * PanelBoot — aplica a skin no painel sem abrir a interface da central.
+ * PanelBoot — applies the skin to the panel without opening the head unit UI.
  *
- * Usado quando o usuário marca "aplicar ao ligar" nas configurações: no arranque só a janela
- * do painel aparece, a central continua mostrando o que estava mostrando.
+ * Used when the user ticks "apply on power-on" in the settings: at startup only the panel
+ * window appears, the head unit keeps showing what it was showing.
  */
 public final class PanelBoot {
 
@@ -22,7 +22,7 @@ public final class PanelBoot {
     private PanelBoot() {
     }
 
-    /* não reaplica em rajada: o tema piscava (animação) quando duas chamadas caíam juntas */
+    /* does not reapply in a burst: the theme flickered (animation) when two calls landed together */
     private static long lastApply;
 
     public static void apply(Context ctx) {
@@ -37,15 +37,15 @@ public final class PanelBoot {
         android.os.PowerManager pm =
                 (android.os.PowerManager) appCtx.getSystemService(Context.POWER_SERVICE);
         if (pm != null && !pm.isInteractive()) {
-            AdbShell.trace(appCtx, "boot: central apagada, nada aplicado");
+            AdbShell.trace(appCtx, "boot: head unit off, nothing applied");
             return;
         }
         PanelRelease.session = true;
         AdbShell.start(ctx);
         AdbShell.resume();
         AdbShell.watchdog(ctx);
-        /* ordem medida no carro: a janela primeiro, 16 projeta, 45 tira os widgets da BYD.
-           Sem a janela o 45 mostra o layout nativo. */
+        /* order measured in the car: the window first, 16 projects, 45 removes the BYD widgets.
+           Without the window, 45 shows the native layout. */
         final Context app = ctx.getApplicationContext();
         final String url = urlFor(ctx, skin);
         final boolean cast = p.getBoolean("cluster_cast", true);
@@ -60,7 +60,7 @@ public final class PanelBoot {
                         AdbShell.execOnce(
                                 "service call AutoContainer 2 i32 1000 i32 16 s16 null; sleep 1.5; "
                                         + "service call AutoContainer 2 i32 1000 i32 45 s16 null");
-                        AdbShell.trace(app, "boot: 16/45 enviados");
+                        AdbShell.trace(app, "boot: 16/45 sent");
                     }
                 }, 2200);
             }
@@ -69,7 +69,7 @@ public final class PanelBoot {
         startService(ctx);
     }
 
-    /** mesma URL que a central monta para a skin (painel inteiro, 24 h, idioma do sistema) */
+    /** same URL the head unit builds for the skin (whole panel, 24 h, system language) */
     private static String urlFor(Context ctx, String id) {
         String rel = "dash/" + id + "/index.html";
         File ext = new File(ctx.getExternalFilesDir(null), rel);
@@ -85,7 +85,7 @@ public final class PanelBoot {
             if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i);
             else ctx.startService(i);
         } catch (Throwable t) {
-            Log.w(TAG, "boot: serviço não subiu", t);
+            Log.w(TAG, "boot: service did not start", t);
         }
     }
 }

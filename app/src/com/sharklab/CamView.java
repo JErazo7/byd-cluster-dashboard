@@ -12,11 +12,11 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 
 /**
- * CamView — tenta mostrar a câmera do carro (ré, pisca, panorâmica) em tela cheia.
+ * CamView — tries to show the car camera (reverse, turn signal, panorama) full screen.
  *
- * Entrega um Surface do TextureView para o serviço da BYD e mostra o que vier. Se o serviço
- * não existir nesta unidade (ou exigir permissão de sistema), aparece o motivo em texto, em
- * vez de uma tela preta — é o que permite ajustar sem o carro na mão.
+ * Hands a TextureView Surface to the BYD service and shows whatever comes out. If the service
+ * does not exist on this unit (or requires a system permission), the reason shows up as text
+ * instead of a black screen — that is what makes it possible to adjust without the car at hand.
  */
 public class CamView extends Activity implements TextureView.SurfaceTextureListener {
 
@@ -55,8 +55,8 @@ public class CamView extends Activity implements TextureView.SurfaceTextureListe
         texture = st;
         surface = new android.view.Surface(st);
         String r = CameraService.openPreview(surface);
-        info.setText("ok".equals(r) ? "" : "câmera indisponível\n\n" + r
-                + "\n\nserviço: " + (CameraService.serviceName().isEmpty() ? "—" : CameraService.serviceName()));
+        info.setText("ok".equals(r) ? "" : "camera unavailable\n\n" + r
+                + "\n\nservice: " + (CameraService.serviceName().isEmpty() ? "—" : CameraService.serviceName()));
     }
 
     @Override

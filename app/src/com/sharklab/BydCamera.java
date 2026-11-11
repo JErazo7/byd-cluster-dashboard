@@ -7,14 +7,14 @@ import android.view.Surface;
 import java.lang.reflect.Method;
 
 /**
- * BydCamera — a câmera do carro pelo jar da própria BYD.
+ * BydCamera — the car camera through BYD's own jar.
  *
- * /system/framework/bmmcamera.jar não está no boot classpath: tem de ser carregado num
- * DexClassLoader, e o loadLibrary tem de acontecer DENTRO desse loader (o JNI_OnLoad procura
- * as classes no mesmo jar). Feito isso, AVMCamera entrega os quadros direto num
- * SurfaceTexture — sem conversão de YUV, sem permissão de câmera.
+ * /system/framework/bmmcamera.jar is not on the boot classpath: it has to be loaded in a
+ * DexClassLoader, and loadLibrary has to happen INSIDE that loader (JNI_OnLoad looks for
+ * the classes in the same jar). Once that is done, AVMCamera delivers the frames straight into a
+ * SurfaceTexture — no YUV conversion, no camera permission.
  *
- * Índice 0 = pano_h (panorâmica estitchada), a única câmera exposta nesta unidade.
+ * Index 0 = pano_h (stitched panorama), the only camera exposed on this unit.
  */
 public final class BydCamera {
 
@@ -37,14 +37,14 @@ public final class BydCamera {
     private static ClassLoader loader;
 
     /**
-     * Um ÚNICO DexClassLoader para o processo: a libbmmcamera_jni.so só pode ser aberta uma
-     * vez por loader, e a segunda tentativa falha com UnsatisfiedLinkError.
+     * A SINGLE DexClassLoader for the process: libbmmcamera_jni.so can only be opened once
+     * per loader, and the second attempt fails with UnsatisfiedLinkError.
      */
     public static synchronized ClassLoader loader(Context ctx) throws Throwable {
         if (loader != null) return loader;
         loader = new dalvik.system.DexClassLoader(JAR,
                 ctx.getCodeCacheDir().getAbsolutePath(), null, ctx.getClassLoader());
-        /* o inicializador estático de JNIBMMCamera chama System.loadLibrary com este loader */
+        /* JNIBMMCamera's static initializer calls System.loadLibrary with this loader */
         Class.forName("android.hardware.JNIBMMCamera", true, loader);
         return loader;
     }
@@ -59,7 +59,7 @@ public final class BydCamera {
             Class<?> avm = avmClass(ctx);
             camera = avm.getMethod("open", int.class).invoke(null, index);
             if (camera == null) {
-                error = "open devolveu null";
+                error = "open returned null";
                 return false;
             }
             try { avm.getMethod("setCameraFps", int.class).invoke(camera, 30); } catch (Throwable ignored) {}
@@ -71,7 +71,7 @@ public final class BydCamera {
         }
     }
 
-    /** liga a prévia num SurfaceTexture (o caminho rápido: nada de YUV no meio) */
+    /** attaches the preview to a SurfaceTexture (the fast path: no YUV in between) */
     public static synchronized boolean attach(Context ctx, SurfaceTexture st, int slot) {
         if (!open(ctx, 0)) return false;
         try {
@@ -92,7 +92,7 @@ public final class BydCamera {
         textureAttached = false;
     }
 
-    /** prévia numa Surface comum (usado pelo teste em tela cheia) */
+    /** preview on a plain Surface (used by the full-screen test) */
     public static synchronized boolean attachSurface(Context ctx, Surface s, int slot) {
         if (!open(ctx, 0)) return false;
         try {

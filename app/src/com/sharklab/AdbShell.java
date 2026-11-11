@@ -24,50 +24,50 @@ import java.security.spec.RSAPublicKeySpec;
 import java.util.zip.CRC32;
 
 /**
- * AdbShell — conexão ADB única e reaproveitada com a central (127.0.0.1:5555).
+ * AdbShell — single, reused ADB connection to the head unit (127.0.0.1:5555).
  *
- * Se o APK trouxer a chave da estação (adbkey/adbkey.pub em assets, embutida só no build
- * local), o adbd já a conhece e a conexão entra sem diálogo. Sem a chave, gera uma própria e
- * pede autorização uma vez, mantendo a conexão aberta.
+ * If the APK carries the station key (adbkey/adbkey.pub in assets, embedded only in the local
+ * build), adbd already knows it and the connection goes in without a dialog. Without the key,
+ * it generates its own and asks for authorization once, keeping the connection open.
  *
- * Assinatura do token igual ao P0 do EvSound: bloco PKCS#1 v1.5 de 256 bytes
- * (0x00 0x01 FF..FF 0x00 || DigestInfo SHA-1 || token) com RSA/ECB/NoPadding.
+ * Token signature identical to the reference app's P0: 256-byte PKCS#1 v1.5 block
+ * (0x00 0x01 FF..FF 0x00 || SHA-1 DigestInfo || token) with RSA/ECB/NoPadding.
  */
 public final class AdbShell {
 
-    /* ctx para o execOnce: sem ele o connect usa keys(null) e morre calado */
+    /* ctx for execOnce: without it connect uses keys(null) and dies silently */
     private static Context appCtx;
 
-    /* rastro em arquivo: o logcat do carro rotaciona e some no meio do teste */
+    /* trace to file: the car's logcat rotates and vanishes in the middle of a test */
     static void trace(android.content.Context c, String line) {
         if (c == null && appCtx != null) c = appCtx;
         if (c == null) return;
         String stamp = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
                 .format(new java.util.Date()) + " " + line + "\n";
-        /* interno primeiro: com o carro apagado o armazenamento externo pode desmontar e o
-           rastro (justo o do apagamento) se perdia */
+        /* internal first: with the car off the external storage may unmount and the trace
+           (exactly the one from the shutdown) was lost */
         try {
-            java.io.File f = new java.io.File(c.getFilesDir(), "painel.log");
+            java.io.File f = new java.io.File(c.getFilesDir(), "panel.log");
             java.io.FileWriter w = new java.io.FileWriter(f, true);
             w.write(stamp);
             w.close();
         } catch (Throwable ignored) { }
         try {
-            java.io.File f = new java.io.File(c.getExternalFilesDir(null), "painel.log");
+            java.io.File f = new java.io.File(c.getExternalFilesDir(null), "panel.log");
             java.io.FileWriter w = new java.io.FileWriter(f, true);
             w.write(stamp);
             w.close();
         } catch (Throwable ignored) { }
     }
 
-    /** copia o rastro interno (legível só pelo app) para o armazenamento externo */
+    /** copies the internal trace (readable only by the app) to external storage */
     static void dumpLog(android.content.Context c) {
         if (c == null && appCtx != null) c = appCtx;
         if (c == null) return;
         try {
-            java.io.File in = new java.io.File(c.getFilesDir(), "painel.log");
+            java.io.File in = new java.io.File(c.getFilesDir(), "panel.log");
             if (!in.isFile()) return;
-            java.io.File out = new java.io.File(c.getExternalFilesDir(null), "painel-interno.log");
+            java.io.File out = new java.io.File(c.getExternalFilesDir(null), "panel-internal.log");
             java.io.FileInputStream is = new java.io.FileInputStream(in);
             java.io.FileOutputStream os = new java.io.FileOutputStream(out, false);
             byte[] buf = new byte[8192];
@@ -99,11 +99,11 @@ public final class AdbShell {
     public static synchronized void start(final Context ctx) {
         appCtx = ctx.getApplicationContext();
         if (started) {
-            android.util.Log.i(TAG, "adb: laço já iniciado");
+            android.util.Log.i(TAG, "adb: loop already started");
             return;
         }
         started = true;
-        android.util.Log.i(TAG, "adb: laço iniciando");
+        android.util.Log.i(TAG, "adb: loop starting");
         new Thread(new Runnable() {
             public void run() {
                 Sess sess = null;
@@ -112,17 +112,17 @@ public final class AdbShell {
                     try {
                         if (sess == null) {
                             sess = connect(ctx);
-                            android.util.Log.i(TAG, "adb: conectado " + (sess != null));
+                            android.util.Log.i(TAG, "adb: connected " + (sess != null));
                         }
-                        /* respeita o botão do app: desligado pelo usuário, nada de cmd 16 */
+                        /* respects the app's switch: off by the user, no cmd 16 */
                         boolean on = ctx.getSharedPreferences("lab", 0).getBoolean("enabled", true);
                         if (!paused && on) {
-                            /* 46 cria o display do painel e 45 o põe em tela cheia: com o 45 o
-                               container deixa de desenhar os widgets nativos (P/NORMAL,
-                               bateria, pneus, ODO) por cima da skin. O 16 sozinho projeta com
-                               esses widgets. Medido no carro. */
-                            /* vigia do apagamento sobe aqui, na sessão longa do laço: pelo execOnce a
-                               sessão fecha e mata o filho */
+                            /* 46 creates the panel display and 45 takes it full screen: with 45
+                               the container stops drawing the native widgets (P/NORMAL,
+                               battery, tyres, ODO) on top of the skin. 16 alone projects with
+                               those widgets. Measured in the car. */
+                            /* the shutdown watchdog comes up here, in the loop's long session: via execOnce the
+                               session closes and kills the child */
                             String out = exec(sess,
                                     "cp " + WD_SRC + " /data/local/tmp/" + WD_NAME + " 2>/dev/null; "
                                             + "chmod 755 /data/local/tmp/" + WD_NAME + " 2>/dev/null; "
@@ -136,7 +136,7 @@ public final class AdbShell {
                         for (int i = 0; i < 60 && !wake; i++) Thread.sleep(1000);
                         wake = false;
                     } catch (Throwable t) {
-                        Log.w(TAG, "adb: reconectando: " + t);
+                        Log.w(TAG, "adb: reconnecting: " + t);
                         try { if (sess != null) sess.s.close(); } catch (Throwable ignored) { }
                         sess = null;
                         try { Thread.sleep(10000); } catch (InterruptedException ignored) { }
@@ -146,72 +146,73 @@ public final class AdbShell {
         }, "adb-panel").start();
     }
 
-    /** volta a assumir o painel quando o usuário abre a SharkLab */
+    /** takes over the panel again when the user opens SharkLab */
     public static void resume() {
         paused = false;
         wake = true;
     }
 
-    /** roda uma linha de shell numa sessão própria (usado ao soltar o painel) */
+    /** runs one shell line in its own session (used when releasing the panel) */
     public static void execOnce(final String cmd) {
         final Context c = appCtx;
         new Thread(new Runnable() {
             public void run() {
                 try {
                     Sess s = connect(c);
-                    if (s == null) { trace(c, "execOnce sem sessao"); return; }
+                    if (s == null) { trace(c, "execOnce without session"); return; }
                     String out = exec(s, cmd, 900);
                     trace(c, "execOnce " + (out == null ? "null" : out.trim()));
                     try { s.s.close(); } catch (Throwable ignored) { }
                 } catch (Throwable t) {
-                    android.util.Log.w(TAG, "adb: execOnce falhou: " + t);
-                    trace(c, "execOnce erro " + t);
+                    android.util.Log.w(TAG, "adb: execOnce failed: " + t);
+                    trace(c, "execOnce error " + t);
                 }
             }
         }, "adb-once").start();
     }
 
     /**
-     * Cão de guarda solto no shell (como o do EvSound): fica no adbd, não no nosso processo.
-     * Quando o app morre — o carro apaga e o Android mata tudo — ele devolve o painel (46/18/0),
-     * senão o último quadro da skin fica congelado atrás da alerta de porta aberta da BYD.
+     * Watchdog released into the shell (like the reference app's): it lives in adbd, not in our
+     * process. When the app dies — the car shuts off and Android kills everything — it gives the
+     * panel back (46/18/0), otherwise the skin's last frame freezes behind BYD's open-door alert.
      */
     private static final String WD_NAME = "shark_wd.sh";
-    /* aspa simples dentro do script montado em Java */
+    /* single quote inside the script built in Java */
     private static final String Q = "\\\"";
     private static final String WD_SRC = "/sdcard/Android/data/com.xdja.clusterdemo/files/" + WD_NAME;
     private static final String WD_BEAT = "/sdcard/Android/data/com.xdja.clusterdemo/files/beat";
-    /* carimbo do último release do vigia: separa "ignição" de "alerta de porta aberta" */
+    /* timestamp of the watchdog's last release: separates "ignition" from "open-door alert" */
     static final String WD_OFF_TS = "/sdcard/Android/data/com.xdja.clusterdemo/files/off.ts";
-    /* existe quando "iniciar automáticamente" está ligado: o vigia então revive o app */
+    /* exists while "start automatically" is on: the watchdog then revives the app */
     static final String WD_AUTO = "/sdcard/Android/data/com.xdja.clusterdemo/files/autostart";
 
     /**
-     * Cão de guarda (como o do EvSound): um script no adbd que mora fora do nosso processo.
-     * Quando o app morre — o carro apaga e o Android mata tudo — ele devolve o painel e deixa
-     * um registro e uma captura para diagnosticar.
+     * Watchdog (like the reference app's): a script in adbd that lives outside our process.
+     * When the app dies — the car shuts off and Android kills everything — it gives the panel
+     * back and leaves a record and a capture for diagnosis.
      */
     public static void watchdog(Context ctx) {
         if (ctx == null) return;
         try {
             java.io.File f = new java.io.File(ctx.getExternalFilesDir(null), WD_NAME);
             java.io.FileWriter w = new java.io.FileWriter(f, false);
-            /* Igual ao EvSound: só garante que a app esteja viva. Quem decide aplicar ou soltar
-               é a app, lendo getPowerCtlStatus(3) (1 = ligado, 0 = desligado). */
+            /* Same as the reference app: it only makes sure the app is alive. Who decides to
+               apply or release is the app, reading getPowerCtlStatus(3) (1 = on, 0 = off). */
             w.write("#!/system/bin/sh\n"
                     + "AUTO=" + WD_AUTO + "\n"
                     + "mkdir /data/local/tmp/shark_wd.lock 2>/dev/null || exit 0\n"
                     + "echo $$ > /data/local/tmp/shark_wd.pid\n"
-                    + "echo \"$(date) armado\" >> /data/local/tmp/shark.log\n"
+                    + "echo \"$(date) armed\" >> /data/local/tmp/shark.log\n"
                     + "while [ -f $AUTO ]; do\n"
                     + "  if [ -z \"$(pidof com.xdja.clusterdemo)\" ]; then\n"
-                    /* só desperta se a última tentativa foi há mais de 15 s: sem isso o vigia
-                       relançava a cada volta enquanto a app subia e o tema piscava 2-3 vezes */
+                    /* only wakes if the last attempt was more than 15 s ago: without this the
+                       watchdog relaunched on every round while the app was starting and the
+                       theme flickered 2-3 times */
                     + "    now=$(date +%s); last=$(cat shark_wake.ts 2>/dev/null)\n"
                     + "    case \"$last\" in ''|*[!0-9]*) last=0;; esac\n"
                     + "    if [ $((now - last)) -gt 15 ]; then\n"
                     + "      date +%s > shark_wake.ts\n"
-                    + "      echo \"$(date) relançando\" >> /data/local/tmp/shark.log\n"
+                    + "      echo \"$(date) relaunching\" >> /data/local/tmp/shark.log\n"
                     + "      am start -n com.xdja.clusterdemo/com.sharklab.WakeActivity >>/data/local/tmp/shark.log 2>&1\n"
                     + "      echo \"$(date) am rc=$?\" >> /data/local/tmp/shark.log\n"
                     + "      sleep 8\n"
@@ -225,21 +226,22 @@ public final class AdbShell {
         } catch (Throwable t) {
             return;
         }
-        /* mata qualquer instância anterior: sem isso, um script antigo fica vivo e dispara
-           comandos que ninguém quer */
+        /* kills any previous instance: without this, an old script stays alive and fires
+           commands nobody wants */
         execOnce("pkill -f " + WD_NAME + " 2>/dev/null; sleep 1"
                 + "; cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
                 + "; chmod 755 /data/local/tmp/" + WD_NAME
                 + "; P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null)"
-                /* lock órfão de um vigia morto à força: remove antes de lançar */
+                /* orphan lock from a force-killed watchdog: remove it before launching */
                 + "; if [ -n \"$P\" ] && [ ! -d /proc/$P ]; then rm -rf /data/local/tmp/shark_wd.lock; fi"
                 + "; if [ -z \"$P\" ] || [ ! -d /proc/$P ]; then "
                 + "setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi"
-                /* a sessão fecha logo depois do comando: sem este sleep o adbd leva o filho junto */
+                /* the session closes right after the command: without this sleep adbd takes
+                   the child with it */
                 + "; sleep 1");
     }
 
-    /** carimbo de vida: o vigia solta o painel quando ele para de avançar */
+    /** heartbeat stamp: the watchdog releases the panel when it stops advancing */
     static void beat(Context ctx) {
         if (ctx == null) return;
         try {
@@ -249,7 +251,7 @@ public final class AdbShell {
         } catch (Throwable ignored) { }
     }
 
-    /** solta o painel: o laço para de mandar cmd 16 e a central volta ao original da BYD */
+    /** releases the panel: the loop stops sending cmd 16 and the head unit returns to BYD's original */
     public static void stop() {
         paused = true;
     }
@@ -270,7 +272,7 @@ public final class AdbShell {
             byte[] data = new byte[len];
             read(in, data);
             if (what == A_CNXN) {
-                Log.i(TAG, "adb: conectado");
+                Log.i(TAG, "adb: connected");
                 s.setSoTimeout(20000);
                 Sess sess = new Sess();
                 sess.s = s;
@@ -362,10 +364,10 @@ public final class AdbShell {
             } catch (Throwable ignored) {
                 embeddedKeyLine = null;
             }
-            Log.i(TAG, "adb: usando chave da estação");
+            Log.i(TAG, "adb: using station key");
             return new KeyPair(pb, pk);
         } catch (Throwable t) {
-            Log.w(TAG, "adb: chave embutida falhou: " + t);
+            Log.w(TAG, "adb: embedded key failed: " + t);
         }
         SharedPreferences p = ctx.getSharedPreferences("lab", Context.MODE_PRIVATE);
         String priv = p.getString("adb_priv", "");
@@ -386,7 +388,7 @@ public final class AdbShell {
         p.edit()
                 .putString("adb_priv", Base64.encodeToString(kp.getPrivate().getEncoded(), Base64.NO_WRAP))
                 .apply();
-        Log.i(TAG, "adb: chave criada");
+        Log.i(TAG, "adb: key created");
         return kp;
     }
 

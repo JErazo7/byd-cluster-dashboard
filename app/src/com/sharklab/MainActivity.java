@@ -31,22 +31,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * SharkLab: laboratorio de skins fora do EvSound.
+ * SharkLab: a skin lab that runs outside the reference cluster app.
  *
- * Carrega dash/<id>/index.html e alimenta a skin com dados simulados (assets/lab/lab-feed.js).
- * Serve para desenhar e testar o painel na propria central, sem leitura do carro.
+ * Loads dash/<id>/index.html and feeds the skin with simulated data (assets/lab/lab-feed.js).
+ * It exists to draw and test the cluster panel on the head unit itself, without reading the car.
  */
 public class MainActivity extends Activity {
 
     private static final String TAG = "SharkLab";
     static final String[] BUILTIN = {"byd"};
 
-    /** injetado depois da skin carregar: é o que alimenta o desenho com os dados do carro */
+    /** injected after the skin loads: this is what feeds the drawing with the car data */
     static final String[] INJECT = {
             "lab/lab-feed.js"
     };
 
-    /** o painel só desenha: não injeta a interface de controle da central */
+    /** the cluster panel only draws: it does not inject the head unit control UI */
     static final String[] INJECT_PANEL = {
             "lab/lab-feed.js"
     };
@@ -70,14 +70,14 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         registerReceiver(screenOff, new android.content.IntentFilter(Intent.ACTION_SCREEN_OFF));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        /* a tela central NÃO é tela cheia; só o overlay do painel é */
+        /* the head unit screen is NOT fullscreen; only the cluster overlay is */
 
         HiddenApi.allowAll();
         Log.i(TAG, "hiddenApi=" + HiddenApi.result());
         ClusterOverlay.enableDevtools();
         byd = new BydBridge(this);
 
-        /* diagnóstico no logcat: o que esta unidade responde (adb logcat -s SharkLab) */
+        /* logcat diagnostics: what this unit answers (adb logcat -s SharkLab) */
         new Thread(new Runnable() {
             public void run() {
                 try {
@@ -94,9 +94,9 @@ public class MainActivity extends Activity {
                     java.io.FileOutputStream out = new java.io.FileOutputStream(f);
                     out.write(dump.toString().getBytes("UTF-8"));
                     out.close();
-                    Log.i(TAG, "probe.json escrito");
+                    Log.i(TAG, "probe.json written");
                 } catch (Throwable t) {
-                    Log.w(TAG, "probe falhou", t);
+                    Log.w(TAG, "probe failed", t);
                 }
             }
         }).start();
@@ -112,7 +112,7 @@ public class MainActivity extends Activity {
                 camTexture = st;
                 if (camShown) {
                     boolean ok = BydCamera.attach(MainActivity.this, st, 0);
-                    Log.i(TAG, "câmera: attach=" + ok + " erro=" + BydCamera.error());
+                    Log.i(TAG, "camera: attach=" + ok + " error=" + BydCamera.error());
                 }
             }
 
@@ -159,8 +159,8 @@ public class MainActivity extends Activity {
         });
         web.setBackgroundColor(0);
         web.clearCache(true);
-        /* com cover a skin preenche o quadro todo (o painel recebe imagem de borda a borda) */
-        /* WebView no quadro todo: a skin calcula a escala sozinha (fitSkin) */
+        /* with cover the skin fills the whole display (the panel gets a border-to-border image) */
+        /* WebView over the whole display: the skin computes the scale by itself (fitSkin) */
         int h = FrameLayout.LayoutParams.MATCH_PARENT;
         FrameLayout.LayoutParams wlp = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, h);
@@ -169,15 +169,15 @@ public class MainActivity extends Activity {
         setContentView(root);
 
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        /* o painel lê a cópia editável em files/dash; se o APK é mais novo, atualiza antes */
+        /* the cluster panel reads the editable copy in files/dash; if the APK is newer, refresh it first */
         ThemeSync.run(this);
-        /* a única tela: grilla de temas + aplicar/desactivar + iniciar automáticamente */
+        /* the only screen: theme grid + apply/release + start automatically */
         web.loadUrl("file:///android_asset/lab/home.html");
 
         startGps();
 
-        /* Ligado/desligado vem do próprio carro: power.getPowerCtlStatus(3) — 1 ligado, 0
-           desligado (medido). Aplica assim que liga (mesmo em P) e solta assim que desliga. */
+        /* Power on/off comes from the car itself: power.getPowerCtlStatus(3) — 1 on, 0
+           off (measured). It applies as soon as power comes on (even in P) and releases as soon as it goes off. */
         final int[] tick = {0};
         ui.post(new Runnable() {
             public void run() {
@@ -187,18 +187,18 @@ public class MainActivity extends Activity {
                     int pc = b[36] > -998 ? (int) b[36] : -1;
                     if (pc == 1) {
                         if (pa.getBoolean("bootApply", false) && !ClusterOverlay.running()) {
-                            AdbShell.trace(MainActivity.this, "auto: carro ligado -> aplica");
+                            AdbShell.trace(MainActivity.this, "auto: car on -> apply");
                             bridge.overlayShow();
                         }
                     } else if (pc == 0) {
                         if (ClusterOverlay.running()) {
-                            AdbShell.trace(MainActivity.this, "auto: carro desligado -> solta");
+                            AdbShell.trace(MainActivity.this, "auto: car off -> release");
                             bridge.panelRelease();
                         }
                     }
                 } catch (Throwable ignored) {
                 }
-                /* rearma o vigia a cada ~60 s: é ele que devolve a app depois do apagamento */
+                /* re-arms the watchdog every ~60 s: it is what brings the app back after power off */
                 if (++tick[0] % 60 == 0) AdbShell.watchdog(MainActivity.this);
                 ui.postDelayed(this, 1000);
             }
@@ -218,9 +218,9 @@ public class MainActivity extends Activity {
                         Object before = svc.getClass().getMethod("getFeatureState").invoke(svc);
                         Object r = svc.getClass().getMethod("setFeatureState", int.class).invoke(svc, v);
                         Object after = svc.getClass().getMethod("getFeatureState").invoke(svc);
-                        Log.i(TAG, "festate: antes=" + before + " set=" + v + " r=" + r + " depois=" + after);
+                        Log.i(TAG, "festate: before=" + before + " set=" + v + " r=" + r + " after=" + after);
                     } catch (Throwable t) {
-                        Log.w(TAG, "festate falhou", t);
+                        Log.w(TAG, "festate failed", t);
                     }
                 }
             }).start();
@@ -244,7 +244,7 @@ public class MainActivity extends Activity {
                             sb.append("):").append(ms[i].getReturnType().getSimpleName()).append("\"");
                         }
                     } catch (Throwable t) {
-                        sb.append("\"erro:").append(t).append('"');
+                        sb.append("\"error:").append(t).append('"');
                     }
                     sb.append("],\"stub\":[");
                     try {
@@ -264,7 +264,7 @@ public class MainActivity extends Activity {
                             sb.append(')').append('"');
                         }
                     } catch (Throwable t) {
-                        sb.append("\"erro:").append(t).append('"');
+                        sb.append("\"error:").append(t).append('"');
                     }
                     sb.append("],\"state\":[");
                     try {
@@ -281,15 +281,15 @@ public class MainActivity extends Activity {
                             try {
                                 Object magic = svc.getClass().getMethod("isMagicApp", String.class).invoke(svc, pk);
                                 sb.append(",\"isMagic\":").append(String.valueOf(magic));
-                            } catch (Throwable t) { sb.append(",\"isMagic\":\"erro\""); }
+                            } catch (Throwable t) { sb.append(",\"isMagic\":\"error\""); }
                             try {
                                 Object acts = svc.getClass().getMethod("getMagicAppActivities", String.class).invoke(svc, pk);
                                 sb.append(",\"activities\":").append(String.valueOf(acts));
-                            } catch (Throwable t) { sb.append(",\"activities\":\"erro\""); }
+                            } catch (Throwable t) { sb.append(",\"activities\":\"error\""); }
                             sb.append('}');
                         }
                     } catch (Throwable t) {
-                        sb.append("\"erro:").append(t).append('"');
+                        sb.append("\"error:").append(t).append('"');
                     }
                     sb.append("]}");
                     try {
@@ -330,12 +330,12 @@ public class MainActivity extends Activity {
             }).start();
         }
 
-        /* teste: lançar a skin no display 1 pelo próprio app (ActivityOptions) */
+        /* test: launch the skin on display 1 from the app itself (ActivityOptions) */
         if (getIntent() != null && getIntent().getBooleanExtra("disp", false)) {
             ui.postDelayed(new Runnable() {
                 public void run() {
                     try {
-                        /* display do painel: procura pelo nome que o container service usa */
+                        /* cluster panel display: look it up by the name the container service uses */
                         int did = 1;
                         android.hardware.display.DisplayManager dm =
                                 (android.hardware.display.DisplayManager) getSystemService(DISPLAY_SERVICE);
@@ -351,15 +351,15 @@ public class MainActivity extends Activity {
                                 urlFor(getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "byd"), true, false));
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                         startActivity(i, o.toBundle());
-                        Log.i(TAG, "disp: lançado no display " + did);
+                        Log.i(TAG, "disp: launched on display " + did);
                     } catch (Throwable t) {
-                        Log.w(TAG, "disp: recusado", t);
+                        Log.w(TAG, "disp: refused", t);
                     }
                 }
             }, 1200);
         }
 
-        /* disparador por arquivo (teste por adb): cmd.txt com "pub" / "token" / "proj" */
+        /* file trigger (adb test): cmd.txt with "pub" / "token" / "proj" */
         final String cmd = readCmdFile();
         if (cmd != null && !cmd.isEmpty()) {
             Log.i(TAG, "cmd.txt=" + cmd);
@@ -389,7 +389,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        /* gancho: --ez pub true cria o display "evsound_mapa" (flags 3) e joga a skin nele */
+        /* hook: --ez pub true creates the "evsound_mapa" display (flags 3) and puts the skin on it */
         if (getIntent() != null && getIntent().getBooleanExtra("pub", false)) {
             int did = ClusterProjection.startPublic(this, urlFor(p.getString("skin", "byd"), true, false));
             try {
@@ -408,31 +408,31 @@ public class MainActivity extends Activity {
                     i2.putExtra("skinonly", true);
                     i2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                     startActivity(i2, o.toBundle());
-                    Log.i(TAG, "skin lançada no display " + did);
+                    Log.i(TAG, "skin launched on display " + did);
                 } catch (Throwable t) {
-                    Log.w(TAG, "launch no display " + did + " recusado", t);
+                    Log.w(TAG, "launch on display " + did + " refused", t);
                 }
             }
         }
 
-        /* gancho de teste: --ez token true pede o consentimento e projeta com o token */
+        /* test hook: --ez token true asks for consent and projects with the token */
         if (getIntent() != null && getIntent().getBooleanExtra("token", false)) {
             wantProjection = true;
             Mirror.request(this);
         }
 
-        /* gancho de teste por adb: --ez proj true|false força a projeção */
+        /* adb test hook: --ez proj true|false forces the projection */
         if (getIntent() != null && getIntent().hasExtra("proj")) {
             boolean want = getIntent().getBooleanExtra("proj", true);
             getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("projection", want).apply();
         }
 
-        /* gancho de teste por adb: am start ... --ez cam true */
+        /* adb test hook: am start ... --ez cam true */
         if (getIntent() != null && getIntent().getBooleanExtra("cam", false)) {
             bridge.camShape("{\"x\":0,\"y\":90,\"w\":1920,\"h\":900}");
         }
 
-        /* gancho de teste por adb: am broadcast -a com.sharklab.CAM -p com.xdja.clusterdemo */
+        /* adb test hook: am broadcast -a com.sharklab.CAM -p com.xdja.clusterdemo */
         android.content.IntentFilter camFilter = new android.content.IntentFilter();
         camFilter.addAction("com.sharklab.CAM");
         camFilter.addAction("com.sharklab.CAMOFF");
@@ -449,10 +449,10 @@ public class MainActivity extends Activity {
         }, camFilter);
         if (p.getBoolean("overlay", true)) {
             boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "byd"), true, false));
-            Log.i(TAG, "painel por overlay: " + ok + " " + ClusterOverlay.error());
+            Log.i(TAG, "panel by overlay: " + ok + " " + ClusterOverlay.error());
             if (ok) ui.postDelayed(new Runnable() {
             public void run() { bridge.clusterCast(45); }
-        }, 2000);      /* assume o painel sem depender do EvSound */
+        }, 2000);      /* takes the panel without depending on the reference app */
             retryOverlay();
         } else if (p.getBoolean("cluster_cast", true)) {
             bridge.clusterCast(45);
@@ -463,20 +463,20 @@ public class MainActivity extends Activity {
             PanelRelease.release();
         }
 
-        /* painel por shell ADB (chave da estação já autorizada, sem diálogo) */
+        /* panel via ADB shell (station key already authorized, no dialog) */
         if (!p.getBoolean("manual_v1", false)) {
             p.edit().putBoolean("autostart", false).putBoolean("manual_v1", true).apply();
         }
         startPanelKeep();
         AdbShell.start(this);
 
-        /* painel do motorista: uma Presentation no display virtual do carro */
+        /* driver cluster panel: a Presentation on the car's virtual display */
         if (p.getBoolean("cluster", false)) showCluster(p.getString("skin", "byd"));
     }
 
     /**
-     * No boot o display do painel pode ainda não existir quando o onCreate roda; a overlay
-     * falha e sem janela nenhum cmd 16 aparece. Tenta de novo por ~30 s enquanto não houver.
+     * At boot the cluster panel display may not exist yet when onCreate runs; the overlay
+     * fails and with no window no cmd 16 shows up. Retries for ~30 s while there is none.
      */
     private void retryOverlay() {
         final int[] tries = {0};
@@ -490,36 +490,36 @@ public class MainActivity extends Activity {
         ui.postDelayed(retry, 1500);
     }
 
-    /** garante a janela do painel quando ela não existe (boot, troca de display, etc.) */
+    /** guarantees the cluster panel window when it does not exist (boot, display change, etc.) */
     private void ensureOverlay() {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        /* só recria se o usuário (ou o boot) mandou aplicar: senão o laço ressuscitava a skin
-           depois de desligar o carro */
+        /* only recreates if the user (or boot) asked to apply: otherwise the loop resurrected
+           the skin after the car was turned off */
         if (!PanelRelease.session || !p.getBoolean("applied", false) || !p.getBoolean("overlay", true)
                 || ClusterOverlay.running()) return;
         boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "byd"), true, false));
-        Log.i(TAG, "painel: overlay recriado=" + ok + " " + ClusterOverlay.error());
+        Log.i(TAG, "panel: overlay recreated=" + ok + " " + ClusterOverlay.error());
         if (ok) ui.postDelayed(new Runnable() {
             public void run() { bridge.clusterCast(45); }
         }, 2000);
     }
 
     /**
-     * Com a projeção (token) ativa, reafirma o cmd 16 a cada 5 s: é o que devolve o painel
-     * quando outro app manda 18 ou quando o cluster volta ao layout nativo. Sem projeção
-     * registrada o 16 é recusado, então o laço só roda com a projeção viva.
+     * With the (token) projection active, reasserts cmd 16 every 5 s: it is what takes the panel
+     * back when another app sends 18 or when the cluster returns to the native layout. With no
+     * projection registered the 16 is refused, so the loop only runs with the projection alive.
      */
     private void startPanelKeep() {
-        Log.i(TAG, "panel keep: iniciado");
+        Log.i(TAG, "panel keep: started");
         ui.post(new Runnable() {
             public void run() {
                 try {
-                    /* 45 só com a janela viva: tela cheia sem a skin mostra o layout nativo */
+                    /* 45 only with the window alive: fullscreen without the skin shows the native layout */
                     SharedPreferences p2 = getSharedPreferences("lab", MODE_PRIVATE);
                     if (PanelRelease.session && p2.getBoolean("applied", false)) {
                         if (ClusterOverlay.running()) bridge.clusterCast(45);
                         else ensureOverlay();
-                        /* rearma o vigia do apagamento: se ele já disparou ou não subiu, volta */
+                        /* re-arms the power-off watchdog: if it already fired or never came up, it comes back */
                         AdbShell.watchdog(MainActivity.this);
                     }
                 } catch (Throwable ignored) {
@@ -537,7 +537,7 @@ public class MainActivity extends Activity {
                         | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
     }
 
-    /** dash/<id>/index.html do cartao (se existir) ou do APK, com os parametros da central. */
+    /** dash/<id>/index.html from the card (if present) or from the APK, with the head unit parameters. */
     private String urlFor(String id, boolean full, boolean light) {
         String rel = "dash/" + id + "/index.html";
         File ext = new File(getExternalFilesDir(null), rel);
@@ -551,7 +551,7 @@ public class MainActivity extends Activity {
         return sb.toString();
     }
 
-    /** lê cada script do APK e joga na página, na ordem */
+    /** reads each script from the APK and injects it into the page, in order */
     private void inject() {
         for (String rel : INJECT) {
             try {
@@ -563,7 +563,7 @@ public class MainActivity extends Activity {
                 in.close();
                 web.evaluateJavascript(out.toString("UTF-8"), null);
             } catch (IOException e) {
-                Log.w(TAG, "não injetou " + rel, e);
+                Log.w(TAG, "did not inject " + rel, e);
             }
         }
     }
@@ -592,7 +592,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** velocidade do GPS (API pública): fonte real que não depende de permissão da BYD */
+    /** GPS speed (public API): real source that does not depend on a BYD permission */
     private void startGps() {
         try {
             final LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
@@ -617,15 +617,15 @@ public class MainActivity extends Activity {
                 }
             };
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, gpsListener);
-            Log.i(TAG, "GPS ligado para velocidade");
+            Log.i(TAG, "GPS enabled for speed");
         } catch (SecurityException se) {
-            Log.w(TAG, "sem permissão de localização");
+            Log.w(TAG, "no location permission");
         } catch (Throwable t) {
-            Log.w(TAG, "GPS falhou", t);
+            Log.w(TAG, "GPS failed", t);
         }
     }
 
-    /** abre (ou reabre) a skin no display do painel, se o sistema permitir */
+    /** opens (or reopens) the skin on the cluster panel display, if the system allows it */
     private void showCluster(final String skin) {
         try {
             DisplayManager dm = (DisplayManager) getSystemService(DISPLAY_SERVICE);
@@ -637,7 +637,7 @@ public class MainActivity extends Activity {
                 if (m.widthPixels >= 800) target = d;
             }
             if (target == null) {
-                clusterError = "sem display secundário";
+                clusterError = "no secondary display";
                 Log.w(TAG, clusterError);
                 return;
             }
@@ -650,17 +650,17 @@ public class MainActivity extends Activity {
                                 urlFor(skin, true, false) + "&wide=" + d.getWidth(), bridge);
                         cluster.show();
                         clusterError = "";
-                        Log.i(TAG, "painel: presentation no display " + d.getDisplayId()
+                        Log.i(TAG, "panel: presentation on display " + d.getDisplayId()
                                 + " (" + d.getWidth() + "x" + d.getHeight() + ")");
                     } catch (Throwable t) {
                         clusterError = t.getClass().getSimpleName() + ": " + t.getMessage();
-                        Log.w(TAG, "painel recusado no display " + d.getDisplayId(), t);
+                        Log.w(TAG, "panel refused on display " + d.getDisplayId(), t);
                     }
                 }
             });
         } catch (Throwable t) {
             clusterError = t.toString();
-            Log.w(TAG, "painel falhou", t);
+            Log.w(TAG, "panel failed", t);
         }
     }
 
@@ -676,15 +676,15 @@ public class MainActivity extends Activity {
     private final android.content.BroadcastReceiver screenOff = new android.content.BroadcastReceiver() {
         @Override
         public void onReceive(android.content.Context c, Intent i) {
-            /* carro desligou/dormiu: solta o painel e fecha a skin; ao ligar, volta o original da BYD */
+            /* car turned off/slept: releases the panel and closes the skin; on power on, the BYD original comes back */
             PanelRelease.release(c);
             MainActivity.this.finishAndRemoveTask();
         }
     };
 
     /**
-     * Foi o vigia que soltou o painel há pouco? Então este arranque é o da alerta de porta
-     * aberta, não uma ignição: não reaplica. Uma ignição de verdade leva bem mais que isso.
+     * Did the watchdog release the panel a short while ago? Then this start is the open-door
+     * alert, not an ignition: do not re-apply. A real ignition takes much longer than that.
      */
     private boolean justReleasedByWatchdog() {
         try {
@@ -699,20 +699,20 @@ public class MainActivity extends Activity {
 
     private void takePanel() {
         SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-        /* 'applied' é a vontade do usuário: só APLICAR (ou o boot com o toggle ligado)
-           liga o painel. Antes o padrão era ligado e a skin subia sozinha ao abrir o app. */
+        /* 'applied' is the user's intent: only APPLY (or boot with the toggle on)
+           turns the panel on. The default used to be on and the skin came up by itself when the app opened. */
         AdbShell.trace(this, "takePanel: applied=" + p.getBoolean("applied", false)
                 + " bootApply=" + p.getBoolean("bootApply", false));
         if (!PanelRelease.session || !p.getBoolean("applied", false)) {
-            Log.i(TAG, "painel: desaplicado pelo usuário, não retoma");
+            Log.i(TAG, "panel: released by the user, not resumed");
             return;
         }
-        /* ORDEM IMPORTA: o container só cria o display do painel
-           (shared_fission_bg_XDJAScreenProjection_0) depois do cmd 16. Criar a janela antes
-           deixa o painel preto, porque a skin vai para um display que ainda não existe. */
+        /* ORDER MATTERS: the container only creates the panel display
+           (shared_fission_bg_XDJAScreenProjection_0) after cmd 16. Creating the window before
+           leaves the panel black, because the skin goes to a display that does not exist yet. */
         AdbShell.resume();
-        /* 16 projeta no painel, 45 só depois deixa a skin em tela cheia: mandar 45 sozinho
-           mostra o layout nativo da BYD */
+        /* 16 projects onto the panel, 45 only afterwards makes the skin fullscreen: sending 45 alone
+           shows the BYD native layout */
         AdbShell.trace(this, "takePanel: enabled=" + p.getBoolean("enabled", true)
                 + " cast=" + p.getBoolean("cluster_cast", true));
         if (p.getBoolean("cluster_cast", true)) {
@@ -727,10 +727,10 @@ public class MainActivity extends Activity {
             }
         }, 1200);
         ClusterOverlay.bringToFront();
-        Log.i(TAG, "painel: 16 enviado; overlay em 1,2 s");
+        Log.i(TAG, "panel: 16 sent; overlay in 1.2 s");
     }
 
-    /** ganchos de teste (não aparecem na interface da central) */
+    /** test hooks (they do not appear in the head unit UI) */
     private void testHooks(Intent it) {
         if (it == null) return;
         final boolean hWake = it.getBooleanExtra("wake", false);
@@ -739,21 +739,21 @@ public class MainActivity extends Activity {
         final boolean hRelease = it.getBooleanExtra("release", false);
         if (it.getBooleanExtra("dumplog", false)) AdbShell.dumpLog(getApplicationContext());
         if (hWake) {
-            /* acorda como o EvSound (activity com flag, nunca serviço): sobe o serviço e sai
-               sem interface, para não roubar o diálogo "carregar agora" da central */
+            /* wakes up like the reference app (activity with flag, never a service): starts the
+               service and exits without UI, so it does not steal the head unit's "load now" dialog */
             try {
                 Intent svc = new Intent(this, PanelService.class);
                 if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(svc);
                 else startService(svc);
-                AdbShell.trace(this, "wake: activity acordou");
+                AdbShell.trace(this, "wake: activity woke up");
             } catch (Throwable ignored) { }
             finish();
             return;
         }
-    /* ganchos de teste (não aparecem na interface):
-       --ez bootapply true  roda a decisão do arranque
-       --ez apply true      é o botão APLICAR
-       --ez release true    é o botão DESACTIVAR */
+    /* test hooks (they do not appear in the UI):
+       --ez bootapply true  runs the boot decision
+       --ez apply true      is the APPLY button
+       --ez release true    is the RELEASE button */
     if (hBoot) {
         BootReceiver.applyChoice(getApplicationContext());
     }
@@ -775,7 +775,7 @@ public class MainActivity extends Activity {
                     w.close();
                     AdbShell.trace(MainActivity.this, "state dump ok");
                 } catch (Throwable t) {
-                    AdbShell.trace(MainActivity.this, "state dump erro " + t);
+                    AdbShell.trace(MainActivity.this, "state dump error " + t);
                 }
             }
         }).start();
@@ -800,9 +800,9 @@ public class MainActivity extends Activity {
     if (it != null && it.getBooleanExtra("release", false)) {
         bridge.panelRelease();
     }
-        /* o Android re-entrega o intent original quando recria a activity: sem consumir os
-           extras, um `--ez apply true` de teste reaplicava a skin a cada reinício do processo
-           (foi o que fazia o tema aparecer com o carro apagado) */
+        /* Android re-delivers the original intent when it recreates the activity: without consuming the
+           extras, a test `--ez apply true` re-applied the skin on every process restart
+           (that is what made the theme show up with the car turned off) */
         if (it.hasExtra("apply") || it.hasExtra("release") || it.hasExtra("bootapply")
                 || it.hasExtra("dumpstate") || it.hasExtra("dumplog")
                 || it.hasExtra("bydtrace") || it.hasExtra("bydpoll") || it.hasExtra("bydset")
@@ -836,8 +836,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
-        /* NÃO liberar o painel aqui: quando a skin do painel assume, a MainActivity pausa e
-           o cmd 18 devolvia o painel da BYD, apagando a própria projeção em segundos */
+        /* do NOT release the panel here: when the panel skin takes over, the MainActivity pauses and
+           cmd 18 handed the panel back to BYD, wiping the projection itself in seconds */
         super.onPause();
     }
 
@@ -856,7 +856,7 @@ public class MainActivity extends Activity {
                     bridge.clusterCast(45);
                     startService(new Intent(this, PanelService.class));
                 } catch (Throwable t) {
-                    Log.w(TAG, "projeção com token falhou", t);
+                    Log.w(TAG, "token projection failed", t);
                 }
             } else {
                 Mirror.start(this, result, data);
@@ -883,24 +883,24 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    /** Ponte minima: o que a skin pede para desenhar. */
+    /** Minimal bridge: what the skin asks for in order to draw. */
     public class Lab {
         private float speed = 0f;
         private boolean up = true;
         private boolean lastReverse = false;
 
         /**
-         * Estado para a skin. Se as APIs do BYD responderem, manda o carro de verdade e
-         * completa com a simulação só o que faltar; senão, simula tudo (~20 Hz).
+         * State for the skin. If the BYD APIs answer, it sends the real car and
+         * fills in only what is missing with the simulation; otherwise it simulates everything (~20 Hz).
          */
         @JavascriptInterface
         public String state() {
             double[] b = byd.snapshot();
-            boolean car = b[0] > -998;                      /* velocidade respondeu */
+            boolean car = b[0] > -998;                      /* speed responded */
             if (!car && gpsKmh >= 0) { b[0] = gpsKmh; car = true; }
             double speedKmh = car ? b[0] : 0;
 
-            /* simulação: sempre roda, e é o que sobra quando o carro não responde */
+            /* simulation: always runs, and it is what is left when the car does not answer */
             speed += up ? 1.6f : -1.6f;
             if (speed > 120) { speed = 120; up = false; }
             if (speed < 0) { speed = 0; up = true; }
@@ -913,7 +913,7 @@ public class MainActivity extends Activity {
                                     : Math.max(1, Math.min(6, (int) (spd / 22) + 1));
             int rpm = car ? rpmFor(spd, gear) : 900 + (int) (spd * 42);
             int pw0 = b[2] > -998 ? (int) Math.round(b[2]) : Integer.MIN_VALUE;
-            /* no arranque a BYD devolve um cru fora de faixa (3095 kW): não é leitura */
+            /* at boot BYD returns an out-of-range raw value (3095 kW): it is not a reading */
             int pw = (pw0 != Integer.MIN_VALUE && Math.abs(pw0) <= 400) ? pw0
                     : Math.round(spd * 0.9f - (up ? 0 : 25));
             int soc = b[3] > -998 ? (int) Math.round(b[3]) : Math.max(0, 82 - (int) (spd / 8));
@@ -924,7 +924,7 @@ public class MainActivity extends Activity {
             int odo = b[8] > -998 ? (int) Math.round(b[8]) : 12843;
             double v12 = b[9] > -998 ? b[9] : 13.8;
             boolean turn = b[10] > -998 ? b[10] > 0 : spd > 60;
-            /* ré: mostra a câmera atrás da skin, à direita */
+            /* reverse: shows the camera behind the skin, on the right */
             boolean reverse = gsel == 1;
             if (reverse != lastReverse) {
                 lastReverse = reverse;
@@ -965,7 +965,7 @@ public class MainActivity extends Activity {
             return "{\"fl\":" + fl + ",\"fr\":" + fr + ",\"rl\":" + rl + ",\"rr\":" + rr + "}";
         }
 
-        /** giro estimado a partir da velocidade e da marcha (as APIs do BYD não dão rpm) */
+        /** rpm estimated from speed and gear (the BYD APIs do not provide rpm) */
         private int rpmFor(int kmh, int gearIdx) {
             double[] ratios = {3.9, 2.4, 1.6, 1.2, 0.95, 0.78};
             int g = Math.max(1, Math.min(6, gearIdx));
@@ -974,13 +974,13 @@ public class MainActivity extends Activity {
             return (int) Math.max(700, Math.min(6500, rpm));
         }
 
-        /** "car" quando as APIs do BYD respondem, "sim" quando é tudo simulação */
+        /** "car" when the BYD APIs answer, "sim" when it is all simulation */
         @JavascriptInterface
         public String source() {
             return byd.available() ? "car" : "sim";
         }
 
-        /** última manobra do Waze/Maps lida da notificação */
+        /** latest Waze/Maps maneuver read from the notification */
         @JavascriptInterface
         public String nav() {
             return NavWatch.snapshot();
@@ -998,11 +998,11 @@ public class MainActivity extends Activity {
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
             } catch (Throwable t) {
-                Log.w(TAG, "sem tela de acesso a notificações", t);
+                Log.w(TAG, "no notification access screen", t);
             }
         }
 
-        /** aplicar a skin sozinho quando o carro liga (padrão: não) */
+        /** apply the skin by itself when the car powers on (default: no) */
         @JavascriptInterface
         public boolean bootApplyGet() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
@@ -1029,7 +1029,7 @@ public class MainActivity extends Activity {
             getSharedPreferences("lab", MODE_PRIVATE).edit().putBoolean("autostart", on).apply();
         }
 
-        /** comando cru ao AutoContainer (diagnóstico): sendJson(type, json) */
+        /** raw command to AutoContainer (diagnostic): sendJson(type, json) */
         @JavascriptInterface
         public String jsonCmd(int type, String json) {
             try {
@@ -1043,22 +1043,22 @@ public class MainActivity extends Activity {
             } catch (Throwable t) {
                 Throwable c = t;
                 while (c.getCause() != null && c != c.getCause()) c = c.getCause();
-                return "erro: " + c;
+                return "error: " + c;
             }
         }
 
-        /** skin no painel como janela overlay (título que o container procura) */
+        /** skin on the panel as an overlay window (the title the container looks for) */
         @JavascriptInterface
         public String overlayShow() {
-            /* ordem medida no carro: derruba a janela velha, o 46 cria o display, a janela entra
-               no display NOVO e só então o 45 põe o painel em tela cheia. Janela criada antes
-               do 46 fica no display antigo e o 45 mostra o layout nativo da BYD. */
+            /* order measured in the car: it drops the old window, 46 creates the display, the window goes
+               on the NEW display and only then does 45 put the panel fullscreen. A window created before
+               46 stays on the old display and 45 shows the BYD native layout. */
             final SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
-            /* enabled=true religa o laço ADB (é ele que sobe o vigia do apagamento) */
+            /* enabled=true re-arms the ADB loop (it is what starts the power-off watchdog) */
             p.edit().putBoolean("applied", true).putBoolean("enabled", true).apply();
             PanelRelease.session = true;
-            /* o serviço é quem escuta SCREEN_OFF: sem ele o tema fica no quadro quando o carro
-               apaga e a BYD acende a alerta de porta aberta */
+            /* the service is what listens for SCREEN_OFF: without it the theme stays on the display when
+               the car turns off and BYD lights the open-door alert */
             try {
                 if (android.os.Build.VERSION.SDK_INT >= 26) {
                     startForegroundService(new Intent(MainActivity.this, PanelService.class));
@@ -1081,16 +1081,16 @@ public class MainActivity extends Activity {
             new Thread(new Runnable() {
                 public void run() {
                             AdbShell.start(MainActivity.this);
-                    /* o display do painel já existe na maioria dos casos; o 46 recria o display
-                       e deixa a janela órfã, então só entra se a janela não puder ser criada */
-                    AdbShell.trace(MainActivity.this, "overlayShow: entrando");
+                    /* the panel display already exists in most cases; 46 recreates the display
+                       and leaves the window orphaned, so it only runs if the window cannot be created */
+                    AdbShell.trace(MainActivity.this, "overlayShow: entering");
                     final boolean[] res = {false};
                     final java.util.concurrent.CountDownLatch latch =
                             new java.util.concurrent.CountDownLatch(1);
                     ui.post(new Runnable() {
                         public void run() {
                             res[0] = ClusterOverlay.show(MainActivity.this, urlFor(sk, true, false));
-                            Log.i(TAG, "painel: overlay " + res[0] + " " + ClusterOverlay.error());
+                            Log.i(TAG, "panel: overlay " + res[0] + " " + ClusterOverlay.error());
                             latch.countDown();
                         }
                     });
@@ -1098,27 +1098,27 @@ public class MainActivity extends Activity {
                     try { Thread.sleep(1600); } catch (InterruptedException ignored) { }
                     if (!res[0]) {
                         AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 46 s16 null");
-                        AdbShell.trace(MainActivity.this, "sem janela: 46 enviado");
+                        AdbShell.trace(MainActivity.this, "no window: 46 sent");
                         try { Thread.sleep(1800); } catch (InterruptedException ignored) { }
                         ui.post(new Runnable() {
                             public void run() {
                                 res[0] = ClusterOverlay.show(MainActivity.this, urlFor(sk, true, false));
-                                AdbShell.trace(MainActivity.this, "2a janela " + res[0]);
+                                AdbShell.trace(MainActivity.this, "2nd window " + res[0]);
                             }
                         });
                         try { Thread.sleep(2500); } catch (InterruptedException ignored) { }
                     }
                     if (res[0]) {
-                        /* 16 projeta no painel e só depois do 16 o 45 vira tela cheia da skin */
-                        AdbShell.trace(MainActivity.this, "overlay ok, mandando 16");
+                        /* 16 projects onto the panel and only after the 16 does 45 become the skin fullscreen */
+                        AdbShell.trace(MainActivity.this, "overlay ok, sending 16");
                         AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 16 s16 null");
                         try { Thread.sleep(1500); } catch (InterruptedException ignored) { }
                         AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 45 s16 null");
-                        AdbShell.trace(MainActivity.this, "16/45 enviados");
+                        AdbShell.trace(MainActivity.this, "16/45 sent");
                     }
                 }
             }).start();
-            return "{\"step\":\"tomando o painel\"}";
+            return "{\"step\":\"taking the panel\"}";
         }
 
         @JavascriptInterface
@@ -1126,7 +1126,7 @@ public class MainActivity extends Activity {
             ClusterOverlay.hide();
         }
 
-        /** botão APAGAR: fecha a skin e devolve o painel ao layout original da BYD */
+        /** the release button: closes the skin and hands the panel back to the BYD original layout */
         @JavascriptInterface
         public void panelRelease() {
             getSharedPreferences("lab", MODE_PRIVATE).edit()
@@ -1140,21 +1140,21 @@ public class MainActivity extends Activity {
             return ClusterOverlay.running();
         }
 
-        /** o painel está tomado pela skin (vontade do usuário + janela viva) */
+        /** the panel is taken by the skin (user intent + window alive) */
         @JavascriptInterface
         public boolean panelApplied() {
             return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("applied", false)
                     && ClusterOverlay.running();
         }
 
-        /** liga/desliga o tema no painel (persistente) */
+        /** turns the theme on the panel on/off (persistent) */
         @JavascriptInterface
         public String clusterToggle() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             boolean on = !p.getBoolean("cluster_cast", true);
             p.edit().putBoolean("cluster_cast", on).apply();
             clusterCast(on ? 16 : 18);
-            Log.i(TAG, "tema no painel: " + (on ? "ligado" : "desligado"));
+            Log.i(TAG, "theme on panel: " + (on ? "on" : "off"));
             return "{\"on\":" + on + "}";
         }
 
@@ -1164,16 +1164,16 @@ public class MainActivity extends Activity {
         }
 
         /**
-         * Painel do motorista: o cluster é outra instância do sistema (fission), não um display
-         * Android. O canal é o binder AutoContainer, tipo 1000:
-         *   16 = espelhar a IVI em tela cheia, 17 = metade, 18 = desligar.
+         * Driver cluster panel: the cluster is another instance of the system (fission), not an
+         * Android display. The channel is the AutoContainer binder, type 1000:
+         *   16 = mirror the head unit fullscreen, 17 = half, 18 = turn off.
          */
         @JavascriptInterface
         public String clusterCast(int cmd) {
             try {
                 Class<?> sm = Class.forName("android.os.ServiceManager");
                 Object binder = sm.getMethod("getService", String.class).invoke(null, "AutoContainer");
-                if (binder == null) return "{\"ok\":false,\"why\":\"sem AutoContainer\"}";
+                if (binder == null) return "{\"ok\":false,\"why\":\"no AutoContainer\"}";
                 Class<?> stub = Class.forName("android.os.IAutoContainer$Stub");
                 Object svc = stub.getMethod("asInterface", android.os.IBinder.class)
                         .invoke(null, binder);
@@ -1184,15 +1184,15 @@ public class MainActivity extends Activity {
             } catch (Throwable t) {
                 Throwable c = t;
                 while (c.getCause() != null && c != c.getCause()) c = c.getCause();
-                Log.w(TAG, "cluster cast falhou cmd=" + cmd + " causa=" + c);
+                Log.w(TAG, "cluster cast failed cmd=" + cmd + " cause=" + c);
                 return "{\"ok\":false,\"why\":\"" + String.valueOf(c).replace("\"", "'") + "\"}";
             }
         }
 
         /**
-         * Câmera do carro pelo jar da BYD: carrega bmmcamera.jar num DexClassLoader e
-         * lista os métodos de AVMCamera + a interface de callback, para implementar contra
-         * o que existe de verdade nesta unidade.
+         * Vehicle camera via the BYD jar: loads bmmcamera.jar in a DexClassLoader and
+         * lists the AVMCamera methods + the callback interface, so that code can be written against
+         * what really exists on this unit.
          */
         @JavascriptInterface
         public String camProbe() {
@@ -1244,25 +1244,25 @@ public class MainActivity extends Activity {
             return sb.toString();
         }
 
-        /** liga/desliga a projeção da skin no painel do motorista */
+        /** turns the skin projection on the driver cluster panel on/off */
         @JavascriptInterface
         public String projStart() {
             SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             p.edit().putBoolean("projection", true).putBoolean("enabled", true).apply();
-            /* religa o laço ADB: o botão de apagar o deixa pausado, e sem o cmd 16 dos 60 s o
-               painel não volta a ser tomado */
+            /* re-arms the ADB loop: the release button leaves it paused, and without the 60 s cmd 16
+               the panel is not taken again */
             AdbShell.start(MainActivity.this);
             AdbShell.resume();
-            /* precisa do token de captura: PUBLIC sem ele é recusado pelo sistema */
+            /* needs the capture token: PUBLIC without it is refused by the system */
             wantProjection = true;
             Mirror.request(MainActivity.this);
-            return "{\"step\":\"aguardando consentimento\"}";
+            return "{\"step\":\"waiting for consent\"}";
         }
 
         @JavascriptInterface
         public String projStop() {
-            /* desligar é desligar: marca a preferência, para o laço ADB (era ele que reenviava o
-               cmd 16 a cada 60 s) e devolve o painel ao layout da BYD */
+            /* off means off: it records the preference, stops the ADB loop (it was the one re-sending
+               cmd 16 every 60 s) and hands the panel back to the BYD layout */
             getSharedPreferences("lab", MODE_PRIVATE).edit()
                     .putBoolean("projection", false)
                     .putBoolean("enabled", false)
@@ -1280,13 +1280,13 @@ public class MainActivity extends Activity {
                     + ",\"error\":\"" + ClusterProjection.error().replace("\"", "'") + "\"}";
         }
 
-        /** controles da música: prev | play | next */
+        /** music controls: prev | play | next */
         @JavascriptInterface
         public void media(String cmd) {
             MediaNow.control(getApplicationContext(), cmd);
         }
 
-        /** posiciona a superfície da câmera atrás da skin */
+        /** positions the camera surface behind the skin */
         @JavascriptInterface
         public void camShape(String json) {
             try {
@@ -1331,11 +1331,11 @@ public class MainActivity extends Activity {
         }
 
         /**
-         * Leva a skin para o display do painel do motorista.
+         * Takes the skin to the driver cluster panel display.
          *
-         * O carro expõe esse painel como um display virtual do sistema (1920×720, dono
-         * com.xdja.containerservice). setLaunchDisplayId é API pública; se o sistema não
-         * autorizar, devolve o motivo em vez de falhar calado.
+         * The car exposes that panel as a system virtual display (1920×720, owner
+         * com.xdja.containerservice). setLaunchDisplayId is a public API; if the system does not
+         * authorize it, the reason is returned instead of failing silently.
          */
         @JavascriptInterface
         public String clusterShow() {
@@ -1361,7 +1361,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String clusterLaunch() {
             final int id = clusterDisplayId();
-            if (id < 0) return "{\"ok\":false,\"why\":\"sem segundo display\"}";
+            if (id < 0) return "{\"ok\":false,\"why\":\"no second display\"}";
             ui.post(new Runnable() {
                 public void run() {
                     try {
@@ -1370,9 +1370,9 @@ public class MainActivity extends Activity {
                         Intent i = new Intent(MainActivity.this, MainActivity.class);
                         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
                         startActivity(i, o.toBundle());
-                        Log.i(TAG, "skin enviada ao display " + id);
+                        Log.i(TAG, "skin sent to display " + id);
                     } catch (Throwable t) {
-                        Log.w(TAG, "sistema recusou o display " + id, t);
+                        Log.w(TAG, "system refused display " + id, t);
                     }
                 }
             });
@@ -1401,7 +1401,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        /** id do display do painel, ou -1 */
+        /** cluster panel display id, or -1 */
         private int clusterDisplayId() {
             try {
                 DisplayManager dm = (DisplayManager) getSystemService(DISPLAY_SERVICE);
@@ -1419,7 +1419,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        /** abre o teste da câmera do carro (ré/panorâmica) */
+        /** opens the car camera test (reverse/panoramic) */
         @JavascriptInterface
         public void camOpen() {
             ui.post(new Runnable() {
@@ -1427,7 +1427,7 @@ public class MainActivity extends Activity {
                     try {
                         startActivity(new Intent(MainActivity.this, CamView.class));
                     } catch (Throwable t) {
-                        Log.w(TAG, "não abriu a câmera", t);
+                        Log.w(TAG, "did not open the camera", t);
                     }
                 }
             });
@@ -1438,13 +1438,13 @@ public class MainActivity extends Activity {
             return CameraService.available();
         }
 
-        /** métodos reais do serviço de câmera desta unidade */
+        /** real methods of this unit's camera service */
         @JavascriptInterface
         public String camDump() {
             return CameraService.dump();
         }
 
-        /** última tecla do volante lida pelo serviço de acessibilidade */
+        /** latest steering wheel key read by the accessibility service */
         @JavascriptInterface
         public String wheel() {
             return WheelKeys.snapshot();
@@ -1462,11 +1462,11 @@ public class MainActivity extends Activity {
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
             } catch (Throwable t) {
-                Log.w(TAG, "sem tela de acessibilidade", t);
+                Log.w(TAG, "no accessibility screen", t);
             }
         }
 
-        /** captura de tela em tempo real (Waze, Maps, AA, CarPlay: o que estiver na tela) */
+        /** real-time screen capture (Waze, Maps, AA, CarPlay: whatever is on screen) */
         @JavascriptInterface
         public void mirrorStart() {
             ui.post(new Runnable() {
@@ -1486,7 +1486,7 @@ public class MainActivity extends Activity {
             Mirror.stop();
         }
 
-        /** abre um app instalado na central (waze, android auto, carplay da BYD) */
+        /** opens an app installed on the head unit (waze, android auto, BYD carplay) */
         @JavascriptInterface
         public boolean openApp(String pkg) {
             try {
@@ -1496,12 +1496,12 @@ public class MainActivity extends Activity {
                 startActivity(i);
                 return true;
             } catch (Throwable t) {
-                Log.w(TAG, "não abriu " + pkg, t);
+                Log.w(TAG, "did not open " + pkg, t);
                 return false;
             }
         }
 
-        /** versão e origem de um app instalado (para saber se o Waze é o oficial) */
+        /** version and origin of an installed app (to tell whether Waze is the official one) */
         @JavascriptInterface
         public String appInfo(String pkg) {
             try {
@@ -1559,7 +1559,7 @@ public class MainActivity extends Activity {
         public void beat(double ageMs, double frames, boolean hidden, String err) {
         }
 
-        /** skins instaladas no cartao (getExternalFilesDir/dash/<id>/index.html) */
+        /** skins installed on the card (getExternalFilesDir/dash/<id>/index.html) */
         @JavascriptInterface
         public String skins() {
             List<String> ids = new ArrayList<String>();
@@ -1580,7 +1580,7 @@ public class MainActivity extends Activity {
             return sb.append(']').toString();
         }
 
-        /** base de uma skin: cartão (se existir) ou dentro do APK */
+        /** base of a skin: the card (if present) or inside the APK */
         private String skinBase(String id) {
             java.io.File ext = new java.io.File(getExternalFilesDir(null), "dash/" + id);
             if (new java.io.File(ext, "index.html").isFile()) return "file://" + ext.getAbsolutePath() + "/";
@@ -1602,7 +1602,7 @@ public class MainActivity extends Activity {
             return getSharedPreferences("lab", MODE_PRIVATE).getString("skin", "byd");
         }
 
-        /** efeito de arranque no painel */
+        /** ignition effect on the panel */
         @JavascriptInterface
         public void ignite() {
             ClusterOverlay.javaScript("window.EvsIgnition && window.EvsIgnition();");
@@ -1613,7 +1613,7 @@ public class MainActivity extends Activity {
         public boolean overlayReload(final String id) {
             final SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
             p.edit().putString("skin", id).apply();
-            /* a janela só pode ser criada na thread de UI */
+            /* the window can only be created on the UI thread */
             ui.post(new Runnable() {
                 public void run() {
                     ClusterOverlay.show(MainActivity.this, urlFor(id, true, false));
@@ -1651,12 +1651,12 @@ public class MainActivity extends Activity {
             });
         }
 
-        /** o que este carro deixa ler (roda no veículo, não no PC) */
-        /** chama um setter da API BYD: "setting.BYDAutoSettingDevice|setX|2" (teste, fora da UI) */
+        /** what this car lets us read (runs on the vehicle, not on the PC) */
+        /** calls a BYD API setter: "setting.BYDAutoSettingDevice|setX|2" (test, outside the UI) */
         @JavascriptInterface
         public String bydSet(String spec) {
             String[] p = spec.split("\\|");
-            if (p.length < 2) return "erro: spec";
+            if (p.length < 2) return "error: spec";
             String cls = "android.hardware.bydauto." + p[0];
             try {
                 Class<?> c = Class.forName(cls);
@@ -1686,12 +1686,12 @@ public class MainActivity extends Activity {
             } catch (Throwable t) {
                 Throwable c2 = t;
                 while (c2.getCause() != null && c2 != c2.getCause()) c2 = c2.getCause();
-                AdbShell.trace(MainActivity.this, "byd " + spec + " erro " + c2);
-                return "erro: " + c2;
+                AdbShell.trace(MainActivity.this, "byd " + spec + " error " + c2);
+                return "error: " + c2;
             }
         }
 
-        /** amostra tudo, sem filtrar, com carimbo em ms (leitura crua de um ciclo de modos) */
+        /** samples everything, unfiltered, with an ms timestamp (raw read of one mode cycle) */
         @JavascriptInterface
         public void bydTrace(final String spec, final int seconds) {
             new Thread(new Runnable() {
@@ -1707,12 +1707,12 @@ public class MainActivity extends Activity {
                         AdbShell.trace(MainActivity.this, sb.toString());
                         try { Thread.sleep(200); } catch (InterruptedException ignored) { }
                     }
-                    AdbShell.trace(MainActivity.this, "trace fim");
+                    AdbShell.trace(MainActivity.this, "trace end");
                 }
             }).start();
         }
 
-        /** amostra getters e registra só o que muda (descoberta de qual leitura segue o volante) */
+        /** samples getters and logs only what changes (discovery of which reading follows the wheel) */
         @JavascriptInterface
         public void bydPoll(final String spec, final int seconds) {
             new Thread(new Runnable() {
@@ -1735,12 +1735,12 @@ public class MainActivity extends Activity {
                         }
                         try { Thread.sleep(400); } catch (InterruptedException ignored) { }
                     }
-                    AdbShell.trace(MainActivity.this, "poll fim");
+                    AdbShell.trace(MainActivity.this, "poll end");
                 }
             }).start();
         }
 
-        /** lista os métodos públicos das classes da API BYD (descoberta, não aparece na UI) */
+        /** lists the public methods of the BYD API classes (discovery, does not appear in the UI) */
         @JavascriptInterface
         public String apiDump(String classes) {
             StringBuilder sb = new StringBuilder();
@@ -1767,7 +1767,7 @@ public class MainActivity extends Activity {
                         sb.append("): ").append(m.getReturnType().getSimpleName()).append('\n');
                     }
                 } catch (Throwable t) {
-                    sb.append("== ").append(cls).append(" erro: ").append(t).append('\n');
+                    sb.append("== ").append(cls).append(" error: ").append(t).append('\n');
                 }
             }
             try {

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Serve themes/ para pré-visualizar as skins no navegador (PC ou celular).
+"""Serves themes/ to preview the skins in a browser (PC or phone).
 
-Igual a `python3 -m http.server`, mas manda `Cache-Control: no-store`: sem isso o
-navegador guarda o index.html e as imagens e continua mostrando a versão antiga
-depois de editar a skin.
+Same as `python3 -m http.server`, but sends `Cache-Control: no-store`: without it the
+browser caches index.html and the images and keeps showing the old version
+after the skin is edited.
 
-    python3 tools/preview-server.py [porta]     # padrão 8765
+    python3 tools/preview-server.py [port]     # default 8765
 """
 import functools
 import http.server
@@ -43,5 +43,5 @@ class Server(socketserver.ThreadingTCPServer):
 if __name__ == "__main__":
     handler = functools.partial(Handler, directory=ROOT)
     with Server(("0.0.0.0", PORT), handler) as httpd:
-        print("temas em http://0.0.0.0:%d/  (raiz: %s)" % (PORT, os.path.normpath(ROOT)))
+        print("themes at http://0.0.0.0:%d/  (root: %s)" % (PORT, os.path.normpath(ROOT)))
         httpd.serve_forever()

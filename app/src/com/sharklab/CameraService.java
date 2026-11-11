@@ -6,15 +6,16 @@ import android.view.Surface;
 import java.lang.reflect.Method;
 
 /**
- * CameraService — as câmeras do carro (ré, pisca, panorâmica) pelo serviço que a BYD expõe.
+ * CameraService — the car cameras (reverse, turn signal, panorama) through the service BYD
+ * exposes.
  *
- * O caminho, verificado no comportamento do sistema: ServiceManager → binder
- * "bydcameramanager" (ou "bmmcameraserver") → Stub.asInterface → open/addPreviewSurface/
- * startPreview, com os quadros chegando num Surface.
+ * The path, verified against system behavior: ServiceManager → binder
+ * "bydcameramanager" (or "bmmcameraserver") → Stub.asInterface → open/addPreviewSurface/
+ * startPreview, with the frames arriving on a Surface.
  *
- * As assinaturas desses métodos variam entre unidades, então nada é linkado: procuramos um
- * método pelo nome e montamos os argumentos (int, Surface, boolean, String) na ordem em que
- * ele pede. Quando não existe, devolve erro legível em vez de quebrar o painel.
+ * The signatures of those methods vary between units, so nothing is linked: we look for a
+ * method by name and build the arguments (int, Surface, boolean, String) in the order it
+ * asks for. When it does not exist, we return a readable error instead of breaking the panel.
  */
 public final class CameraService {
 
@@ -50,7 +51,7 @@ public final class CameraService {
                 }
             }
             if (binder == null) {
-                error = "serviço não encontrado (" + SERVICES[0] + ")";
+                error = "service not found (" + SERVICES[0] + ")";
                 return null;
             }
             for (String stub : STUBS) {
@@ -63,7 +64,7 @@ public final class CameraService {
                 } catch (Throwable ignored) {
                 }
             }
-            error = "sem asInterface para " + used;
+            error = "no asInterface for " + used;
         } catch (Throwable t) {
             error = t.getClass().getSimpleName() + ": " + t.getMessage();
         }
@@ -82,7 +83,7 @@ public final class CameraService {
         return service() != null;
     }
 
-    /** chama por nome casando a quantidade de argumentos que temos para oferecer */
+    /** calls by name, matching the number of arguments we have to offer */
     public static synchronized Object call(String name, Object... args) {
         Object s = service();
         if (s == null) return null;
@@ -104,7 +105,7 @@ public final class CameraService {
             }
         }
         if (best == null) {
-            error = "método " + name + "/" + args.length + " não existe";
+            error = "method " + name + "/" + args.length + " does not exist";
             return null;
         }
         try {
@@ -125,16 +126,16 @@ public final class CameraService {
         return false;
     }
 
-    /* ---------- sequência de preview ---------- */
+    /* ---------- preview sequence ---------- */
 
     public static String openPreview(Surface surface) {
-        if (service() == null) return "sem serviço: " + error;
-        /* tenta as combinações conhecidas; para no primeiro caminho que aceitar a surface */
+        if (service() == null) return "no service: " + error;
+        /* tries the known combinations; stops at the first path that accepts the surface */
         Object r;
         r = call("addPreviewSurface", surface);
         if (r == null) r = call("addPreviewSurface", 0, surface);
         if (r == null) r = call("addPreviewSurface", surface, 0);
-        if (r == null) return "addPreviewSurface falhou: " + error;
+        if (r == null) return "addPreviewSurface failed: " + error;
 
         call("open", 0);
         call("open", 0, 0);
@@ -154,7 +155,7 @@ public final class CameraService {
         }
     }
 
-    /** lista de métodos do serviço em execução (diagnóstico no carro) */
+    /** list of methods of the running service (diagnostic in the car) */
     public static String dump() {
         Object s = service();
         if (s == null) return "{\"error\":\"" + error + "\"}";

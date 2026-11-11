@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Botões do volante: o serviço recebe as teclas de mídia/volume/navegação que a central
-  entrega a serviços de acessibilidade. Nenhum app de terceiros é tocado.
+  Steering wheel buttons: the service receives the media/volume/navigation keys that the
+  head unit delivers to accessibility services. No third-party app is touched.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged"

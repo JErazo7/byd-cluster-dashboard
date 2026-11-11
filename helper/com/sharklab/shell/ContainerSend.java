@@ -2,10 +2,10 @@ package com.sharklab.shell;
 
 import java.lang.reflect.Method;
 
-/** Envia um comando ao AutoContainer (uso: args = tipo json). Só imprime o resultado. */
+/** Sends a command to AutoContainer (usage: args = type json). Only prints the result. */
 public class ContainerSend {
     public static void main(String[] args) throws Exception {
-        if (args.length < 2) { System.out.println("uso: <tipo> <json>"); return; }
+        if (args.length < 2) { System.out.println("usage: <type> <json>"); return; }
         int type = Integer.parseInt(args[0]);
         String json = args[1];
         Class<?> sm = Class.forName("android.os.ServiceManager");

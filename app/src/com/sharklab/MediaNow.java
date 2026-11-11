@@ -13,11 +13,11 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 /**
- * MediaNow — o que está tocando, com capa e controles.
+ * MediaNow — what is playing, with album art and controls.
  *
- * Usa MediaSessionManager (mesmo requisito do Waze: acesso a notificações). Devolve título,
- * artista, capa em data URI (48 px) e estado, e manda play/pause/next/previous para a sessão
- * ativa. Nenhum app de terceiros é modificado.
+ * Uses MediaSessionManager (same requirement as Waze: notification access). Returns title,
+ * artist, art as a data URI (48 px) and state, and sends play/pause/next/previous to the active
+ * session. No third-party app is modified.
  */
 public final class MediaNow {
 
@@ -44,7 +44,7 @@ public final class MediaNow {
         }
     }
 
-    /** JSON para a skin: {title, artist, playing, art} */
+    /** JSON for the skin: {title, artist, playing, art} */
     public static String snapshot(Context ctx) {
         MediaController c = controller(ctx);
         if (c == null) return null;
@@ -78,7 +78,7 @@ public final class MediaNow {
         }
     }
 
-    /** capa pequena em data URI; só reconverte quando a música muda */
+    /** small art as a data URI; only re-encodes when the track changes */
     private static String art(MediaMetadata md) {
         try {
             String key = str(md, MediaMetadata.METADATA_KEY_TITLE) + '|' + str(md, MediaMetadata.METADATA_KEY_ARTIST) + '|'

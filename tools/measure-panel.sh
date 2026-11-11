@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mede se o EvSound projeta o painel num display próprio ou se o clúster é espelho da IVI.
+# Measures whether the reference app projects the panel onto its own display or whether the cluster is a head unit mirror.
 #   ./tools/measure-panel.sh [serial]
 set -uo pipefail
 D="${1:-127.0.0.1:5555}"
@@ -14,6 +14,6 @@ a=$(md5sum "$OUT/ivi.png" | cut -d' ' -f1)
 b=$(md5sum "$OUT/cluster.png" | cut -d' ' -f1)
 echo "ivi=$a"
 echo "cluster=$b"
-if [ "$a" = "$b" ]; then echo "VEREDITO: espelho (mesma imagem)"; else echo "VEREDITO: displays diferentes"; fi
+if [ "$a" = "$b" ]; then echo "VERDICT: mirror (same image)"; else echo "VERDICT: different displays"; fi
 echo "--- displays"
 adb -s "$D" shell 'dumpsys display | grep -E "mDisplayId=|mHasContent|XDJAScreenProjection" | head -12'

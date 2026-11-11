@@ -6,16 +6,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Daemon — lê as APIs do carro e escreve o estado num arquivo.
+ * Daemon — reads the car APIs and writes the state to a file.
  *
- * Roda com "app_process" como usuário shell, que não sofre o bloqueio de API oculta que
- * derruba a reflexão dentro do app (log: "blacklist, reflection, denied"). É o mesmo
- * mecanismo que o app de referência usa com os helpers em /data/local/tmp.
+ * Runs through "app_process" as the shell user, which is not subject to the hidden API
+ * block that breaks reflection inside the app (log: "blacklist, reflection, denied").
+ * It is the same mechanism the reference app uses with the helpers in /data/local/tmp.
  *
- * Uso (uma vez, por adb):
+ * Usage (once, over adb):
  *   adb shell CLASSPATH=/sdcard/SharkLab/helper.dex app_process /system/bin com.sharklab.shell.Daemon
  *
- * Escreve /sdcard/SharkLab/state.json a cada 200 ms:
+ * Writes /sdcard/SharkLab/state.json every 200 ms:
  *   {"speed":0,"gear":3,"pw":12.5,"soc":69,"range":395,"ped":0,"brk":0,"temp":24,"odo":12843,
  *    "v12":13.8,"turn":0,"bsd":0,"lks":0,"radar":[..],"t":<ms>}
  */
@@ -67,7 +67,7 @@ public class Daemon {
         return d;
     }
 
-    /** Contexto via reflexão no ActivityThread (o daemon não é um app) */
+    /** Context obtained by reflection on ActivityThread (the daemon is not an app) */
     private static Object ctx;
 
     private static Object appContext() {
@@ -82,7 +82,7 @@ public class Daemon {
             } catch (Throwable ignored) {
             }
             if (thread == null) {
-                /* no app_process não existe ActivityThread: cria o principal do sistema */
+                /* app_process has no ActivityThread: create the system main one */
                 Method sm = at.getDeclaredMethod("systemMain");
                 sm.setAccessible(true);
                 thread = sm.invoke(null);
@@ -92,7 +92,7 @@ public class Daemon {
             ctx = get.invoke(thread);
             lastErr = "ctx=" + (ctx == null ? "null" : ctx.getClass().getName());
         } catch (Throwable t) {
-            lastErr = "ctxFalhou: " + t;
+            lastErr = "ctxFailed: " + t;
             ctx = null;
         }
         return ctx;

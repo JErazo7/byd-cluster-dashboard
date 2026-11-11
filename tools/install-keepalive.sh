@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instala e inicia o keepalive no carro (uma vez por arranque). Requer adb autorizado.
+# Installs and starts the keepalive on the car (once per boot). Requires authorized adb.
 #   ./tools/install-keepalive.sh [serial]
 set -euo pipefail
 cd "$(dirname "$0")/.."

@@ -11,16 +11,16 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * CarProbe — descobre, no próprio carro, o que dá para ler.
+ * CarProbe — works out, on the car itself, what can be read.
  *
- * Sem o veículo na mão isso não pode ser testado: então em vez de adivinhar, a app pergunta.
- * Tudo roda dentro de try/catch e vira JSON; nada aqui quebra a app se faltar.
+ * Without the vehicle at hand this cannot be tested: so instead of guessing, the app asks.
+ * Everything runs inside try/catch and turns into JSON; nothing here breaks the app if missing.
  *
- * O que ele tenta:
- *  - versão do Android, modelo e o que a BYD declarou no build;
- *  - classes do SDK da BYD e do framework presentes (reflexão, sem linkar);
- *  - telas/displays (o painel do motorista costuma ser um display secundário);
- *  - chaves de Settings.System/Secure/Global que existem de fato.
+ * What it tries:
+ *  - Android version, model and what BYD declared in the build;
+ *  - BYD SDK and framework classes that are present (reflection, no linking);
+ *  - screens/displays (the driver cluster panel is usually a secondary display);
+ *  - Settings.System/Secure/Global keys that actually exist.
  */
 public class CarProbe {
 

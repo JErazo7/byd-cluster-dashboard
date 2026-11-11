@@ -5,12 +5,13 @@ import android.content.Intent;
 import android.os.Bundle;
 
 /**
- * WakeActivity — acorda a SharkLab sem mostrar nada.
+ * WakeActivity — wakes SharkLab without showing anything.
  *
- * O vigia roda como shell e, com o pacote parado depois do apagamento, `am start-foreground-service`
- * é recusado ("Not found; no service started"). `am start` de uma activity é sempre aceito.
- * É o mesmo truque do EvSound (`ArmActivity --ez wake_only true`): esta activity não tem layout,
- * sobe o PanelService e sai antes do primeiro quadro.
+ * The watchdog runs as shell and, with the package stopped after the shutdown,
+ * `am start-foreground-service` is refused ("Not found; no service started"). An activity's
+ * `am start` is always accepted. It is the same trick the reference app uses (`ArmActivity
+ * --ez wake_only true`): this activity has no layout, starts PanelService and exits before the
+ * first frame.
  */
 public class WakeActivity extends Activity {
 
@@ -23,7 +24,7 @@ public class WakeActivity extends Activity {
             else startService(svc);
             AdbShell.trace(this, "wake: activity");
         } catch (Throwable t) {
-            AdbShell.trace(this, "wake: falhou " + t);
+            AdbShell.trace(this, "wake: failed " + t);
         }
         finish();
     }

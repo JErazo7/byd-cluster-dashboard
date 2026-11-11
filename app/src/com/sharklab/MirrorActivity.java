@@ -12,10 +12,10 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 /**
- * MirrorActivity — mostra a tela da central em tempo real, em tela cheia.
+ * MirrorActivity — shows the head unit screen in real time, full screen.
  *
- * Feito para rodar no display do painel: abre depois do consentimento de captura e desenha
- * o último quadro do Mirror (~10 fps). Toque para sair.
+ * Made to run on the cluster panel display: it opens after the capture consent and draws the
+ * latest Mirror frame (~10 fps). Tap to exit.
  */
 public class MirrorActivity extends Activity {
 
@@ -28,7 +28,7 @@ public class MirrorActivity extends Activity {
             byte[] f = Mirror.frame();
             long at = Mirror.frameAge();
             if (f != null && at >= 0) {
-                /* só decodifica quadro novo */
+                /* only decodes a new frame */
                 long stamp = System.currentTimeMillis() - at;
                 if (stamp != lastAt) {
                     lastAt = stamp;

@@ -7,14 +7,14 @@
 <style>
   html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #04070c; }
   svg { display: block; }
-  /* arte do carro igual em todos os modos: sem filtro de cena */
+  /* car art identical in every mode: no scene filter */
   #tyrecar { filter: none; }
-  /* cores do overlay HUD de pressão: acompanham a cena, como o resto do painel */
+  /* pressure HUD overlay colours: they follow the scene, like the rest of the panel */
   svg { --tire-color: #16c8ff; --tire-bright: #a8f4ff; --tire-dim: #087bce; }
   .tyre-link { fill: none; stroke: var(--tire-dim); stroke-width: 1.2; opacity: .75;
                stroke-linecap: round; }
   text { font-family: "Barlow", Roboto, "Helvetica Neue", Arial, sans-serif; fill: #eaf3ff; }
-  /* as cores de destaque vêm de variáveis: trocar de modo muda tudo de uma vez */
+  /* the accent colours come from variables: switching mode changes everything at once */
   svg { --accent: #0480ff; --accent-core: #8ac6ff; --accent-soft: #2f4f6c; --accent-icon: #5ab6ff; }
   .edge-halo { stroke: var(--accent); }
   .edge-mid { stroke: var(--accent); }
@@ -24,7 +24,7 @@
   .tick { stroke: var(--accent-soft); }
   .icon { stroke: var(--accent-icon); }
   .bar-lit, .icon-fill { fill: var(--accent); }
-  /* a troca de paisagem é animada em JS: cross-fade com zoom de aproximação */
+  /* the landscape swap is animated in JS: cross-fade with a zoom-in */
   .dim { fill: #b9cfe2; }
   .mut { fill: #6a8aa6; }
   .cy { fill: #38cfff; }
@@ -35,7 +35,7 @@
 <body>
 <svg id="s" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1280 480"
      preserveAspectRatio="xMidYMid meet"></svg>
-<!-- overlay HUD de pressão do pacote, inline: herda as variáveis CSS do tema -->
+<!-- package pressure HUD overlay, inline: inherits the theme CSS variables -->
 <script type="text/plain" id="tireHudSrc">
 <defs>
     <linearGradient id="tireConnector" x1="0" y1="0" x2="1" y2="0">
@@ -112,12 +112,12 @@
 </script>
 <script>
 /*
- * BYD (SharkLab) — painel neon da caminhonete, na grelha das skins antigas (1280×480): o SVG
- * escala sozinho para o quadro do painel. Dois aros grandes nas pontas (pedal e potência, com
- * o arco de valor saindo do canto inferior esquerdo), velocidade no centro sobre a caminhonete
- * e três cartões embaixo: bateria/combustível/autonomia, pressão dos pneus e modo de condução.
- * Fotos em assets/: bg.jpg (paisagem), truck.png (caminhonete recortada com alfa) e
- * tyre-car.png (vista de cima com alfa, desenhada com conectores vetoriais).
+ * BYD (SharkLab) — neon pickup dashboard on the grid of the old skins (1280×480): the SVG
+ * scales itself to the panel frame. Two big rings at the ends (throttle and power, with
+ * the value arc growing from the bottom left corner), speed in the centre over the pickup
+ * and three cards at the bottom: battery/fuel/range, tyre pressure and driving mode.
+ * Photos in assets/: bg.jpg (landscape), truck.png (cut-out pickup with alpha) and
+ * tyre-car.png (top view with alpha, drawn with vector connectors).
  */
 (function () {
   'use strict';
@@ -132,14 +132,14 @@
     en: { thr: 'Throttle', pow: 'Power', kmh: 'mph', bat: 'Battery', fuel: 'Fuel', range: 'EV Range', cons: 'Consumption', regen: 'Regen' }
   })[LANG] || {};
 
-  /* unidades do painel BYD: 1 = métrico, 2 = imperial (o app manda km, km/h e kW) */
+  /* BYD panel units: 1 = metric, 2 = imperial (the app sends km, km/h and kW) */
   function powTo(v) { return window.EvsPU === 2 ? v * 1.341 : v; }
   function powU() { return window.EvsPU === 2 ? 'hp' : 'kW'; }
   function spd(v) { return window.EvsSU === 2 ? v / 1.609344 : v; }
   function dist(v) { return window.EvsDU === 2 ? v / 1.609344 : v; }
   var DIST_U = (window.EvsDU === 2) ? 'mi' : 'km';
 
-  var layer = svg;          /* tudo o que é interface vai aqui e pode ser mascarado */
+  var layer = svg;          /* everything that is interface goes here and can be masked */
   function el(tag, attrs, parent) {
     var n = document.createElementNS(NS, tag), k;
     for (k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
@@ -158,7 +158,7 @@
     var rad = a * Math.PI / 180;
     return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
   }
-  /* arco de a0 a a1 (graus, 0 = leste, positivo no sentido horário); a1 < a0 vai anti-horário */
+  /* arc from a0 to a1 (degrees, 0 = east, positive clockwise); a1 < a0 goes anticlockwise */
   function arcPath(cx, cy, r, a0, a1) {
     var d = a1 - a0;
     if (Math.abs(d) < 0.05) return '';
@@ -171,11 +171,11 @@
     return el('rect', Object.assign({ x: x, y: y, width: w, height: h, rx: r }, attrs), parent);
   }
 
-  /* ---------- gradientes ---------- */
+  /* ---------- gradients ---------- */
   var defs = el('defs');
 
   var gThr = el('linearGradient', { id: 'gThr', x1: '0.2', y1: '1', x2: '0.8', y2: '0' }, defs);
-  /* mesma paleta do aro da potência; o laranja entra mais cedo conforme o pedal afunda */
+  /* same palette as the power ring; the orange comes in earlier as the pedal goes down */
   var thrStop = [
     el('stop', { offset: '0', 'stop-color': '#1b6fe0' }, gThr),
     el('stop', { offset: '0.5', 'stop-color': '#2f9df5' }, gThr),
@@ -212,7 +212,7 @@
   var clip = el('clipPath', { id: 'clipFrame' }, defs);
   el('rect', { x: 0, y: 0, width: W, height: H }, clip);
 
-  /* ---------- fundo: paisagem ampliada (mais zoom que a foto original) ---------- */
+  /* ---------- background: enlarged landscape (more zoom than the original photo) ---------- */
   el('rect', { x: 0, y: 0, width: W, height: H, fill: '#04070c' });
   var gBg = el('g', { id: 'gBg', 'clip-path': 'url(#clipFrame)' });
   var bgNormal = el('image', {
@@ -227,7 +227,7 @@
     id: 'bgMountain', href: 'assets/bg-mountain.jpg', opacity: 0,
     x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice'
   }, gBg);
-  /* a cena de lodo entra na largura cheia; um pouco mais de zoom para o barro dominar */
+  /* the mud scene comes in at full width; a little more zoom so the mud dominates */
   var bgMud = el('image', {
     id: 'bgMud', href: 'assets/bg-mud.jpg', opacity: 0,
     x: -110, y: -60, width: 1500, height: 563, preserveAspectRatio: 'xMidYMid slice'
@@ -240,18 +240,18 @@
     id: 'bgSand', href: 'assets/bg-sand.jpg', opacity: 0,
     x: 0, y: 0, width: W, height: H, preserveAspectRatio: 'xMidYMid slice'
   }, gBg);
-  /* véu escuro por cena: as fotos claras precisam dele para o texto branco respirar */
+  /* dark veil per scene: the bright photos need it so the white text can breathe */
   var sceneDim = el('rect', { x: 0, y: 0, width: W, height: H, fill: '#04070c', opacity: 0 }, gBg);
   el('rect', { x: 0, y: 150, width: W, height: 230, fill: 'url(#gFade)' }, gBg);
   el('rect', { x: 0, y: 380, width: W, height: 100, fill: '#04070c' }, gBg);
 
-  /* arco fino de fundo atrás da velocidade */
+  /* thin background arc behind the speed */
   layer = el('g', { mask: 'url(#mSafe)' });
   el('path', { d: arcPath(640, 336, 258, 208, 332), fill: 'none', stroke: '#38cfff', 'stroke-width': 2.5, opacity: 0.45 });
   el('path', { d: arcPath(640, 336, 270, 214, 326), fill: 'none', stroke: '#38cfff', 'stroke-width': 1.2, opacity: 0.2 });
 
-  /* ---------- topo ---------- */
-  /* relógio à esquerda e odômetro à direita; a temperatura não volta */
+  /* ---------- top ---------- */
+  /* clock on the left and odometer on the right; the temperature does not come back */
   var clockTxt = txt(24, 32, '--:--', 18, 'num', 'start');
   var warnTxt = txt(112, 32, '', 14, 'or', 'start');
   var odoTxt = txt(1264, 34, '--', 19, 'num', 'end');
@@ -259,24 +259,24 @@
   odoUnit.textContent = DIST_U;
   odoTxt.appendChild(odoUnit);
 
-  /* ---------- aros ---------- */
+  /* ---------- rings ---------- */
   var RING_Y = 198, R = 172, LX = 190, RX = W - 190;
-  /* arco aberto em baixo: os extremos ficam altos o bastante para não encostar nos cartões */
+  /* arc open at the bottom: the ends sit high enough not to touch the cards */
   var SWEEP = 244;
-  var A_THR = 148, DIR_THR = 1;   /* esquerda: começa embaixo à esquerda e sobe pelo lado esquerdo */
-  var A_POW = 32, DIR_POW = -1;   /* direita: começa embaixo à direita e sobe pelo lado direito */
+  var A_THR = 148, DIR_THR = 1;   /* left: starts at the bottom left and rises up the left side */
+  var A_POW = 32, DIR_POW = -1;   /* right: starts at the bottom right and rises up the right side */
 
   function ring(cx, grad, a0, dir) {
     var g = el('g');
     var full = arcPath(cx, RING_Y, R, a0, a0 + dir * SWEEP);
-    /* trilha do aro, aro de marcas pontilhadas e o arco de valor */
+    /* ring track, dotted tick ring and the value arc */
     var track = el('path', { d: full, fill: 'none', stroke: '#22405c', 'stroke-width': 17, 'stroke-linecap': 'round' }, g);
-    /* zona vermelha no fim do curso */
+    /* red zone at the end of the travel */
     var red = el('path', {
       d: arcPath(cx, RING_Y, R, a0 + dir * SWEEP * 0.9, a0 + dir * SWEEP), fill: 'none',
       stroke: '#ff2f2f', 'stroke-width': 17, 'stroke-linecap': 'round', opacity: 0
     }, g);
-    /* marcas radiais curtas ao longo do arco */
+    /* short radial marks along the arc */
     var TICKS = 25;
     for (var t = 0; t < TICKS; t++) {
       var ta = a0 + dir * SWEEP * (t / (TICKS - 1));
@@ -293,8 +293,8 @@
     return { glow: glow, val: val, red: red, track: track, cx: cx, a0: a0, dir: dir, f: -1, d: '' };
   }
   function setRing(rg, frac) {
-    var f = Math.max(0, Math.min(0.9995, frac));   /* 360° exatos não desenham nada em SVG */
-    if (Math.abs(f - rg.f) < 0.0004) return;       /* parado: não reescreve a geometria */
+    var f = Math.max(0, Math.min(0.9995, frac));   /* an exact 360° draws nothing in SVG */
+    if (Math.abs(f - rg.f) < 0.0004) return;       /* stopped: do not rewrite the geometry */
     rg.f = f;
     var d = f > 0.004 ? arcPath(rg.cx, RING_Y, R, rg.a0, rg.a0 + rg.dir * SWEEP * f) : '';
     if (rg.d === d) return;
@@ -305,7 +305,7 @@
   var thrRing = ring(LX, 'url(#gThr)', A_THR, DIR_THR);
   var powRing = ring(RX, 'url(#gPow)', A_POW, DIR_POW);
 
-  /* rótulo em cima e valor+unidade centrados como um bloco só dentro do aro */
+  /* label on top and value+unit centred as a single block inside the ring */
   var lblThr = txt(LX, 166, T.thr, 23, 'dim');
   lblThr.setAttribute('letter-spacing', '1.2');
   var thrNum = txt(LX, 248, '0', 70, 'num');
@@ -324,7 +324,7 @@
   var powLabel = txt(RX, 292, '', 13, 'mut');
   powLabel.setAttribute('letter-spacing', '1');
 
-  /* ---------- centro: velocidade e caminhonete ---------- */
+  /* ---------- centre: speed and pickup ---------- */
   var spdNum = txt(640, 134, '0', 106, 'num');
   spdNum.setAttribute('font-weight', 500);
   var kmhTxt = txt(640, 160, T.kmh, 21, 'mut');
@@ -338,11 +338,11 @@
   var truckGlow = el('ellipse', { cx: 640, cy: 318, rx: 152, ry: 8, fill: '#2f9df5', opacity: 0.16 });
   el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 318 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
 
-  /* paginação decorativa das telas, como no desenho */
+  /* decorative screen pagination, as in the design */
 
-  /* ---------- cartões ---------- */
-  /* aro neon: halo largo + traço médio + núcleo claro, igual às linhas da imagem de pressão */
-  var NEON = '#0480ff';                 /* medida nas linhas da imagem de pressão */
+  /* ---------- cards ---------- */
+  /* neon ring: wide halo + medium stroke + bright core, like the lines of the pressure image */
+  var NEON = '#0480ff';                 /* measured on the lines of the pressure image */
   var NEON_CORE = '#8ac6ff';
   var ICON = '#5ab6ff';
   function neon(parent, x, y, w, h, r, k) {
@@ -351,7 +351,7 @@
     rrect(x + 3, y + 3, w - 6, h - 6, Math.max(2, r - 3), { class: 'edge-core', fill: 'none', 'stroke-width': 1, opacity: 0.18 }, parent);
     return rrect(x, y, w, h, r, { class: 'edge-mid', fill: 'none', 'stroke-width': 1.5 * f, opacity: 0.65 }, parent);
   }
-  /* vidro líquido: brilho diagonal que atravessa o cartão */
+  /* liquid glass: diagonal sheen running across the card */
   var gGlass = el('linearGradient', { id: 'gGlass', x1: '0', y1: '0', x2: '1', y2: '1' }, defs);
   el('stop', { offset: '0', 'stop-color': '#ffffff', 'stop-opacity': '0.17' }, gGlass);
   el('stop', { offset: '0.42', 'stop-color': '#ffffff', 'stop-opacity': '0.05' }, gGlass);
@@ -363,7 +363,7 @@
   el('stop', { offset: '1', 'stop-color': '#000000', 'stop-opacity': '0.12' }, gGlassShade);
 
   var cardSeq = 0;
-  /* desfoque só na área do cartão: barato no SoC do carro */
+  /* blur only over the card area: cheap on the car SoC */
   function glassBlur(x, w) {
     var id = 'fGlass' + (++cardSeq);
     var f = el('filter', {
@@ -381,16 +381,16 @@
     var cp = el('clipPath', { id: cid }, defs);
     rrect(x, 330, w, 136, 18, {}, cp);
     var inner = el('g', { 'clip-path': 'url(#' + cid + ')' }, g);
-    /* o que está atrás aparece desfocado: vidro fosco de verdade */
+    /* whatever is behind shows up blurred: real frosted glass */
     el('use', { href: '#gBg', filter: 'url(#' + blur + ')' }, inner);
     
-    /* borda clara + aro interno: a leitura do vidro do iOS */
+    /* bright border + inner ring: the iOS glass look */
     rrect(x + 0.5, 330.5, w - 1, 135, 17.5, {
       fill: 'none', stroke: 'rgba(255,255,255,0.5)', 'stroke-width': 1.1
     }, g);
     return g;
   }
-  /* bateria com um raio dentro: o desenho não sugere nível (o número e a barra já dizem) */
+  /* battery with a bolt inside: the drawing does not suggest a level (the number and the bar already do) */
   function batteryIcon(x, y, parent) {
     el('rect', { x: x, y: y, width: 18, height: 28, rx: 4, fill: 'none', class: 'icon', 'stroke-width': 2 }, parent);
     el('rect', { x: x + 5, y: y - 4, width: 8, height: 4, rx: 1, class: 'icon-fill' }, parent);
@@ -408,7 +408,7 @@
     }, parent);
     return el('rect', { x: x + 3, y: y + 6, width: 9, height: 7, rx: 1, class: 'icon-fill' }, parent);
   }
-  /* barra de nível em blocos, como no desenho */
+  /* level bar in blocks, as in the design */
   function segBar(parent, x, y, w, h, n) {
     var gap = 3, sw = (w - gap * (n - 1)) / n, cells = [];
     for (var i = 0; i < n; i++) {
@@ -418,7 +418,7 @@
   }
   function drawSegBar(cells, frac) {
     var lit = Math.round(Math.max(0, Math.min(1, frac)) * cells.length);
-    if (cells.lit === lit) return;                  /* mesma quantidade acesa: nada a fazer */
+    if (cells.lit === lit) return;                  /* same number lit: nothing to do */
     cells.lit = lit;
     cells.forEach(function (r, i) {
       if (i < lit) {
@@ -438,7 +438,7 @@
     }, parent);
   }
 
-  /* cartão 1: bateria, combustível, autonomia — 340 de largura (14..354) */
+  /* card 1: battery, fuel, range — 340 wide (14..354) */
   var c1 = card(14, 446);
   batteryIcon(60, 356, c1);
   var batNum = txt(92, 378, '--', 27, 'num', 'start');
@@ -458,19 +458,19 @@
 
   el('rect', { x: 231, y: 344, width: 1, height: 58, fill: '#16283c' }, c1);
 
-  /* autonomia numa linha só, centrada no cartão */
+  /* range on a single line, centred in the card */
   el('rect', { x: 40, y: 428, width: 394, height: 1, fill: '#16283c' }, c1);
   mountainIcon(147, 449, 10, c1);
   var rangeNum = txt(177, 454, '', 22, 'num', 'start');
   txt(258, 454, T.range, 11, 'mut', 'start');
 
-  /* cartão 2 (meio): modo de condução — layout recalculado para 340 de largura */
+  /* card 2 (middle): driving mode — layout recalculated for 340 wide */
   var MCARD = { x: 820, w: 446, cx: 820 + 223 };
   var c3 = card(MCARD.x, MCARD.w);
   var pill = { x: MCARD.x + 32, y: 355, w: MCARD.w - 64, h: 42, r: 21 };
   neon(c3, pill.x, pill.y, pill.w, pill.h, pill.r, 0.85);
   var modeIcon = el('g', { transform: 'translate(' + (pill.x + 50) + ' 376)' }, c3);
-  /* um ícone por modo: estrada, folha, chevrons, montanha, floco, dunas ou gota */
+  /* one icon per mode: road, leaf, chevrons, mountain, snowflake, dunes or drop */
   function modeGlyph(mode) {
     var m = (mode || '').toUpperCase();
     while (modeIcon.firstChild) modeIcon.removeChild(modeIcon.firstChild);
@@ -484,7 +484,7 @@
       p('M-9 8C-9 -3 1 -9 10 -9 10 2 1 9 -9 8Z');
       p('M-7 6L2 -1');
     } else if (/SPORT/.test(m)) {
-      /* cronômetro: corpo, coroa, botão lateral e ponteiro */
+      /* stopwatch: body, crown, side button and hand */
       el('circle', { cx: 0, cy: 1, r: 8, fill: 'none', stroke: '#dff0ff', 'stroke-width': 2 }, modeIcon);
       el('rect', { x: -2.6, y: -10.5, width: 5.2, height: 3.2, rx: 1.2, fill: '#dff0ff' }, modeIcon);
       el('path', { d: 'M-6.6 -6.4L-9 -8.8', stroke: '#dff0ff', 'stroke-width': 2, 'stroke-linecap': 'round' }, modeIcon);
@@ -496,7 +496,7 @@
       p('M-11 2Q-5 -6 0 0Q5 6 11 -2');
       p('M-11 8Q-6 2 0 7Q6 12 11 6');
     } else if (/LODO|MUD|BARRO|TIERRA/.test(m)) {
-      /* respingo de lama: gota grande e duas menores */
+      /* mud splash: one big drop and two smaller ones */
       p('M-1 -10C2 -6 4 -4 4 -1A5 5 0 1 1 -6 -1C-6 -4 -4 -6 -1 -10Z');
       p('M7 2C8.5 4 9.5 5 9.5 6.5A2.5 2.5 0 1 1 4.5 6.5C4.5 5 5.5 4 7 2Z');
       p('M-8 6C-6.8 7.5 -6 8.3 -6 9.4A2 2 0 1 1 -10 9.4C-10 8.3 -9.2 7.5 -8 6Z');
@@ -511,7 +511,7 @@
   var modeTxt = txt(MCARD.cx, 384, '', 20, 'num', 'middle', 500);
   modeTxt.setAttribute('letter-spacing', '1.5');
 
-  /* marchas centradas no painel dos modos (sem o selo EV/HEV, a BYD já o mostra na faixa) */
+  /* gears centred in the mode panel (without the EV/HEV badge, BYD already shows it in the strip) */
   var SEL_ORDER = ['P', 'R', 'N', 'D'], gearCells = [];
   for (var gi = 0; gi < 4; gi++) {
     var gx = MCARD.cx - 84 + gi * 56;
@@ -524,27 +524,27 @@
     });
   }
 
-  /* cartão 3 (direita): pressões — 446 de largura, carro no centro do cartão */
+  /* card 3 (right): pressures — 446 wide, car in the middle of the card */
   var TYRES = { x: 470, w: 340 };
   var c2 = card(TYRES.x, TYRES.w);
-  /* arte do pacote: carro visto de cima + aros das rodas + trilhos laterais, já com alfa
-     (1510x897, recortada pela caixa do alfa). Entra com a altura do cartão. */
-  var ART = { h: 112, w: 1510 / 897 * 112 };            /* 188 de largura */
+  /* package art: car seen from above + wheel rings + side rails, already with alpha
+     (1510x897, cropped by the alpha box). Enters at the height of the card. */
+  var ART = { h: 112, w: 1510 / 897 * 112 };            /* 188 wide */
   var artX = TYRES.x + TYRES.w / 2 - ART.w / 2;
   var artY = 330 + (136 - ART.h) / 2;
   var tyrecarImg = el('image', { id: 'tyrecar', href: 'assets/tyre-stage.png',
     x: artX, y: artY, width: ART.w, height: ART.h,
     preserveAspectRatio: 'xMidYMid meet' }, c2);
 
-  /* os números ficam nas pontas dos trilhos, dentro do cartão */
+  /* the numbers sit at the ends of the rails, inside the card */
   var NUM = { xl: artX - 4, xr: artX + ART.w + 4, yf: 362, yr: 428 };
 
-  /* terreno medido no carro (rueda direita): 5 montanha, 3 lodo, 4 areia, 2 neve.
-     1 = sem terreno, e aí o painel volta ao modo de condução (normal/eco/sport). */
+  /* terrain measured on the car (right wheel control): 5 mountain, 3 mud, 4 sand, 2 snow.
+     1 = no terrain, and then the panel falls back to the driving mode (normal/eco/sport). */
   var TERRAIN = { 5: 'MONTAÑA', 3: 'LODO', 4: 'ARENA', 2: 'NIEVE' };
 
-  /* modo de condução: o testigo do painel distingue os três (medido: 135298 normal,
-     8353 eco, 10306 sport); `opmode` sozinho só separa dois deles */
+  /* driving mode: the panel telltale distinguishes the three (measured: 135298 normal,
+     8353 eco, 10306 sport); `opmode` alone only separates two of them */
   function driveMode(d) {
     var e = +d.ecoind;
     if (e === 135298) return 'NORMAL';
@@ -556,7 +556,7 @@
     return 'NORMAL';
   }
 
-  /* posição/âncora de cada número */
+  /* position/anchor of each number */
   var TYRE = [['fl', NUM.xl, NUM.yf, 'end'], ['fr', NUM.xr, NUM.yf, 'start'],
               ['rl', NUM.xl, NUM.yr, 'end'], ['rr', NUM.xr, NUM.yr, 'start']];
   var tyreNum = {};
@@ -573,18 +573,18 @@
   });
 
 
-  /* ---------- desenho ---------- */
+  /* ---------- drawing ---------- */
   function fmt(v, dec) {
     if (v === null || v === undefined || v === -999 || isNaN(v)) return '--';
     return dec ? (+v).toFixed(dec) : String(Math.round(v));
   }
   function pct(v) { return (v === null || v === undefined || v === -999) ? null : Math.max(0, Math.min(100, v)); }
 
-  /* Escrita com memória. O SVG não deduplica `setAttribute` com o mesmo valor, e há escritas
-     caríssimas no SoC do carro: o véu da cena e os gradientes ficam DENTRO do `gBg`, que os
-     três cartões de vidro recortam com `feGaussianBlur` — tocar em qualquer um obriga o WebView
-     a refazer os três desfoques. Com o guarda, um empurrão de 400 ms que não mudou nada custa
-     quase zero. */
+  /* Writes with memory. SVG does not deduplicate `setAttribute` with the same value, and some
+     writes are very expensive on the car SoC: the scene veil and the gradients sit INSIDE
+     `gBg`, which the three glass cards clip with `feGaussianBlur` — touching any of them forces
+     the WebView to redo the three blurs. With the guard, a 400 ms push that changed nothing costs
+     almost zero. */
   function attr(n, k, v) {
     var m = n.__a || (n.__a = {});
     if (m[k] === v) return false;
@@ -592,7 +592,7 @@
     n.setAttribute(k, v);
     return true;
   }
-  /* número do mostrador: o primeiro filho é o texto, a unidade vem no tspan */
+  /* readout number: the first child is the text, the unit comes in the tspan */
   function num(node, s) {
     var t = node.firstChild;
     if (!t || t.nodeValue === s) return;
@@ -604,7 +604,7 @@
     node.textContent = s;
   }
 
-  /* pedal: mesma paleta da potência, só a ponta do aro esquenta conforme o curso */
+  /* throttle: same palette as power, only the tip of the ring heats up with the travel */
   function mixRgb(a, b, t) {
     var x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
     var r = ((x >> 16) & 255) + (((y >> 16) & 255) - ((x >> 16) & 255)) * t;
@@ -631,7 +631,7 @@
 
   var MODES = { 1: 'ECO', 2: 'NORMAL', 3: 'SPORT' };
 
-  /* cenas: cada modo escolhe uma paisagem e a paleta de destaque que combina com ela */
+  /* scenes: each mode picks a landscape and the accent palette that goes with it */
   var SCENES = {
     night: { img: bgNormal, accent: ['#0480ff', '#8ac6ff', '#2f4f6c', '#5ab6ff'], dim: 0 },
     sport: { img: bgSport, accent: ['#ff6a2b', '#ffc79a', '#6b4632', '#ff8a4d'], dim: 0.12 },
@@ -642,8 +642,8 @@
   };
   var bgState = { scene: null, timer: 0 };
 
-  /* cross-fade com zoom entre paisagens. Temporizador (e não CSS/rAF) para rodar igual no
-     WebView do painel e no preview, sempre com o estado final exato. */
+  /* cross-fade with zoom between landscapes. Timer (and not CSS/rAF) so it runs the same on the
+     panel WebView and in the preview, always with the exact final state. */
   function fadeBackground(name) {
     if (bgState.scene === name) return;
     bgState.scene = name;
@@ -679,9 +679,9 @@
   }
 
   function sceneFor(mode) {
-    /* a cena segue o modo de condução. O terreno ficou de fora: `surfmode` continua em 1
-       mesmo com o carro em ECO/SPORT, então ele não serve para escolher a paisagem. */
-    /* terreno muda a paisagem; ECO e NORMAL são o mesmo tema e só SPORT troca a foto */
+    /* the scene follows the driving mode. Terrain stayed out: `surfmode` remains 1
+       even with the car in ECO/SPORT, so it cannot be used to pick the landscape. */
+    /* terrain changes the landscape; ECO and NORMAL are the same theme and only SPORT swaps the photo */
     if (/MONTA/i.test(mode)) return 'mountain';
     if (/NIEVE/i.test(mode)) return 'snow';
     if (/LODO/i.test(mode)) return 'mud';
@@ -690,26 +690,26 @@
   }
 
   function draw(d) {
-    /* mesma leitura do pill: terreno ou modo de condução */
+    /* same reading as the pill: terrain or driving mode */
     var mode0 = TERRAIN[+d.surfmode] || driveMode(d);
-    /* o que se move (velocidade, pedal, potência) entra como ALVO; quem desenha é o passo
-       de animação, que interpola entre um empurrão do app e o seguinte (ver animStep) */
+    /* what moves (speed, pedal, power) comes in as TARGET; the drawing is done by the animation
+       step, which interpolates between one app push and the next (see animStep) */
     TGT.speed = Math.max(0, d.speed || 0);
 
-    /* o feed do carro manda `ped`; `tps` é o nome do contrato antigo */
+    /* the car feed sends `ped`; `tps` is the name of the old contract */
     var pedalRaw = (d.tps != null) ? d.tps : d.ped;
     TGT.tps = Math.max(0, Math.min(100, pedalRaw || 0));
     var sport = /SPORT/i.test(mode0);
     var scene = sceneFor(mode0);
     curScene = scene;
 
-    /* potência com sinal: negativo quando está regenerando. No arranque a BYD devolve um valor
-       cru fora de faixa (3095 kW); acima de 400 kW não é leitura, é sentinela: mostra '--' */
+    /* power with sign: negative when regenerating. At startup BYD returns an out-of-range
+       raw value (3095 kW); above 400 kW it is not a reading but a sentinel: show '--' */
     var raw = (d.pw === -999 || d.pw == null) ? 0 : d.pw;
     TGT.powValid = Math.abs(raw) <= 400;
     TGT.pw = TGT.powValid ? raw : 0;
-    /* '--' não é número: quando a validade troca, o passo de animação precisa rodar de novo
-       mesmo que o valor numérico não tenha mudado */
+    /* '--' is not a number: when validity flips, the animation step has to run again
+       even if the numeric value did not change */
     if (TGT.powValid !== lastPowValid) {
       lastPowValid = TGT.powValid;
       animDirty = true;
@@ -724,22 +724,22 @@
     attr(bolt, 'fill', regen ? '#38cfff' : '#ff9a3c');
     setText(powUnit, powU());
 
-    /* medido no carro: `opmode` é o modo de condução (1 NORMAL, 2 ECO, 3 SPORT) e
-       `surfmode` é o terreno (1 montanha, 2 neve, 3 lama, 4 areia) — são controles diferentes;
-       antes o pill mostrava o terreno e girar a rueda do modo não mudava nada. */
-    /* só um modo fica ativo por vez: terreno quando a rueda direita escolheu um, senão o modo */
+    /* measured on the car: `opmode` is the driving mode (1 NORMAL, 2 ECO, 3 SPORT) and
+       `surfmode` is the terrain (1 mountain, 2 snow, 3 mud, 4 sand) — they are different controls;
+       before, the pill showed the terrain and turning the mode wheel changed nothing. */
+    /* only one mode is active at a time: terrain when the right wheel control picked one, otherwise the mode */
     var mode = TERRAIN[+d.surfmode] || driveMode(d);
     setText(modeTxt, mode.toUpperCase());
-    /* o ícone é remontado no DOM: só quando o modo muda */
+    /* the icon is rebuilt in the DOM: only when the mode changes */
     if (mode !== lastMode) {
       lastMode = mode;
       modeGlyph(mode);
     }
 
-    /* a paisagem e a paleta de destaque seguem o modo */
+    /* the landscape and the accent palette follow the mode */
 
     fadeBackground(scene);
-    /* paleta e véu entram no `gBg`, que os vidros desfocados dos cartões recortam: só na troca */
+    /* palette and veil go into `gBg`, which the blurred card glass clips: only on a swap */
     if (lastScene !== scene) {
       lastScene = scene;
       var pal = SCENES[scene].accent;
@@ -754,8 +754,8 @@
       svg.style.setProperty('--accent-icon', pal[3]);
     }
 
-  /* no SPORT os aros ficam mais grossos, com halo forte e zona vermelha no fim */
-  /* a trilha também muda de cor por cena: o guarda é o par modo+cena */
+  /* in SPORT the rings get thicker, with a strong halo and a red zone at the end */
+  /* the track also changes colour per scene: the guard is the mode+scene pair */
   var ringStyle = sport + '|' + scene;
   if (lastRingStyle !== ringStyle) {
     lastRingStyle = ringStyle;
@@ -789,8 +789,8 @@
     setText(batUnit, soc === null ? '' : '%');
     drawSegBar(batBar, soc === null ? 0 : soc / 100);
 
-    /* o combustível aparece em km (autonomia): `fuelKm`; se só vier a porcentagem do tanque,
-       mostra em % e a barra usa essa porcentagem */
+    /* fuel shows up in km (range): `fuelKm`; if only the tank percentage arrives,
+       show it in % and the bar uses that percentage */
     var fuel = pct(d.fuel);
     var fuelKm = (d.fuelKm == null || d.fuelKm === -999) ? null : d.fuelKm;
     if (fuelKm !== null) {
@@ -806,7 +806,7 @@
     var rg = (d.range === -999 || d.range == null) ? null : d.range;
     setText(rangeNum, rg === null ? '--' : (Math.round(dist(rg)) + ' ' + DIST_U));
 
-    /* pressão: o feed pode mandar bar (2.4) ou psi (34) — a unidade acompanha a grandeza */
+    /* pressure: the feed may send bar (2.4) or psi (34) — the unit follows the magnitude */
     var y = d.tyre;
     if (y && y.fl != null) {
       var large = Math.max(+y.fl, +y.fr, +y.rl, +y.rr) > 10;
@@ -817,8 +817,8 @@
       });
     }
 
-    /* seletor: a marcha ativa acende */
-    /* `sel` pronto ('P','R','N','D') ou o código do carro em `gsel` (0 N, 1 R, 2 D, 3 P, 4 N) */
+    /* selector: the active gear lights up */
+    /* `sel` ready ('P','R','N','D') or the car code in `gsel` (0 N, 1 R, 2 D, 3 P, 4 N) */
     var GSEL = { 0: 'N', 1: 'R', 2: 'D', 3: 'P', 4: 'N' };
     var sel = (typeof d.sel === 'string' && d.sel) ? d.sel.toUpperCase()
       : (GSEL[+d.gsel] || 'P');
@@ -847,21 +847,21 @@
     startAnim();
   }
 
-  /* ---------- animação ----------
-     O painel é uma janela virtual: o Chromium congela o requestAnimationFrame da página (é o
-     que ClusterOverlay.java documenta), então quem move os aros é este temporizador — o mesmo
-     recurso que o cross-fade da paisagem já usa. O app empurra o estado a 2,5 Hz: sem
-     interpolação o aro anda em degraus de 400 ms, que é o que se lê como "travado"; com ela o
-     movimento é contínuo e o número não pisca. */
+  /* ---------- animation ----------
+     The panel is a virtual window: Chromium freezes the page requestAnimationFrame (that is what
+     ClusterOverlay.java documents), so the rings are moved by this timer — the same
+     trick the landscape cross-fade already uses. The app pushes the state at 2.5 Hz: without
+     interpolation the ring moves in 400 ms steps, which reads as "stuck"; with it the
+     movement is continuous and the number does not blink. */
   var TGT = { speed: 0, tps: 0, pw: 0, powValid: true };
   var CUR = { speed: 0, tps: 0, pw: 0 };
-  var TAU = 90;                 /* ms: alcança o alvo em ~300 ms, dentro do passo de 400 ms */
+  var TAU = 90;                 /* ms: reaches the target in ~300 ms, inside the 400 ms step */
   var anim = { timer: 0, last: 0 };
   var lastMode = null, lastScene = null, lastRingStyle = null, lastSel = null, curScene = 'night';
   var lastPowValid = true, animDirty = false;
 
   function startAnim() {
-    /* liga o passo só com diferença pendente: parado, o painel não gasta quadro nenhum */
+    /* only starts the step when a difference is pending: idle, the panel spends no frames */
     if (anim.timer) return;
     if (!animDirty
         && Math.abs(TGT.speed - CUR.speed) < 0.05 && Math.abs(TGT.tps - CUR.tps) < 0.05
@@ -876,7 +876,7 @@
     var now = (window.performance && performance.now) ? performance.now() : Date.now();
     var dt = anim.last ? now - anim.last : 16;
     anim.last = now;
-    if (dt > 250) dt = 250;                      /* aba congelada: retoma sem salto */
+    if (dt > 250) dt = 250;                      /* frozen tab: resumes without a jump */
     var k = 1 - Math.exp(-dt / TAU), moving = false;
     ['speed', 'tps', 'pw'].forEach(function (name) {
       var delta = TGT[name] - CUR[name];
@@ -890,7 +890,7 @@
     tintThrottle(CUR.tps / 100, curScene);
     num(powNum, TGT.powValid ? String(Math.round(powTo(CUR.pw))) : '--');
     setRing(powRing, Math.min(1, Math.abs(CUR.pw) / 200));
-    /* a cor do aro e o rótulo seguem o sinal do alvo (regenerando ou não) */
+    /* the ring colour and the label follow the target sign (regenerating or not) */
     if (moving) anim.timer = setTimeout(animStep, 16);
     else startAnim();
   }

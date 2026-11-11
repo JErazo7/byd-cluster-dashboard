@@ -1,20 +1,20 @@
 /*
- * SharkLab — alimentação simulada das skins (código próprio, sem dependência do EvSound).
+ * SharkLab — simulated feed for the skins (own code, no dependency on the reference app).
  *
- * Lê o estado do carro simulado pela ponte window.Lab (MainActivity) ~20 vezes por segundo,
- * monta um objeto plano e chama window.BrasaDriveUpdate(ev) — o mesmo contrato que as skins
- * usam: as skins existentes e as suas rodam sem alteração.
+ * Reads the simulated car state from the window.Lab bridge (MainActivity) ~20 times per second,
+ * builds a flat object and calls window.BrasaDriveUpdate(ev) — the same contract the skins
+ * use: the existing skins and yours run unchanged.
  */
 (function () {
   'use strict';
-  if (window.Lab && window.Lab.log) window.Lab.log('inj: lab-feed: injetado');
+  if (window.Lab && window.Lab.log) window.Lab.log('inj: lab-feed: injected');
   if (window.__labFeed || !window.Lab) return;
   window.__labFeed = true;
 
   var B = window.Lab, cars = {}, t = 0, media = null, nav = null, pos = null, lastTs = 0, gate = 0;
   try { JSON.parse(B.cars()).forEach(function (c) { cars[c.id] = c; }); } catch (e) {}
 
-  /* unidades do painel (a central da BYD manda 1 = métrico, 2 = imperial) */
+  /* panel units (the BYD head unit sends 1 = metric, 2 = imperial) */
   window.EvsPU = 1; window.EvsDU = 1; window.EvsSU = 1;
   window.EvsPow = function (kw) { return window.EvsPU === 2 ? kw * 1.341 : kw; };
   window.EvsPowU = function () { return window.EvsPU === 2 ? 'hp' : 'kW'; };
@@ -27,14 +27,14 @@
 
   function tick() {
     var nowTs = Date.now();
-    /* O app empurra o MESMO contrato a 2,5 Hz por evaluateJavascript (ClusterOverlay). Duas
-       fontes chamando draw() só gastam o binder da BYD (~12 ms por leitura de estado) e deixam
-       a thread do renderer ocupada: quando o app avisa que está no comando, o feed para — as
-       unidades acima já ficaram definidas. */
+    /* The app pushes the SAME contract at 2.5 Hz through evaluateJavascript (ClusterOverlay). Two
+       sources calling draw() only burn the BYD binder (~12 ms per state read) and keep
+       the renderer thread busy: when the app says it is in charge, the feed stops — the
+       units above are already defined. */
     if (window.__pushedByApp) return;
-    /* ~10 Hz. Cada `B.state()` custa ~12 ms (37 leituras nos módulos da BYD) e o rAF do painel
-       roda a 60 Hz: sem este portão a thread do renderer fica 100% ocupada lendo o carro, os
-       temporizadores da página atrasam para ~45 ms e a animação perde todo o ritmo. */
+    /* ~10 Hz. Each `B.state()` costs ~12 ms (37 reads on the BYD modules) and the panel rAF
+       runs at 60 Hz: without this gate the renderer thread is 100% busy reading the car, the
+       page timers slip to ~45 ms and the animation loses all its rhythm. */
     if (nowTs - gate < 95) return requestAnimationFrame(tick);
     gate = nowTs;
     var dt = lastTs ? (nowTs - lastTs) / 1000 : 0.05;
@@ -69,9 +69,9 @@
       btemp: s.btemp,
       dmode: s.dmode,
       drive: s.drive || '',
-      opmode: s.opmode,        /* modo de condução: 1 NORMAL, 2 ECO, 3 SPORT */
-      ecoind: s.ecoind,        /* testigo do modo: 135298 normal, 8353 eco, 10306 sport */
-      surfmode: s.surfmode,    /* terreno: 1 montanha, 2 neve, 3 lama, 4 areia */
+      opmode: s.opmode,        /* driving mode: 1 NORMAL, 2 ECO, 3 SPORT */
+      ecoind: s.ecoind,        /* mode telltale: 135298 normal, 8353 eco, 10306 sport */
+      surfmode: s.surfmode,    /* terrain: 1 mountain, 2 snow, 3 mud, 4 sand */
       ready: s.ready,
       regen: s.regen,
       v12: s.v12,
@@ -86,8 +86,8 @@
       ext: s.ext || null,
       trip: s.trip || null
     };
-    /* música, posição e navegação mudam devagar: lidas uma vez por segundo e
-       reanexadas em TODO quadro (sem isso a manobra some no quadro seguinte) */
+    /* music, position and navigation change slowly: read once per second and
+       re-attached on EVERY frame (otherwise the manoeuvre disappears on the next frame) */
     if (t % 10 === 0) {          /* ~1 s a 10 Hz */
       try {
         var m = JSON.parse(B.nowPlaying());
@@ -98,7 +98,7 @@
         pos = (p && p.lat) ? p : null;
       } catch (e3) {}
       try {
-        /* instrução do Waze/Maps lida da notificação (lab/NavWatch.java) */
+        /* Waze/Maps instruction read from the notification (lab/NavWatch.java) */
         var nv = B.nav ? JSON.parse(B.nav()) : null;
         nav = (nv && nv.title) ? { on: true, src: nv.src, title: nv.title, text: nv.text, age: nv.age } : null;
       } catch (e4) {}
@@ -113,7 +113,7 @@
     requestAnimationFrame(tick);
   }
 
-  /* uma batida por segundo, como o app faz */
+  /* one beat per second, the way the app does it */
   setInterval(function () { try { B.beat(0, 0, document.hidden, ''); } catch (e) {} }, 1000);
   requestAnimationFrame(tick);
 })();

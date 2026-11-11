@@ -1,12 +1,12 @@
 #!/system/bin/sh
-# SharkLab — mantem a skin projetada no painel do motorista.
+# SharkLab — keeps the skin projected on the cluster panel.
 #
-# Roda como shell (uid 2000) e por isso pode falar com o AutoContainer, coisa que o app
-# nao pode. Reaplica o espelho da IVI (cmd 16) a cada 20 s enquanto o nosso app estiver
-# rodando — assim o painel volta sozinho depois de trocar de app ou reiniciar o SharkLab.
+# Runs as shell (uid 2000) and therefore can talk to AutoContainer, which the app
+# cannot. Re-applies the head unit mirror (cmd 16) every 20 s while our app is
+# running — so the panel comes back on its own after switching apps or restarting SharkLab.
 #
-# Instalado por tools/install-keepalive.sh.
-# Parar: kill "$(cat /data/local/tmp/sharklab.pid)"
+# Installed by tools/install-keepalive.sh.
+# Stop: kill "$(cat /data/local/tmp/sharklab.pid)"
 
 PIDFILE=/data/local/tmp/sharklab.pid
 INTERVAL=20

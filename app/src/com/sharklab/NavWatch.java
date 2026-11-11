@@ -7,13 +7,13 @@ import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 
 /**
- * NavWatch — instrução de navegação sem tocar no Waze.
+ * NavWatch — navigation instruction without touching Waze.
  *
- * Waze e Google Maps publicam a próxima manobra e a distância como notificação. Ler a
- * notificação é API pública (o usuário concede "acesso a notificações" uma vez), então
- * isso funciona sem root, sem patch do Waze e sem capturar a tela.
+ * Waze and Google Maps publish the next maneuver and the distance as a notification. Reading the
+ * notification is public API (the user grants "notification access" once), so
+ * this works without root, without patching Waze and without capturing the screen.
  *
- * Exposto em Lab.nav(): {"src":"waze","title":"...","text":"...","dist":"..."}
+ * Exposed in Lab.nav(): {"src":"waze","title":"...","text":"...","dist":"..."}
  */
 public class NavWatch extends NotificationListenerService {
 
@@ -52,7 +52,7 @@ public class NavWatch extends NotificationListenerService {
         if (sbn == null || sbn.getPackageName() == null) return;
         String pkg = sbn.getPackageName().toLowerCase();
         if (pkg.contains("waze") || pkg.contains("google.android.apps.maps")) {
-            /* rota encerrada */
+            /* route ended */
             if (System.currentTimeMillis() - at > 8000) {
                 src = ""; title = ""; text = "";
             }
@@ -68,7 +68,7 @@ public class NavWatch extends NotificationListenerService {
         }
     }
 
-    /** JSON com a última manobra; texto vazio = sem rota */
+    /** JSON with the last maneuver; empty text = no route */
     public static String snapshot() {
         StringBuilder sb = new StringBuilder();
         sb.append("{\"src\":\"").append(src).append("\",\"title\":\"").append(esc(title))

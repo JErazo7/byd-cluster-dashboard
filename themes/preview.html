@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<!-- Pré-visualização das skins fora do carro: abre no navegador do PC ou do celular e mexe nos
-     controles. Os valores vão para a mesma função que o app chama (window.BrasaDriveUpdate). -->
+<!-- Preview of the skins outside the car: opens in the browser of the PC or the phone and drives the
+     controls. The values go to the same function the app calls (window.BrasaDriveUpdate). -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SharkLab · vista previa de los temas</title>
+<title>SharkLab · theme preview</title>
 <style>
   body { margin: 0; background: #0b1016; color: #cfd8e3; font: 13px/1.4 system-ui, sans-serif; }
   header { display: flex; gap: 12px; flex-wrap: wrap; padding: 10px 12px; align-items: flex-end; border-bottom: 1px solid #1d2733; }
@@ -25,32 +25,32 @@
 </head>
 <body>
 <header>
-  <label>Tema <select id="theme">
+  <label>Theme <select id="theme">
     <option value="byd" selected>byd</option>
   </select></label>
-  <label>Velocidad <input id="speed" type="range" min="0" max="220" value="87"><span id="speedV">87</span></label>
-  <label>Potencia kW <input id="pw" type="range" min="-120" max="220" value="64"><span id="pwV">64</span></label>
-  <label>Batería % <input id="soc" type="range" min="0" max="100" value="68"><span id="socV">68</span></label>
-  <label>Combustible km <input id="fuelKm" type="range" min="0" max="950" step="10" value="640"><span id="fuelKmV">640</span></label>
+  <label>Speed <input id="speed" type="range" min="0" max="220" value="87"><span id="speedV">87</span></label>
+  <label>Power kW <input id="pw" type="range" min="-120" max="220" value="64"><span id="pwV">64</span></label>
+  <label>Battery % <input id="soc" type="range" min="0" max="100" value="68"><span id="socV">68</span></label>
+  <label>Fuel km <input id="fuelKm" type="range" min="0" max="950" step="10" value="640"><span id="fuelKmV">640</span></label>
   <label>Pedal % <input id="tps" type="range" min="0" max="100" value="34"><span id="tpsV">34</span></label>
-  <label>Tracción <select id="ev"><option value="">—</option><option value="1" selected>EV</option><option value="0">HEV</option></select></label>
-  <label>Marcha <select id="sel"><option>P</option><option>R</option><option>N</option><option selected>D</option></select></label>
+  <label>Drivetrain <select id="ev"><option value="">—</option><option value="1" selected>EV</option><option value="0">HEV</option></select></label>
+  <label>Gear <select id="sel"><option>P</option><option>R</option><option>N</option><option selected>D</option></select></label>
   <label>P FL <input id="tfl" type="range" min="1.5" max="3.5" step="0.1" value="2.5"><span id="tflV">2.5</span></label>
   <label>P FR <input id="tfr" type="range" min="1.5" max="3.5" step="0.1" value="2.4"><span id="tfrV">2.4</span></label>
   <label>P RL <input id="trl" type="range" min="1.5" max="3.5" step="0.1" value="2.6"><span id="trlV">2.6</span></label>
   <label>P RR <input id="trr" type="range" min="1.5" max="3.5" step="0.1" value="2.5"><span id="trrV">2.5</span></label>
-  <label>Modo <select id="drive"><option>ECO</option><option selected>NORMAL</option><option>MONTAÑA</option><option>NIEVE</option><option>ARENA</option><option>LODO</option><option>SPORT</option></select></label>
-  <label>Intermitentes <select id="turn"><option value="0">ninguna</option><option value="1">izquierda</option><option value="2">derecha</option></select></label>
-  <label>Parámetros (shark) <select id="variant">
-    <option value="">oscuro</option><option value="#light=1">claro</option>
-    <option value="#panel=1&full=1">panel completo</option><option value="#wide=1720">ancho 1720</option>
+  <label>Mode <select id="drive"><option>ECO</option><option selected>NORMAL</option><option>MONTAÑA</option><option>NIEVE</option><option>ARENA</option><option>LODO</option><option>SPORT</option></select></label>
+  <label>Indicators <select id="turn"><option value="0">none</option><option value="1">left</option><option value="2">right</option></select></label>
+  <label>Parameters (shark) <select id="variant">
+    <option value="">dark</option><option value="#light=1">light</option>
+    <option value="#panel=1&full=1">full panel</option><option value="#wide=1720">width 1720</option>
   </select></label>
-  <label><input id="notchOn" type="checkbox"> franja de luces BYD</label>
+  <label><input id="notchOn" type="checkbox"> BYD light band</label>
 </header>
 <div id="fit">
   <div class="stage" id="stage">
     <iframe id="f" src="dash/byd/index.html#nopreview=1&full=1&panel=1"></iframe>
-    <div class="notch hide" id="notch"><span>luces BYD (x 427–853, y 0–54)</span></div>
+    <div class="notch hide" id="notch"><span>BYD lights (x 427–853, y 0–54)</span></div>
   </div>
 </div>
 <script>
@@ -59,8 +59,8 @@
   var booted = false;
   f.addEventListener('load', function () { booted = true; feed(); });
 
-  /* el tema no lee `drive`: lo que lo mueve son las señales del coche, `surfmode` (terreno) y
-     `ecoind`/`opmode` (modo de conducción). Los selectores se traducen a esos códigos. */
+  /* the theme does not read `drive`: what moves it are the car signals, `surfmode` (terrain) and
+     `ecoind`/`opmode` (driving mode). The selectors are mapped to those codes. */
   var MODE_SIGNAL = {
     'ECO':     { opmode: 1, ecoind: 8353,   surfmode: 0 },
     'NORMAL':  { opmode: 1, ecoind: 135298, surfmode: 0 },
@@ -90,7 +90,7 @@
     });
   }
 
-  /* ?skin=byd&variant=... abre directo en un tema (útil en el celular, marcador) */
+  /* ?skin=byd&variant=... opens straight into a theme (handy on the phone, bookmark) */
   var q = new URLSearchParams(location.search);
   if (q.get('skin')) {
     var opt = document.createElement('option');
@@ -114,7 +114,7 @@
   $('variant').addEventListener('change', load);
   $('notchOn').addEventListener('change', function () { $('notch').classList.toggle('hide', !this.checked); });
 
-  /* el cuadro es 1280×480: en el celular entra en el ancho y el dedo alcanza los controles */
+  /* the frame is 1280×480: on the phone it fits the width and the finger reaches the controls */
   var stage = $('stage'), fit = $('fit');
   function resize() {
     var k = Math.min(1, (document.documentElement.clientWidth - 16) / 1920);

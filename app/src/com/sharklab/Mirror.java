@@ -19,14 +19,14 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
 /**
- * Mirror — o que está na tela da central, em tempo real, para mostrar dentro do painel.
+ * Mirror — what is on the head unit screen, in real time, to show inside the panel.
  *
- * MediaProjection (API pública, um consentimento) → VirtualDisplay → ImageReader → JPEG.
- * Não modifica nem depende de nenhum app de terceiros: serve para Waze, Google Maps,
- * Android Auto, CarPlay — o que estiver na tela.
+ * MediaProjection (public API, one consent) → VirtualDisplay → ImageReader → JPEG.
+ * It does not modify or depend on any third-party app: it works for Waze, Google Maps,
+ * Android Auto, CarPlay — whatever is on screen.
  *
- * Limite: ~10 quadros/s a 640 px de largura (o suficiente para mapa), porque cada quadro
- * atravessa a ponte como imagem.
+ * Limit: ~10 frames/s at 640 px width (enough for a map), because every frame
+ * crosses the bridge as an image.
  */
 public final class Mirror {
 
@@ -61,7 +61,7 @@ public final class Mirror {
         return frame == null ? -1 : System.currentTimeMillis() - frameAt;
     }
 
-    /** pede o consentimento de captura */
+    /** asks for the capture consent */
     public static void request(Activity activity) {
         try {
             MediaProjectionManager mpm =
@@ -72,7 +72,7 @@ public final class Mirror {
         }
     }
 
-    /** chamado no onActivityResult da activity */
+    /** called from the activity's onActivityResult */
     public static void start(final Context ctx, int resultCode, Intent data) {
         if (data == null || resultCode != Activity.RESULT_OK) return;
         stop();
@@ -116,7 +116,7 @@ public final class Mirror {
         }
     }
 
-    /** RGBA_8888 costuma vir com preenchimento de linha: recorta pela rowStride */
+    /** RGBA_8888 usually comes with row padding: crop by rowStride */
     private static byte[] toJpeg(Image img) {
         Image.Plane plane = img.getPlanes()[0];
         ByteBuffer buf = plane.getBuffer();

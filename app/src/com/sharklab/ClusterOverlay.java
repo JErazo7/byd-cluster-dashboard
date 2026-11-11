@@ -14,22 +14,25 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 /**
- * ClusterOverlay — a skin no painel do motorista como janela overlay.
+ * ClusterOverlay — the skin on the cluster panel as an overlay window.
  *
- * Lido do carro (SurfaceFlinger): a camada que o container da BYD mostra no clúster é uma
- * janela TYPE_APPLICATION_OVERLAY (2038) com título "EvSound painel", no layerStack do painel
- * — não é display nem casteo. Por isso exige SYSTEM_ALERT_WINDOW.
+ * Read from the car (SurfaceFlinger): the layer the BYD container shows on the cluster is a
+ * TYPE_APPLICATION_OVERLAY (2038) window whose title is the WINDOW_TITLE literal below, in
+ * the panel's layerStack — it is not a display nor a cast. That is why it requires
+ * SYSTEM_ALERT_WINDOW.
  *
- * A janela tem de ser criada com o Context do display do painel (createDisplayContext); no
- * contexto da Activity ela nasce no display 0 e aparece por cima da tela central.
+ * The window must be created with the panel display's Context (createDisplayContext); in the
+ * Activity context it is born on display 0 and appears on top of the head unit screen.
  */
 public final class ClusterOverlay {
 
     private static final String TAG = "SharkLab";
+    /* the panel shows any window on its display while projection is active; this literal is
+       copied from the layer observed on the reference app so the layer is easy to find in dumpsys */
     public static final String WINDOW_TITLE = "EvSound painel";
 
-    /* o painel é uma janela virtual: o Chromium congela o requestAnimationFrame da skin, então
-       quem alimenta o desenho é este empurrador, de fora da página */
+    /* the panel is a virtual window: Chromium freezes the skin's requestAnimationFrame, so
+       what feeds the drawing is this pusher, from outside the page */
     private static volatile boolean pushing;
     private static volatile Context lastCtx;
     private static int ticks;
@@ -50,11 +53,11 @@ public final class ClusterOverlay {
     }
 
     /**
-     * Liga o devtools do WebView. Sem ele não há como medir nem depurar a skin dentro do painel:
-     * o `requestAnimationFrame` da página fica congelado nesse display virtual e o Chrome não
-     * enxerga um processo `webview_devtools_remote`. Com a flag, `adb forward tcp:9222
-     * localabstract:webview_devtools_remote_<pid>` abre a aba `chrome://inspect` do painel.
-     * Precisa rodar ANTES do primeiro WebView do processo.
+     * Turns on the WebView devtools. Without it there is no way to measure or debug the skin
+     * inside the panel: the page's `requestAnimationFrame` stays frozen on that virtual display
+     * and Chrome does not see a `webview_devtools_remote` process. With the flag, `adb forward
+     * tcp:9222 localabstract:webview_devtools_remote_<pid>` opens the panel's `chrome://inspect`
+     * tab. Must run BEFORE the process' first WebView.
      */
     public static void enableDevtools() {
         try {
@@ -67,7 +70,7 @@ public final class ClusterOverlay {
         return error;
     }
 
-    /** display do painel, ou null */
+    /** panel display, or null */
     public static Display panelDisplay(Context ctx) {
         try {
             DisplayManager dm = (DisplayManager) ctx.getSystemService(Context.DISPLAY_SERVICE);
@@ -86,7 +89,7 @@ public final class ClusterOverlay {
         try {
             Display target = panelDisplay(ctx);
             if (target == null) {
-                error = "display do painel nao encontrado";
+                error = "panel display not found";
                 return false;
             }
             Context panelCtx = ctx.createDisplayContext(target);
@@ -101,12 +104,12 @@ public final class ClusterOverlay {
             s.setDomStorageEnabled(true);
             s.setMediaPlaybackRequiresUserGesture(false);
             s.setCacheMode(WebSettings.LOAD_NO_CACHE);
-            /* a viewport do painel é 960 CSS px (1920 px a 320 dpi); o SVG da skin
-               (viewBox 1280×480) escala sozinho. Medir antes de mexer em zoom: um
-               setInitialScale errado corta a skin. */
-            /* 1280 CSS × 1.5 = 1920 px: preenche o painel sem depender do dpr */
-            /* sem zoom artificial: o viewport fica em device-width (960 CSS com dpr 2) e o
-               SVG da skin (viewBox 1920×720) escala sozinho para o quadro inteiro */
+            /* the panel viewport is 960 CSS px (1920 px at 320 dpi); the skin SVG
+               (viewBox 1280×480) scales by itself. Measure before touching zoom: a wrong
+               setInitialScale crops the skin. */
+            /* 1280 CSS × 1.5 = 1920 px: fills the panel without depending on dpr */
+            /* no artificial zoom: the viewport stays at device-width (960 CSS with dpr 2) and
+               the skin SVG (viewBox 1920×720) scales by itself to the whole display */
             s.setUseWideViewPort(false);
             s.setLoadWithOverviewMode(false);
             s.setSupportZoom(false);
@@ -132,19 +135,19 @@ public final class ClusterOverlay {
                 }
             });
 
-            /* As mesmas flags do EvSound: só FLAG_LAYOUT_NO_LIMITS. Com
-               NOT_FOCUSABLE/NOT_TOUCHABLE/FULLSCREEN/LAYOUT_IN_SCREEN o container desenha a
-               barra nativa da BYD (P/ECO, bateria, autonomia, ODO) por cima da skin; com esta
-               combinação, o painel fica só com a skin. */
+            /* The same flags as the reference app: only FLAG_LAYOUT_NO_LIMITS. With
+               NOT_FOCUSABLE/NOT_TOUCHABLE/FULLSCREEN/LAYOUT_IN_SCREEN the container draws the
+               native BYD bar (P/ECO, battery, range, ODO) on top of the skin; with this
+               combination, the panel shows only the skin. */
             WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                     W, H,
                     Build.VERSION.SDK_INT >= 26
                             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                             : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT,
-                    /* as MESMAS flags da janela do EvSound no painel, lidas no dumpsys
+                    /* the SAME flags as the reference app's panel window, read in dumpsys
                        (NOT_FOCUSABLE|NOT_TOUCHABLE|KEEP_SCREEN_ON|LAYOUT_IN_SCREEN|
-                       LAYOUT_NO_LIMITS|FULLSCREEN|HARDWARE_ACCELERATED): é essa combinação
-                       que deixa a skin por cima dos widgets nativos da BYD */
+                       LAYOUT_NO_LIMITS|FULLSCREEN|HARDWARE_ACCELERATED): this combination
+                       is what puts the skin on top of the BYD native widgets */
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                             | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                             | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
@@ -160,50 +163,50 @@ public final class ClusterOverlay {
                 lp.layoutInDisplayCutoutMode =
                         WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
             }
-            lp.setTitle(WINDOW_TITLE);      /* o título é o que o container procura */
+            lp.setTitle(WINDOW_TITLE);      /* the title is what the container looks for */
             web.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
 
             lastLp = lp;
             wm.addView(web, lp);
             if (url != null) {
-                /* tamanho real do painel: a skin se escala sozinha para preencher */
+                /* real panel size: the skin scales itself to fill */
                 String u = url.indexOf('#') >= 0 ? url : url + "#";
                 u += (u.endsWith("#") ? "" : "&") + "pw=" + W + "&ph=" + H;
                 web.loadUrl(u);
             }
             startPush(ctx);
             watchPanelPower(ctx, target.getDisplayId());
-            Log.i(TAG, "overlay do painel criado no display " + target.getDisplayId()
-                    + " layerStack esperado do painel");
+            Log.i(TAG, "panel overlay created on display " + target.getDisplayId()
+                    + " expected panel layerStack");
             return true;
         } catch (Throwable t) {
             error = t.getClass().getSimpleName() + ": " + t.getMessage();
-            Log.w(TAG, "overlay do painel falhou: " + error, t);
+            Log.w(TAG, "panel overlay failed: " + error, t);
             hide();
             return false;
         }
     }
 
     /**
-     * Sobe a nossa janela para o topo da pilha.
+     * Raises our window to the top of the stack.
      *
-     * As overlays do mesmo tipo são empilhadas por ordem de criação: quando o app do EvSound
-     * sobe depois do nosso (no boot, por exemplo) ele fica por cima e o painel mostra a skin
-     * dele. Remover e re-adicionar a MESMA view coloca a nossa em cima sem recarregar a página.
+     * Overlays of the same type are stacked in creation order: when the reference app starts
+     * after ours (at boot, for instance) it ends up on top and the panel shows its skin.
+     * Removing and re-adding the SAME view puts ours on top without reloading the page.
      */
     public static synchronized void bringToFront() {
         if (web == null || wm == null || lastLp == null) return;
         try {
             if (web.getParent() != null) wm.removeView(web);
             wm.addView(web, lastLp);
-            Log.i(TAG, "painel: reempilhado por cima");
+            Log.i(TAG, "panel: re-stacked on top");
         } catch (Throwable t) {
-            Log.w(TAG, "painel: reempilhar falhou (" + t + ")");
+            Log.w(TAG, "panel: re-stack failed (" + t + ")");
             try { wm.addView(web, lastLp); } catch (Throwable ignored) {}
         }
     }
 
-    /** executa JS na skin do painel (arranque, recarregar tema) */
+    /** runs JS on the panel skin (startup, reload theme) */
     public static synchronized void javaScript(final String js) {
         try {
             if (web != null) web.post(new Runnable() {
@@ -216,8 +219,8 @@ public final class ClusterOverlay {
     }
 
     /**
-     * Vigia o display do painel: quando ele apaga (carro desligado) a skin sai da frente, senão
-     * a BYD acende o quadro para a alerta de porta aberta e ela aparece coberta pelo tema.
+     * Watches the panel display: when it turns off (car off) the skin steps aside, otherwise
+     * BYD lights the display for the open-door alert and it shows up covered by the theme.
      */
     private static void watchPanelPower(final Context ctx, final int displayId) {
         stopWatch();
@@ -246,7 +249,7 @@ public final class ClusterOverlay {
             };
             jetDm.registerDisplayListener(jetListener, null);
         } catch (Throwable t) {
-            Log.w(TAG, "vidro: sem vigia do display", t);
+            Log.w(TAG, "glass: no display watchdog", t);
         }
     }
 
@@ -258,7 +261,7 @@ public final class ClusterOverlay {
         jetListener = null;
     }
 
-    /** empurra o estado para a skin a cada 400 ms (independente do rAF da página) */
+    /** pushes the state to the skin every 400 ms (independent of the page rAF) */
     private static void startPush(final Context ctx) {
         pushing = true;
         lastCtx = ctx.getApplicationContext();
@@ -268,7 +271,7 @@ public final class ClusterOverlay {
         h.post(new Runnable() {
             public void run() {
                 if (!pushing || web == null) return;
-                /* o listener nem sempre dispara quando o carro apaga: confere direto */
+                /* the listener does not always fire when the car shuts off: check directly */
                 try {
                     Context app = lastCtx;
                     Display pd = app == null ? null : panelDisplay(app);
@@ -279,13 +282,13 @@ public final class ClusterOverlay {
                 } catch (Throwable ignored) {
                 }
                 ticks++;
-                /* batimento: mostra se o processo sobrevive ao apagamento do carro */
+                /* heartbeat: shows whether the process survives the car shutting off */
                 if (ticks % 5 == 0) {
-                    AdbShell.trace(lastCtx, "vivo " + ticks + " estado=" + br.powerProbe());
+                    AdbShell.trace(lastCtx, "alive " + ticks + " state=" + br.powerProbe());
                 }
                 try {
-                    /* `__pushedByApp` desliga o lab-feed da página: com ele ligado, página e app
-                       leem o carro (37 chamadas ao binder por leitura) e desenham o mesmo quadro */
+                    /* `__pushedByApp` turns the page's lab-feed off: with it on, page and app
+                       both read the car (37 binder calls per read) and draw the same frame */
                     String js = "window.__pushedByApp=1;window.BrasaDriveUpdate&&window.BrasaDriveUpdate(" + br.state() + ")";
                     web.evaluateJavascript(js, null);
                 } catch (Throwable ignored) {

@@ -2,7 +2,7 @@ package com.sharklab;
 
 import android.util.Log;
 
-/** PanelCast — manda um comando ao AutoContainer (16 assume o painel, 18 devolve à BYD). */
+/** PanelCast — sends a command to the AutoContainer (16 takes over the panel, 18 gives it back to BYD). */
 public final class PanelCast {
 
     private static final String TAG = "SharkLab";
@@ -15,7 +15,7 @@ public final class PanelCast {
             Class<?> sm = Class.forName("android.os.ServiceManager");
             Object binder = sm.getMethod("getService", String.class).invoke(null, "AutoContainer");
             if (binder == null) return false;
-            /* a central usa android.os.IAutoContainer$Stub; a outra é a do pacote do container */
+            /* the head unit uses android.os.IAutoContainer$Stub; the other one is the container package's */
             Class<?> stub;
             Object svc;
             try {
@@ -27,10 +27,10 @@ public final class PanelCast {
             }
             svc.getClass().getMethod("sendInfo", int.class, int.class, String.class)
                     .invoke(svc, 1000, cmd, "");
-            Log.i(TAG, "painel: cmd " + cmd);
+            Log.i(TAG, "panel: cmd " + cmd);
             return true;
         } catch (Throwable t) {
-            Log.w(TAG, "painel: cmd " + cmd + " falhou", t);
+            Log.w(TAG, "panel: cmd " + cmd + " failed", t);
             return false;
         }
     }

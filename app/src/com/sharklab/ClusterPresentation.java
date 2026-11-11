@@ -13,15 +13,15 @@ import android.webkit.WebViewClient;
 import android.webkit.WebView;
 
 /**
- * ClusterPresentation — a skin no painel do motorista.
+ * ClusterPresentation — the skin on the driver cluster panel.
  *
- * O carro expõe o painel como um display virtual do sistema (1920×720, dono
- * com.xdja.containerservice). Não é uma Activity: quem aparece ali é uma Presentation,
- * que é API pública e não entra na pilha de atividades — por isso o dump de "activity
- * activities" mostra vazio e o painel mostra a skin.
+ * The car exposes the panel as a system virtual display (1920×720, owner
+ * com.xdja.containerservice). It is not an Activity: what shows up there is a Presentation,
+ * which is public API and does not enter the activity stack — that is why the "activity
+ * activities" dump shows up empty while the panel shows the skin.
  *
- * Se o sistema recusar a apresentação nesse display, o motivo vai para o log e para a
- * ponte (verify), em vez de ficar uma tela preta sem explicação.
+ * If the system refuses the presentation on that display, the reason goes to the log and to the
+ * bridge (verify), instead of leaving a black screen with no explanation.
  */
 public class ClusterPresentation extends Presentation {
 
@@ -35,7 +35,7 @@ public class ClusterPresentation extends Presentation {
         this.bridge = bridge;
     }
 
-    /** injeta no painel o mesmo conjunto de scripts do painel central (sem o som, para não duplicar áudio) */
+    /** injects into the panel the same script set as the head unit panel (without audio, so as not to duplicate sound) */
     private void inject() {
         if (web == null) return;
         for (String rel : MainActivity.INJECT_PANEL) {
@@ -48,7 +48,7 @@ public class ClusterPresentation extends Presentation {
                 in.close();
                 web.evaluateJavascript(out.toString("UTF-8"), null);
             } catch (Throwable t) {
-                android.util.Log.w("SharkLab", "painel: não injetou " + rel, t);
+                android.util.Log.w("SharkLab", "panel: did not inject " + rel, t);
             }
         }
     }

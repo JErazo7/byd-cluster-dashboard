@@ -5,12 +5,12 @@ import android.content.ContextWrapper;
 import android.content.pm.PackageManager;
 
 /**
- * Contexto que anula os checks BYDAUTO_*.
+ * Context that bypasses the BYDAUTO_* checks.
  *
- * O framework da BYD avalia as permissões BYDAUTO_<DEVICE>_GET/SET no CLIENTE, contra o Context
- * entregue a getInstance() — não no serviço. Envolvendo o Context e devolvendo GRANTED só para
- * essas permissões, os getters passam a funcionar sem assinatura de plataforma.
- * (Modelo documentado em BYD_VEHICLE_API.md, verificado no carro.)
+ * The BYD framework evaluates the BYDAUTO_<DEVICE>_GET/SET permissions on the CLIENT side,
+ * against the Context handed to getInstance() — not in the service. By wrapping the Context and
+ * returning GRANTED only for those permissions, the getters start working without a platform
+ * signature. (Model documented in BYD_VEHICLE_API.md, verified in the car.)
  */
 public class BydPermissionContext extends ContextWrapper {
 

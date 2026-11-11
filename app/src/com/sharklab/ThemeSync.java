@@ -11,12 +11,12 @@ import java.io.OutputStream;
 import java.util.Locale;
 
 /**
- * ThemeSync — mantém a cópia editável do tema em sincronia com a que vem no APK.
+ * ThemeSync — keeps the editable copy of the theme in sync with the one shipped in the APK.
  *
- * O painel carrega `files/dash/<id>/index.html` (o usuário pode editar sem recompilar).
- * O problema é que essa cópia ficava velha para sempre: o tema novo entrava no APK e o painel
- * continuava desenhando o antigo. Agora, se a cópia for mais velha que a instalação do APK,
- * ela é substituída pela do APK.
+ * The panel loads `files/dash/<id>/index.html` (the user can edit it without recompiling).
+ * The problem was that this copy stayed old forever: the new theme went into the APK and the
+ * panel kept drawing the old one. Now, if the copy is older than the APK install, it is
+ * replaced by the APK's.
  */
 public final class ThemeSync {
 
@@ -30,15 +30,15 @@ public final class ThemeSync {
         for (String id : MainActivity.BUILTIN) {
             File dir = new File(ctx.getExternalFilesDir(null), "dash/" + id);
             File index = new File(dir, "index.html");
-            // ainda não existe (ou foi apagada pelo usuário): extrai do APK
+            // does not exist yet (or was deleted by the user): extract from the APK
             boolean stale = !index.isFile() || index.lastModified() < apk;
             if (!stale) continue;
             try {
                 copyTree(ctx, "dash/" + id, dir);
-                // o mtime do arquivo copiado é o de agora: a cópia deixa de parecer velha
-                Log.i(TAG, "tema " + id + " sincronizado com o APK");
+                // the copied file's mtime is now: the copy no longer looks old
+                Log.i(TAG, "theme " + id + " synced with the APK");
             } catch (Throwable t) {
-                Log.w(TAG, "tema " + id + ": sincronização falhou", t);
+                Log.w(TAG, "theme " + id + ": sync failed", t);
             }
         }
     }
@@ -52,12 +52,12 @@ public final class ThemeSync {
         }
     }
 
-    /** copia a árvore de assets/dash/<id>/ para o diretório de destino */
+    /** copies the assets/dash/<id>/ tree to the destination directory */
     private static void copyTree(Context ctx, String assetPath, File dest) throws Exception {
         String[] entries = ctx.getAssets().list(assetPath);
         if (entries == null) return;
         if (!dest.isDirectory() && !dest.mkdirs()) {
-            throw new IllegalStateException("sem diretório " + dest);
+            throw new IllegalStateException("no directory " + dest);
         }
         for (String name : entries) {
             String child = assetPath + "/" + name;
@@ -82,7 +82,7 @@ public final class ThemeSync {
         }
     }
 
-    /** só para o log de arranque: quantos temas existem para mostrar */
+    /** only for the boot log: how many themes exist to show */
     static String describe(Context ctx) {
         File dash = new File(ctx.getExternalFilesDir(null), "dash");
         String[] names = dash.list();

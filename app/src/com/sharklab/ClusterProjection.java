@@ -12,14 +12,15 @@ import android.view.Display;
 import android.view.Surface;
 
 /**
- * ClusterProjection — projeta a skin no painel do motorista, do jeito certo.
+ * ClusterProjection — experimental VirtualDisplay path for the driver cluster panel.
  *
- * O clúster não é um display Android: é outra instância (fission). Espelhar a IVI deixa tudo
- * fora de esquadro e ainda mostra na tela central o que deveria aparecer só atrás do volante.
+ * The cluster is not a normal Android display: it is another instance (fission). The supported
+ * path in this repo is the overlay window in `ClusterOverlay`; this class is kept for reference
+ * and probing.
  *
- * O caminho usado por apps que já fazem isso: criar um VirtualDisplay privado com o nome que o
- * compositor procura — shared_fission_bg_XDJAScreenProjection_0 (1920×720) — e desenhar a skin
- * nele com uma Presentation. A tela central fica livre para os ajustes.
+ * Measured limit: a private VirtualDisplay created with the name the compositor looks for —
+ * shared_fission_bg_XDJAScreenProjection_0 (1920×720) — renders and can be captured, but the
+ * cluster does not show it. The attach step is privileged. Treat this class as unverified.
  */
 public final class ClusterProjection {
 
@@ -29,8 +30,7 @@ public final class ClusterProjection {
             "shared_fission_bg_XDJAScreenProjection_1"
     };
     private static final int W = 1920, H = 720, DPI = 320;
-    /* o compositor da BYD pendura no painel a superfície por NOME (visto no SurfaceFlinger:
-       "EvSound painel"), não por display */
+    /* layer title observed on the reference app in SurfaceFlinger; used only when probing */
     private static final String SURFACE_NAME = "EvSound painel";
 
     private static VirtualDisplay display;
@@ -51,9 +51,9 @@ public final class ClusterProjection {
     }
 
     /**
-     * Cria o display como o app de referência: com o token do MediaProjection, flags
-     * PUBLIC|PRESENTATION (3) e o nome que o compositor do clúster espera. Sem o token,
-     * PUBLIC lança SecurityException; com OWN_CONTENT_ONLY o compositor ignora o display.
+     * Creates the display like the reference app: with the MediaProjection token, flags
+     * PUBLIC|PRESENTATION (3) and the name the cluster compositor expects. Without the token,
+     * PUBLIC throws SecurityException; with OWN_CONTENT_ONLY the compositor ignores the display.
      */
     public static void startWithProjection(Context ctx, android.media.projection.MediaProjection mp,
                                            MainActivity.Lab bridge, String url) {
@@ -66,7 +66,7 @@ public final class ClusterProjection {
             display = mp.createVirtualDisplay(NAMES[0], W, H, DPI, 3, surface, null,
                     new Handler(Looper.getMainLooper()));
             if (display == null) {
-                error = "createVirtualDisplay devolveu null";
+                error = "createVirtualDisplay returned null";
                 return;
             }
             final Display d = display.getDisplay();
@@ -78,21 +78,21 @@ public final class ClusterProjection {
                     try {
                         presentation = new ClusterPresentation(app, d, u, b);
                         presentation.show();
-                        Log.i(TAG, "projeção (token): " + NAMES[0] + " display " + d.getDisplayId());
+                        Log.i(TAG, "projection (token): " + NAMES[0] + " display " + d.getDisplayId());
                     } catch (Throwable t) {
-                        error = "apresentação recusada: " + t;
+                        error = "presentation refused: " + t;
                         Log.w(TAG, error, t);
                     }
                 }
             });
         } catch (Throwable t) {
             error = t.getClass().getSimpleName() + ": " + t.getMessage();
-            Log.w(TAG, "projeção com token falhou", t);
+            Log.w(TAG, "projection with token failed", t);
             stop();
         }
     }
 
-    /** igual ao app de referência: display "evsound_mapa" com flags 3, sem token, e uma Activity dentro */
+    /** same as the reference app: display "evsound_mapa" with flags 3, no token, and an Activity inside */
     public static int startPublic(Context ctx, String url) {
         stop();
         error = "";
@@ -103,16 +103,16 @@ public final class ClusterProjection {
             surface = new Surface(texture);
             display = dm.createVirtualDisplay("evsound_mapa", W, H, DPI, surface, 3);
             int id = display.getDisplay().getDisplayId();
-            Log.i(TAG, "projeção pública: evsound_mapa display " + id);
+            Log.i(TAG, "public projection: evsound_mapa display " + id);
             return id;
         } catch (Throwable t) {
             error = t.getClass().getSimpleName() + ": " + t.getMessage();
-            Log.w(TAG, "projeção pública falhou", t);
+            Log.w(TAG, "public projection failed", t);
             return -1;
         }
     }
 
-    /** Surface com nome (SurfaceControl); sem nome o painel ignora o display */
+    /** named Surface (SurfaceControl); without a name the panel ignores the display */
     static Surface namedSurface(int w, int h) {
         try {
             Class<?> builder = Class.forName("android.view.SurfaceControl$Builder");
@@ -120,15 +120,15 @@ public final class ClusterProjection {
             builder.getMethod("setName", String.class).invoke(b, SURFACE_NAME);
             builder.getMethod("setBufferSize", int.class, int.class).invoke(b, w, h);
             Object sc = builder.getMethod("build").invoke(b);
-            android.util.Log.i(TAG, "superfície nomeada: " + SURFACE_NAME);
+            android.util.Log.i(TAG, "named surface: " + SURFACE_NAME);
             return new Surface((android.view.SurfaceControl) sc);
         } catch (Throwable t) {
-            android.util.Log.w(TAG, "SurfaceControl falhou (" + t + "), caindo para SurfaceTexture");
+            android.util.Log.w(TAG, "SurfaceControl failed (" + t + "), falling back to SurfaceTexture");
             return new Surface(texture);
         }
     }
 
-    /** cria (ou recria) o display de projeção e a apresentação da skin */
+    /** creates (or recreates) the projection display and the skin presentation */
     public static void start(Context ctx, MainActivity.Lab bridge, String url) {
         stop();
         error = "";
@@ -138,9 +138,9 @@ public final class ClusterProjection {
             texture.setDefaultBufferSize(W, H);
             surface = new Surface(texture);
 
-            /* o nome importa: é por ele que o compositor do clúster encontra a projeção */
-            /* OWN_CONTENT_ONLY: display privado do app, sem o token de captura que o
-               "screen sharing" exige. PUBLIC pediria CAPTURE_VIDEO_OUTPUT. */
+            /* the name matters: it is how the cluster compositor finds the projection */
+            /* OWN_CONTENT_ONLY: private display of the app, without the capture token that
+               "screen sharing" requires. PUBLIC would ask for CAPTURE_VIDEO_OUTPUT. */
             display = dm.createVirtualDisplay(NAMES[0], W, H, DPI, surface,
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION
                             | DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY);
@@ -154,16 +154,16 @@ public final class ClusterProjection {
                     try {
                         presentation = new ClusterPresentation(app, d, u, b);
                         presentation.show();
-                        Log.i(TAG, "projeção: " + NAMES[0] + " display " + d.getDisplayId());
+                        Log.i(TAG, "projection: " + NAMES[0] + " display " + d.getDisplayId());
                     } catch (Throwable t) {
-                        error = "apresentação recusada: " + t;
+                        error = "presentation refused: " + t;
                         Log.w(TAG, error, t);
                     }
                 }
             });
         } catch (Throwable t) {
             error = t.getClass().getSimpleName() + ": " + t.getMessage();
-            Log.w(TAG, "projeção falhou", t);
+            Log.w(TAG, "projection failed", t);
             stop();
         }
     }

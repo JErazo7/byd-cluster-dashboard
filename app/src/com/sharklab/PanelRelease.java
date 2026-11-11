@@ -2,7 +2,7 @@ package com.sharklab;
 
 import android.util.Log;
 
-/** PanelRelease — devolve o painel ao layout original da BYD (cmd 18) e pausa o laço ADB. */
+/** PanelRelease — gives the panel back to BYD's original layout (cmd 18) and pauses the ADB loop. */
 public final class PanelRelease {
 
     private static final String TAG = "SharkLab";
@@ -11,17 +11,17 @@ public final class PanelRelease {
     }
 
     /**
-     * Vale só dentro do processo: a skin está no painel porque o usuário (ou o arranque) pediu
-     * AGORA. Se o processo morre — o carro apaga e o PanelService é ressuscitado — a skin não
-     * volta: era isso que reaparecia em cima da alerta de porta aberta.
+     * Valid only inside the process: the skin is on the panel because the user (or the startup)
+     * asked for it NOW. If the process dies — the car shuts off and PanelService is revived — the
+     * skin does not come back: that was what kept reappearing on top of the open-door alert.
      */
     public static volatile boolean session;
 
-    /** devolve o painel e marca a skin como desaplicada (o app não retoma sozinho no resume) */
+    /** gives the panel back and marks the skin as unapplied (the app does not resume by itself) */
     public static void release(android.content.Context ctx) {
         session = false;
         if (ctx != null) {
-            /* applied E enabled: o laço de 60 s recriava a janela com `enabled` ainda ligado */
+            /* applied AND enabled: the 60 s loop recreated the window with `enabled` still on */
             ctx.getSharedPreferences("lab", android.content.Context.MODE_PRIVATE).edit()
                     .putBoolean("applied", false).putBoolean("enabled", false).apply();
         }
@@ -30,11 +30,11 @@ public final class PanelRelease {
 
     public static void release() {
         session = false;
-        /* a janela da skin tem que sair ANTES de devolver o painel: com o carro desligado a BYD
-           acende o quadro para a alerta de porta aberta e a nossa janela ficava por cima dela */
+        /* the skin window has to go out BEFORE giving the panel back: with the car off BYD
+           lights the display for the open-door alert and our window stayed on top of it */
         ClusterOverlay.hide();
         AdbShell.stop();
-        /* a sequência do EvSound para devolver o painel: 46, 18, 0 */
+        /* the reference app's sequence to give the panel back: 46, 18, 0 */
         AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 46 s16 null; sleep 1.2; "
                 + "service call AutoContainer 2 i32 1000 i32 18 s16 null; sleep 1; "
                 + "service call AutoContainer 2 i32 1000 i32 0 s16 null");
@@ -47,9 +47,9 @@ public final class PanelRelease {
             Object svc = stub.getMethod("asInterface", android.os.IBinder.class).invoke(null, binder);
             svc.getClass().getMethod("sendInfo", int.class, int.class, String.class)
                     .invoke(svc, 1000, 18, "");
-            Log.i(TAG, "painel: devolvido ao original da BYD");
+            Log.i(TAG, "panel: given back to BYD's original");
         } catch (Throwable t) {
-            Log.w(TAG, "painel: release falhou", t);
+            Log.w(TAG, "panel: release failed", t);
         }
     }
 }

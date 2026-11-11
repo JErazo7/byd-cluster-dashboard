@@ -9,11 +9,11 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 /**
- * ClusterSkinActivity — a skin rodando NO display do painel.
+ * ClusterSkinActivity — a skin running ON the cluster panel display.
  *
- * Precisa ser uma Activity própria: a MainActivity é singleTask, então pedir o display do
- * painel para ela entrega o intent na instância que já está no display 0. Aqui a skin é
- * carregada sozinha, sem som e sem a central.
+ * It has to be its own Activity: MainActivity is singleTask, so asking it for the cluster
+ * panel display delivers the intent to the instance that is already on display 0. Here the
+ * skin is loaded on its own, without audio and without the head unit.
  */
 public class ClusterSkinActivity extends Activity {
 
@@ -65,8 +65,8 @@ public class ClusterSkinActivity extends Activity {
     }
 
     /**
-     * Ponte mínima do painel: só o que a skin lê para desenhar (sem áudio, sem toques da
-     * central). Mantida aqui para a Activity do painel não depender da MainActivity.
+     * Minimal panel bridge: only what the skin reads to draw (no audio, no head-unit
+     * touches). Kept here so the panel Activity does not depend on MainActivity.
      */
     static class PanelBridge {
         private final android.content.Context ctx;
@@ -80,17 +80,17 @@ public class ClusterSkinActivity extends Activity {
             byd = new BydBridge(ctx);
         }
 
-        /** leituras que mudam quando o carro apaga (para achar o sinal de "desligado") */
+        /** readings that change when the car powers off (to find the "off" signal) */
         public String powerProbe() {
             double[] b = snap();
             return "estate=" + (int) b[28] + " bcm=" + (int) b[29] + " day=" + (int) b[30]
                     + " spd=" + (int) b[0] + " gear=" + (int) b[1] + " off=" + (int) b[32] + " auto=" + (int) b[33] + " pwr=" + (int) b[34] + " mcu=" + (int) b[35] + " pc=" + (int) b[36];
         }
 
-        /* Um `snapshot()` custa ~12 ms (37 leituras nos módulos da BYD) e há dois consumidores
-           no painel: o empurrador de 400 ms (ClusterOverlay) e o lab-feed da própria página.
-           Com 120 ms de cache os dois compartilham a mesma leitura e a thread do renderer deixa
-           de ficar presa no binder a cada quadro. */
+        /* One `snapshot()` costs ~12 ms (37 reads on the BYD modules) and there are two consumers
+           in the panel: the 400 ms pusher (ClusterOverlay) and the page's own lab-feed.
+           With a 120 ms cache the two share the same read and the renderer thread stops
+           getting stuck in the binder on every frame. */
         private static double[] cached;
         private static long cachedAt;
 
@@ -138,10 +138,10 @@ public class ClusterSkinActivity extends Activity {
         }
 
         /**
-         * Modo ativo, medido no carro: quem carrega o modo é `energy.getRoadSurfaceMode()`,
-         * 1 = montanha, 2 = neve, 3 = lama, 4 = areia e 5 = asfalto (normal). As luzes do
-         * painel não são booleanas (65535/8322) e `dcfg` ficou em 2 em ECO e NORMAL, então
-         * eco/sport não se distinguem — caem em NORMAL em vez de mentir.
+         * Active mode, measured in the car: the mode is carried by `energy.getRoadSurfaceMode()`,
+         * 1 = mountain, 2 = snow, 3 = mud, 4 = sand and 5 = asphalt (normal). The panel
+         * lights are not boolean (65535/8322) and `dcfg` stayed at 2 in ECO and NORMAL, so
+         * eco/sport cannot be told apart — they fall back to NORMAL instead of lying.
          */
         private String driveName(double[] b) {
             int surf = b[23] > -998 ? (int) b[23] : -1;
@@ -152,14 +152,14 @@ public class ClusterSkinActivity extends Activity {
             return "NORMAL";
         }
 
-        /** número inteiro ou -999 (o contrato das skins usa -999 como "sem leitura") */
-        /* último valor válido: no arranque do carro os getters devolvem 8322/-999 e o modo
-           aparecia trocado até a leitura assentar */
+        /** integer, or -999 (the skin contract uses -999 as "no reading") */
+        /* last valid value: when the car starts the getters return 8322/-999 and the mode
+           showed up swapped until the reading settled */
         private static int lastEco = Integer.MIN_VALUE;
         private static int lastSurf = Integer.MIN_VALUE;
         private static final long STARTED = System.currentTimeMillis();
-        /* segurar o último valor só nos primeiros 15 s do processo; depois vale o que o carro diz,
-           senão a rueda deixa de mudar o modo (o teste com 8322 ficava eterno) */
+        /* hold the last value only for the first 15 s of the process; after that whatever the car
+           says wins, otherwise the wheel stops changing the mode (the 8322 test lasted forever) */
         private static final long HOLD = 15000;
 
         private android.content.Context app;
@@ -188,7 +188,7 @@ public class ClusterSkinActivity extends Activity {
             return (System.currentTimeMillis() - STARTED < HOLD) ? lastSurf : sm;
         }
 
-        /** guarda o último modo válido: no re-arranque do app ele aparece certo de imediato */
+        /** keeps the last valid mode: on an app restart it shows up correct right away */
         private void saveMode() {
             try {
                 if (app != null) {
@@ -202,29 +202,29 @@ public class ClusterSkinActivity extends Activity {
             return String.valueOf(v > -998 ? (int) Math.round(v) : -999);
         }
 
-        /** EV quando o motor a combustão está parado, HEV quando ele gira.
-         *  Rotações fora de 200..8000 (0, 65535, -10011) são sentinela: motor parado. */
+        /** EV when the combustion engine is stopped, HEV when it is spinning.
+         *  RPMs outside 200..8000 (0, 65535, -10011) are sentinels: engine stopped. */
         private String evState(double[] b) {
             if (b[15] <= -998) return "null";
             boolean running = b[15] >= 200 && b[15] <= 8000;
             return running ? "0" : "1";
         }
 
-        /** pressões cruas dos quatro pneus; null quando o carro não responde */
+        /** raw pressures of the four tyres; null when the car does not answer */
         private String tyres() {
             double fl = byd.tyre(1), fr = byd.tyre(2), rl = byd.tyre(3), rr = byd.tyre(4);
             if (fl <= -998 && fr <= -998 && rl <= -998 && rr <= -998) return "null";
-            /* o carro devolve kPa (265); o cartão mostra bar */
+            /* the car returns kPa (265); the card shows bar */
             return "{\"fl\":" + bar(fl) + ",\"fr\":" + bar(fr) + ",\"rl\":" + bar(rl) + ",\"rr\":" + bar(rr) + "}";
         }
 
         private String bar(double kpa) {
             if (kpa <= -998) return "-999";
-            double bar = kpa > 20 ? kpa / 100.0 : kpa;      /* já em bar em algumas versões */
+            double bar = kpa > 20 ? kpa / 100.0 : kpa;      /* already in bar on some versions */
             return String.valueOf(Math.round(bar * 10) / 10.0);
         }
 
-        /** diagnóstico do TPMS, para a skin de sonda */
+        /** TPMS diagnostic, for the probe skin */
         @android.webkit.JavascriptInterface
         public String tyreInfo() {
             return byd.tyreReport();
@@ -257,7 +257,7 @@ public class ClusterSkinActivity extends Activity {
 
         @android.webkit.JavascriptInterface
         public void log(String s) {
-            android.util.Log.i("SharkLab", "painel: " + s);
+            android.util.Log.i("SharkLab", "panel: " + s);
         }
     }
 

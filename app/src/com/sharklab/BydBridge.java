@@ -7,22 +7,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * BydBridge — leitura do carro pelas APIs do próprio DiLink (android.hardware.bydauto.*).
+ * BydBridge — reads the car through DiLink's own APIs (android.hardware.bydauto.*).
  *
- * Implementação própria, por reflexão: as classes existem no sistema da central, não no APK,
- * então nada é linkado em tempo de compilação. Cada valor tenta uma lista de candidatos
- * (classe + método) e devolve o primeiro que responder — modelos diferentes (Seal, Shark, Song)
- * expõem o mesmo dado em classes diferentes, e sem a central certa todo acesso é tentativa.
+ * Own implementation, via reflection: the classes live in the head unit's system, not in the
+ * APK, so nothing is linked at compile time. Each value tries a list of candidates
+ * (class + method) and returns the first one that answers — different models (Seal, Shark,
+ * Song) expose the same datum in different classes, and without the right head unit every
+ * access is an attempt.
  *
- * Nada aqui copia código de terceiros: são chamadas às APIs do veículo, como qualquer app da
- * central faria; o padrão de acesso (getInstance(Context) → getters numéricos) é o mesmo da
- * plataforma e foi verificado no comportamento observável do sistema.
+ * Nothing here copies third-party code: these are calls to the vehicle APIs, like any head
+ * unit app would make; the access pattern (getInstance(Context) → numeric getters) is the
+ * platform's own and was verified against the system's observable behavior.
  */
 public final class BydBridge {
 
     private static final String P = "android.hardware.bydauto.";
 
-    /* valores numéricos: candidatos na ordem em que devem ser tentados */
+    /* numeric values: candidates in the order they should be tried */
     private static final String[][] SPEED = {
             {P + "speed.BYDAutoSpeedDevice", "getCurrentSpeed"},
             {P + "bodywork.BYDAutoBodyworkDevice", "getCurrentSpeed"},
@@ -83,7 +84,7 @@ public final class BydBridge {
             {P + "instrument.BYDAutoInstrumentDevice", "getSpeedUnit"}
     };
 
-    /* combustível, pneus e estado de energia — lidos da API do carro (ver shark_gate/BYD_VEHICLE_API.md) */
+    /* fuel, tyres and power state — read from the car API (see shark_gate/BYD_VEHICLE_API.md) */
     private static final String[][] FUEL = {
             {P + "statistic.BYDAutoStatisticDevice", "getFuelPercentageValue"}
     };
@@ -102,21 +103,21 @@ public final class BydBridge {
     private static final String[][] DRIVE_CONFIG = {
             {P + "setting.BYDAutoSettingDevice", "getDriveConfig"}
     };
-    /* outros candidatos a carregar o modo de condução (medidos um por um no carro) */
+    /* other candidates for carrying the drive mode (measured one by one in the car) */
     private static final String[][] SURF_MODE = {
             {P + "energy.BYDAutoEnergyDevice", "getRoadSurfaceMode"}
     };
     private static final String[][] DC_MODE = {
             {P + "energy.BYDAutoEnergyDevice", "getDCWorkMode"}
     };
-    /* candidatos a "carro ligado": medidos com o carro em marcha e com o carro apagado */
+    /* candidates for "car on": measured with the car running and with the car off */
     private static final String[][] AUTO_STATE = {
             {P + "bodywork.BYDAutoBodyworkDevice", "getAutoSystemState"}
     };
     private static final String[][] PWR_LEVEL = {
             {P + "bodywork.BYDAutoBodyworkDevice", "getPowerLevel"}
     };
-    /* estado de encendido do veículo: índice 3 é o válido (1 = ligado, medido) */
+    /* vehicle ignition state: index 3 is the valid one (1 = on, measured) */
     private static final String[][] PWR_CTL = {
             {P + "power.BYDAutoPowerDevice", "getPowerCtlStatus|3"}
     };
@@ -124,7 +125,7 @@ public final class BydBridge {
             {P + "power.BYDAutoPowerDevice", "getMcuStatus"}
     };
 
-    /* testigo do modo: 135298 = normal, 8353 = eco, 10306 = sport (medido no carro) */
+    /* mode indicator: 135298 = normal, 8353 = eco, 10306 = sport (measured in the car) */
     private static final String[][] ECO_STATE = {
             {P + "instrument.BYDAutoInstrumentDevice", "getECOIndicatorState"}
     };
@@ -147,7 +148,7 @@ public final class BydBridge {
             {P + "bodywork.BYDAutoBodyworkDevice", "getPowerDayMode"}
     };
 
-    /* as quatro luzes de modo do painel: a que estiver acesa é o modo ativo */
+    /* the panel's four mode lights: the one that is lit is the active mode */
     private static final String[][] M_NORMAL = {
             {P + "instrument.BYDAutoInstrumentDevice", "get2in1FaultNormalIndicator"}
     };
@@ -161,7 +162,7 @@ public final class BydBridge {
             {P + "instrument.BYDAutoInstrumentDevice", "get2in1FaultGrassIndicator"}
     };
 
-    /* ADAS: só estados e distâncias do radar da BYD — nada de câmera nem modelo */
+    /* ADAS: only BYD radar states and distances — no camera, no model */
     private static final String[][] BSD = {{P + "adas.BYDAutoADASDevice", "getBSDState"}};
     private static final String[][] LKS = {{P + "adas.BYDAutoADASDevice", "getLKSMode"}};
     private static final String[][] TJA = {{P + "adas.BYDAutoADASDevice", "getTJAState"}};
@@ -174,13 +175,13 @@ public final class BydBridge {
     private final Context ctx;
     private final Map<String, Object> devices = new HashMap<String, Object>();
     private final Map<String, Boolean> probed = new HashMap<String, Boolean>();
-    /* os dispositivos da BYD devolvem leitura velha quando o objeto é reaproveitado: em SPORT o
-       mesmo instance seguia dizendo ECO. Recriar de vez em quando resolve (medido no carro). */
+    /* the BYD devices return stale readings when the object is reused: in SPORT the
+       same instance kept saying ECO. Recreating now and then fixes it (measured in the car). */
     private final Map<String, Long> born = new HashMap<String, Long>();
     private static final long TTL = 1500;
 
-    /* contexto cru: cada leitura passa um BydPermissionContext novo, porque o getInstance da BYD
-       guarda o singleton por contexto — com um só contexto o objeto nunca atualiza os valores */
+    /* raw context: every read passes a fresh BydPermissionContext, because BYD's getInstance
+       keeps the singleton per context — with a single context the object never refreshes */
     private final Context appCtx;
 
     public BydBridge(Context ctx) {
@@ -188,9 +189,9 @@ public final class BydBridge {
         this.ctx = new BydPermissionContext(this.appCtx);
     }
 
-    /* ---------- reflexão ---------- */
+    /* ---------- reflection ---------- */
 
-    /** getInstance(Context) e, se não existir, getInstance() — cacheado por classe */
+    /** getInstance(Context) and, if absent, getInstance() — cached per class */
     private Object device(String cls) {
         Long at = born.get(cls);
         if (devices.containsKey(cls) && at != null
@@ -230,7 +231,7 @@ public final class BydBridge {
         return null;
     }
 
-    /** getter com um argumento int (getTyrePressureValue(1..4), por exemplo) */
+    /** getter with one int argument (getTyrePressureValue(1..4), for instance) */
     private double numInt(String cls, String method, int arg) {
         Object d = device(cls);
         if (d == null) return NONE;
@@ -258,7 +259,7 @@ public final class BydBridge {
                 || device(P + "energy.BYDAutoEnergyDevice") != null;
     }
 
-    /** o que respondeu nesta central (para o diagnóstico) */
+    /** what answered on this head unit (for diagnostics) */
     public String report() {
         StringBuilder sb = new StringBuilder("{");
         String[][] all = concat(SPEED, GEAR, POWER, SOC, RANGE, PEDAL, BRAKE, OUT_TEMP, ODO_TOTAL, ODO_EV,
@@ -283,7 +284,7 @@ public final class BydBridge {
         return out;
     }
 
-    /** int[] de um getter (distâncias do radar); null quando não existe */
+    /** int[] from a getter (radar distances); null when it does not exist */
     private int[] ints(String cls, String method) {
         Object d = device(cls);
         if (d == null) return null;
@@ -297,7 +298,7 @@ public final class BydBridge {
         return null;
     }
 
-    /** ADAS disponível nesta central, em JSON (o que não existir sai null) */
+    /** ADAS available on this head unit, as JSON (whatever does not exist comes out null) */
     public String adasJson() {
         StringBuilder sb = new StringBuilder("{");
         sb.append("\"bsd\":").append(v(BSD));
@@ -325,25 +326,25 @@ public final class BydBridge {
         return d <= NONE ? "null" : String.valueOf(Math.round(d));
     }
 
-    /* ---------- leitura ---------- */
+    /* ---------- reading ---------- */
 
     /**
-     * Pedal em %: o Shark reporta o elétrico (getAccelerateDeepness) e o térmico
-     * (getFuelAccelerateDeepness) em escalas diferentes; em P um deles fica em 0.
-     * Vale o maior dos dois, normalizado quando vem acima de 100.
+     * Pedal in %: the Shark reports the electric one (getAccelerateDeepness) and the combustion
+     * one (getFuelAccelerateDeepness) on different scales; in P one of them stays at 0.
+     * The larger of the two wins, normalized when it comes above 100.
      */
     public double pedalPercent() {
         double a = first(PEDAL);
         double b = first(PEDAL_FUEL);
         if (a <= NONE && b <= NONE) return 0;
         double v = Math.max(a <= NONE ? 0 : a, b <= NONE ? 0 : b);
-        if (v > 100) v = v * 100.0 / 255.0;      /* escala 0..255 em algumas versões */
+        if (v > 100) v = v * 100.0 / 255.0;      /* scale 0..255 in some versions */
         if (v < 0) v = 0;
         if (v > 100) v = 100;
         return v;
     }
 
-    /** odômetro total: o getter do total e, se ele não responder, EV + HEV */
+    /** total odometer: the total getter and, if it does not answer, EV + HEV */
     private double odoTotal() {
         double total = first(ODO_TOTAL);
         if (total > NONE) return total;
@@ -352,7 +353,7 @@ public final class BydBridge {
         return born > NONE ? born : (hev > NONE ? hev : NONE);
     }
 
-    /** diagnóstico do TPMS: assinaturas do device e tentativas nas duas bases de índice */
+    /** TPMS diagnostics: device signatures and attempts on both index bases */
     public String tyreReport() {
         StringBuilder sb = new StringBuilder("{\"methods\":[");
         Object d = device(P + "tyre.BYDAutoTyreDevice");
@@ -387,49 +388,49 @@ public final class BydBridge {
         return sb.append('}').toString();
     }
 
-    /** pressão de um pneu; 1 = dianteiro esquerdo, 2 = dianteiro direito, 3/4 = traseiros */
+    /** pressure of one tyre; 1 = front left, 2 = front right, 3/4 = rear */
     public double tyre(int n) {
         return numInt(P + "tyre.BYDAutoTyreDevice", "getTyrePressureValue", n);
     }
 
-    /** 1 = carro ligado; -999 quando a leitura falha */
+    /** 1 = car on; -999 when the read fails */
     private double powerCtl() {
         return numInt(P + "power.BYDAutoPowerDevice", "getPowerCtlStatus", 3);
     }
 
-    /** info de desligamento: com o carro ligado devolve 0 (medido) */
+    /** shutdown info: with the car on it returns 0 (measured) */
     private double shutdownInfo() {
         return numInt(P + "power.BYDAutoPowerDevice", "getShutdownInfo", 1);
     }
 
-    /** snapshot cru; -999 = sem leitura */
+    /** raw snapshot; -999 = no reading */
     public double[] snapshot() {
         double speed = first(SPEED);
         if (speed <= NONE) speed = first(SPEED_GW);
         return new double[]{
                 speed,                                  /* 0 km/h */
-                first(GEAR),                            /* 1 marcha */
+                first(GEAR),                            /* 1 gear */
                 first(POWER),                           /* 2 kW */
                 first(SOC),                             /* 3 % */
                 first(RANGE),                           /* 4 km */
                 first(PEDAL),                           /* 5 % pedal */
-                first(BRAKE),                           /* 6 % freio */
+                first(BRAKE),                           /* 6 % brake */
                 first(OUT_TEMP),                        /* 7 °C */
                 odoTotal(),                             /* 8 km */
                 first(V12),                             /* 9 V */
-                first(TURN),                            /* 10 pisca */
+                first(TURN),                            /* 10 turn light */
                 first(PWR_UNIT),                        /* 11 1 kW / 2 hp */
                 first(SPD_UNIT),                        /* 12 1 km/h / 2 mph */
-                first(FUEL),                            /* 13 % tanque */
-                first(FUEL_KM),                         /* 14 km a combustível */
-                first(ENGINE_SPEED),                    /* 15 rpm do motor */
-                first(ENERGY_MODE),                     /* 16 modo de energia (cru) */
-                first(ROAD_SURFACE),                    /* 17 tipo de piso (cru) */
-                first(DRIVE_CONFIG),                    /* 18 config de condução (cru) */
-                first(M_NORMAL),                        /* 19 luz do modo normal */
-                first(M_MUD),                           /* 20 luz do modo lama */
-                first(M_SAND),                          /* 21 luz do modo areia */
-                first(M_GRASS),                         /* 22 luz do modo grama/neve */
+                first(FUEL),                            /* 13 % tank */
+                first(FUEL_KM),                         /* 14 km on fuel */
+                first(ENGINE_SPEED),                    /* 15 engine rpm */
+                first(ENERGY_MODE),                     /* 16 energy mode (raw) */
+                first(ROAD_SURFACE),                    /* 17 surface type (raw) */
+                first(DRIVE_CONFIG),                    /* 18 drive config (raw) */
+                first(M_NORMAL),                        /* 19 normal mode light */
+                first(M_MUD),                           /* 20 mud mode light */
+                first(M_SAND),                          /* 21 sand mode light */
+                first(M_GRASS),                         /* 22 grass/snow mode light */
                 first(SURF_MODE),                       /* 23 energy.getRoadSurfaceMode */
                 first(DC_MODE),                         /* 24 energy.getDCWorkMode */
                 first(OP_MODE),                         /* 25 energy.getOperationMode */

@@ -5,9 +5,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 /**
- * ContainerListen — registra um callback no AutoContainer e imprime tudo o que o serviço
- * manda. É assim que se descobre qual é o transporte da projeção para o clúster: o serviço
- * avisa o app quando quer a superfície.
+ * ContainerListen — registers a callback on AutoContainer and prints everything the
+ * service sends. This is how you discover the transport of the projection to the
+ * cluster panel: the service notifies the app when it wants the surface.
  */
 public class ContainerListen {
     public static void main(String[] args) throws Exception {
@@ -39,6 +39,6 @@ public class ContainerListen {
         Object r = svc.getClass().getMethod("registerCallback", cbCls).invoke(svc, cb);
         System.out.println("registerCallback = " + r);
         Thread.sleep(12000);
-        System.out.println("fim");
+        System.out.println("done");
     }
 }

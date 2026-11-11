@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-/** ScreenReceiver — quando a central dorme (carro desligado), o painel volta ao original da BYD. */
+/** ScreenReceiver — when the head unit sleeps (car off), the panel goes back to BYD's original. */
 public class ScreenReceiver extends BroadcastReceiver {
 
     @Override

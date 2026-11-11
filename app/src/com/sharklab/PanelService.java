@@ -12,11 +12,11 @@ import android.os.Build;
 import android.os.IBinder;
 
 /**
- * PanelService — mantém o processo vivo com a projeção do painel.
+ * PanelService — keeps the process alive with the panel projection.
  *
- * O MediaProjection (e o display virtual do painel) só existe enquanto o processo vive. Este
- * serviço em primeiro plano evita que o Android mate a SharkLab ao fechar a tela de ajustes,
- * então o consentimento de captura é pedido uma vez por arranque e não a cada abertura.
+ * The MediaProjection (and the panel's virtual display) only exists while the process lives.
+ * This foreground service keeps Android from killing SharkLab when the settings screen closes,
+ * so the capture consent is asked once per boot and not on every launch.
  */
 public class PanelService extends Service {
 
@@ -24,16 +24,17 @@ public class PanelService extends Service {
     private static final int ID = 1;
 
     /**
-     * A tela da central apagando é o aviso de que o carro desligou. O receptor do manifest não
-     * recebe SCREEN_OFF em Android 8+ (broadcast implícito) e o da activity morre com ela, então
-     * quem escuta é o serviço, que fica vivo enquanto o painel está tomado.
+     * The head unit screen turning off is the signal that the car shut down. The manifest
+     * receiver does not get SCREEN_OFF on Android 8+ (implicit broadcast) and the activity's
+     * receiver dies with it, so the one listening is the service, which stays alive while the
+     * panel is taken over.
      */
     private final BroadcastReceiver screenOff = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent i) {
             if (i == null) return;
             String a = i.getAction();
-            AdbShell.trace(getApplicationContext(), "servico: " + a);
+            AdbShell.trace(getApplicationContext(), "service: " + a);
             if (Intent.ACTION_SCREEN_OFF.equals(a) || Intent.ACTION_SHUTDOWN.equals(a)
                     || "android.intent.action.QUICKBOOT_POWEROFF".equals(a)) {
                 PanelRelease.release(getApplicationContext());
@@ -49,14 +50,14 @@ public class PanelService extends Service {
         f.addAction(Intent.ACTION_SHUTDOWN);
         f.addAction("android.intent.action.QUICKBOOT_POWEROFF");
         registerReceiver(screenOff, f);
-        AdbShell.trace(getApplicationContext(), "servico: receptor registrado");
+        AdbShell.trace(getApplicationContext(), "service: receiver registered");
         startPowerLoop();
     }
 
     /**
-     * Quem decide aplicar/soltar é o serviço, não a activity: assim o vigia do adbd pode
-     * acordar a SharkLab sem abrir a interface na central (o `am start` da activity roubava
-     * o diálogo de "carregar agora" que a BYD mostra ao desligar).
+     * Who decides to apply/release is the service, not the activity: this way the adbd
+     * watchdog can wake SharkLab without opening the UI on the head unit (the activity's
+     * `am start` stole the "load now" dialog BYD shows on shutdown).
      */
     private void startPowerLoop() {
         final android.os.Handler h = new android.os.Handler(getMainLooper());
@@ -69,10 +70,10 @@ public class PanelService extends Service {
                     int pc = b[36] > -998 ? (int) b[36] : -1;
                     boolean bootApply = getSharedPreferences("lab", MODE_PRIVATE).getBoolean("bootApply", false);
                     if (pc == 1 && bootApply && !ClusterOverlay.running()) {
-                        AdbShell.trace(getApplicationContext(), "serviço: carro ligado -> aplica");
+                        AdbShell.trace(getApplicationContext(), "service: car on -> applying");
                         PanelBoot.apply(getApplicationContext());
                     } else if (pc == 0 && ClusterOverlay.running()) {
-                        AdbShell.trace(getApplicationContext(), "serviço: carro desligado -> solta");
+                        AdbShell.trace(getApplicationContext(), "service: car off -> releasing");
                         PanelRelease.release(getApplicationContext());
                     }
                 } catch (Throwable ignored) {

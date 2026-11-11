@@ -3,12 +3,12 @@ package com.sharklab;
 import java.lang.reflect.Method;
 
 /**
- * HiddenApi — libera a reflexão sobre métodos fora do SDK neste build.
+ * HiddenApi — unblocks reflection on methods outside the SDK in this build.
  *
- * As classes android.hardware.bydauto.* estão no framework.jar, mas os getters entram na lista
- * de bloqueio do Android 10 ("blacklist, reflection, denied"). O VMRuntime aceita uma lista de
- * isenções; com "L" tudo é liberado. É o mesmo caminho que os APKs de teste do documento usam na
- * prática. Vale só para este processo e não muda nada no sistema.
+ * The android.hardware.bydauto.* classes are in framework.jar, but the getters land on
+ * Android 10's blocklist ("blacklist, reflection, denied"). VMRuntime accepts a list of
+ * exemptions; with "L" everything is released. It is the same path the document's test APKs
+ * use in practice. It applies only to this process and changes nothing in the system.
  */
 public final class HiddenApi {
 

@@ -3,10 +3,12 @@ package com.sharklab.shell;
 import java.lang.reflect.Method;
 
 /**
- * ContainerProbe — descobre a API do AutoContainer (o canal que liga a IVI ao clúster).
+ * ContainerProbe — discovers the AutoContainer API (the channel that links the head unit
+ * to the cluster panel).
  *
- * Roda com app_process (usuário shell), onde a reflexão não é bloqueada. Só LÊ: lista os
- * métodos do binder e chama os getters. Nada de comando que mude o que o motorista vê.
+ * Runs through app_process (shell user), where reflection is not blocked. READ ONLY: it
+ * lists the binder methods and calls the getters. No command that changes what the driver
+ * sees.
  *
  *   adb shell CLASSPATH=/sdcard/SharkLab/container.dex app_process /system/bin \
  *       com.sharklab.shell.ContainerProbe
@@ -30,7 +32,7 @@ public class ContainerProbe {
             for (String s : stubs) {
                 try {
                     Class<?> c = Class.forName(s);
-                    sb.append("classe ok: ").append(s).append('\n');
+                    sb.append("class ok: ").append(s).append('\n');
                     for (Method m : c.getDeclaredMethods()) {
                         if (!java.lang.reflect.Modifier.isPublic(m.getModifiers())) continue;
                         sb.append("  ").append(m.getReturnType().getSimpleName()).append(' ')
@@ -43,36 +45,36 @@ public class ContainerProbe {
                         sb.append(")\n");
                     }
                 } catch (Throwable t) {
-                    sb.append("sem ").append(s).append(": ").append(t).append('\n');
+                    sb.append("no ").append(s).append(": ").append(t).append('\n');
                 }
             }
 
-            /* a estrutura da projeção: nomes dos campos revelam o que o attach espera */
+            /* the projection structure: field names reveal what attach expects */
             for (String cn : new String[]{"android.os.ProjectionDisplayInfoParcel",
                                           "android.os.AutoContainerProjectionInfo",
                                           "android.os.IAutoContainer$ProjectionDisplayInfoParcel"}) {
                 try {
                     Class<?> c = Class.forName(cn);
-                    sb.append("classe ").append(cn).append('\n');
+                    sb.append("class ").append(cn).append('\n');
                     for (java.lang.reflect.Field f : c.getDeclaredFields()) {
                         if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
-                        sb.append("  campo ").append(f.getType().getSimpleName()).append(' ').append(f.getName()).append('\n');
+                        sb.append("  field ").append(f.getType().getSimpleName()).append(' ').append(f.getName()).append('\n');
                     }
                     for (Method m : c.getDeclaredMethods()) {
-                        sb.append("  metodo ").append(m.getReturnType().getSimpleName()).append(' ')
+                        sb.append("  method ").append(m.getReturnType().getSimpleName()).append(' ')
                           .append(m.getName()).append("()\n");
                     }
                 } catch (Throwable t) {
-                    sb.append("sem ").append(cn).append('\n');
+                    sb.append("no ").append(cn).append('\n');
                 }
             }
 
-            /* getter de diagnóstico, se existir */
+            /* diagnostic getter, if it exists */
             try {
                 Class<?> stub = Class.forName("android.os.IAutoContainer$Stub");
                 Object svc = stub.getMethod("asInterface", android.os.IBinder.class).invoke(null, binder);
-                sb.append("servico=").append(svc.getClass().getName()).append('\n');
-                /* getProjectionDisplayInfo(Parcel) preenche a estrutura e devolve status */
+                sb.append("service=").append(svc.getClass().getName()).append('\n');
+                /* getProjectionDisplayInfo(Parcel) fills the structure and returns status */
                 try {
                     Class<?> pc = Class.forName("android.os.ProjectionDisplayInfoParcel");
                     Object info = pc.getDeclaredConstructor().newInstance();
@@ -85,13 +87,13 @@ public class ContainerProbe {
                         sb.append("  ").append(f.getName()).append('=').append(f.get(info)).append('\n');
                     }
                 } catch (Throwable t) {
-                    sb.append("getProjectionDisplayInfo falhou: ").append(t).append('\n');
+                    sb.append("getProjectionDisplayInfo failed: ").append(t).append('\n');
                 }
             } catch (Throwable t) {
-                sb.append("asInterface falhou: ").append(t).append('\n');
+                sb.append("asInterface failed: ").append(t).append('\n');
             }
         } catch (Throwable t) {
-            sb.append("falhou: ").append(t).append('\n');
+            sb.append("failed: ").append(t).append('\n');
         }
         System.out.println(sb.toString());
     }

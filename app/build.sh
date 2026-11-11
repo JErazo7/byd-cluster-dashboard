@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Compila o SharkLab em APK assinado, sem Gradle: aapt2 + javac + d8 + apksigner.
+# Builds SharkLab into a signed APK without Gradle: aapt2 + javac + d8 + apksigner.
 #
 #   SDK=/opt/android-sdk ./build.sh
 #
-# android.jar vem de $SDK/platforms/android-<N>/android.jar (o maior que existir).
+# android.jar comes from $SDK/platforms/android-<N>/android.jar (the highest one available).
 set -euo pipefail
 cd "$(dirname "$0")"
 
 SDK="${SDK:-/opt/android-sdk}"
 THEMES="${THEMES:-../themes}"
-# o AutoContainer só aceita sendInfo de com.xdja.clusterdemo (lista em
-# /system/etc/container_comm_cfg.json); sem esse nome o painel fica com a BYD.
+# AutoContainer only accepts sendInfo from com.xdja.clusterdemo (list in
+# /system/etc/container_comm_cfg.json); without that name the panel keeps the BYD skin.
 PKG="${PKG:-com.xdja.clusterdemo}"
 OUT="${OUT:-out/sharklab-cluster.apk}"
 BT="${ANDROID_BUILD_TOOLS:-$SDK/build-tools/36.0.0}"
@@ -18,12 +18,12 @@ JAR="$(ls -d "$SDK"/platforms/android-*/android.jar 2>/dev/null | sort -V | tail
 KS="${LAB_KEYSTORE:-lab.keystore}"
 PASS="${LAB_KEYSTORE_PASS:-sharklab}"
 
-die() { echo "erro: $*" >&2; exit 1; }
-[ -n "$JAR" ] || die "android.jar não encontrado em $SDK/platforms"
-[ -x "$BT/aapt2" ] || die "aapt2 não encontrado em $BT"
-[ -x "$BT/d8" ] || die "d8 não encontrado em $BT"
-[ -x "$BT/apksigner" ] || die "apksigner não encontrado em $BT"
-command -v javac >/dev/null || die "falta javac"
+die() { echo "error: $*" >&2; exit 1; }
+[ -n "$JAR" ] || die "android.jar not found in $SDK/platforms"
+[ -x "$BT/aapt2" ] || die "aapt2 not found in $BT"
+[ -x "$BT/d8" ] || die "d8 not found in $BT"
+[ -x "$BT/apksigner" ] || die "apksigner not found in $BT"
+command -v javac >/dev/null || die "javac missing"
 
 rm -rf build && mkdir -p build/classes build/dex
 
@@ -31,15 +31,15 @@ echo "0/5 skins"
 rm -rf build/assets
 cp -r assets build/assets
 mkdir -p build/assets/dash
-if [ -d "$THEMES/dash" ]; then cp -r "$THEMES"/dash/* build/assets/dash/; else die "sem temas em $THEMES/dash"; fi
+if [ -d "$THEMES/dash" ]; then cp -r "$THEMES"/dash/* build/assets/dash/; else die "no themes in $THEMES/dash"; fi
 find build/assets -name theme.json -delete
 if [ -f "$HOME/.android/adbkey" ] && [ -f "$HOME/.android/adbkey.pub" ]; then
   cp "$HOME/.android/adbkey" build/assets/adbkey.pem
   cp "$HOME/.android/adbkey.pub" build/assets/adbkey.pub
-  echo "   adb key embutida"
+  echo "   adb key embedded"
 fi
 
-echo "1/5 recursos + manifesto"
+echo "1/5 resources + manifest"
 RES=""
 if [ -d res ]; then
   "$BT/aapt2" compile --dir res -o build/res.zip
@@ -57,7 +57,7 @@ javac -nowarn --release 8 -cp "$JAR" -d build/classes $(find src -name '*.java')
 echo "3/5 d8"
 "$BT/d8" --lib "$JAR" --min-api 26 --output build/dex $(find build/classes -name '*.class')
 
-echo "4/5 montar APK"
+echo "4/5 assemble APK"
 cp build/base.apk build/app.apk
 (cd build/dex && "$BT/../36.0.0/aapt2" version >/dev/null 2>&1 || true)
 python3 - build/app.apk build/dex/classes.dex <<'PY'
@@ -67,7 +67,7 @@ with zipfile.ZipFile(apk, "a", zipfile.ZIP_DEFLATED) as z:
     z.write(dex, "classes.dex")
 PY
 
-echo "5/5 alinhar + assinar"
+echo "5/5 align + sign"
 "$BT/zipalign" -f -p 4 build/app.apk build/app-aligned.apk
 if [ ! -f "$KS" ]; then
   keytool -genkeypair -keystore "$KS" -storepass "$PASS" -keypass "$PASS" -alias lab \

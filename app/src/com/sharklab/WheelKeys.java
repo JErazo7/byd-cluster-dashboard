@@ -8,13 +8,13 @@ import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 
 /**
- * WheelKeys — botões do volante.
+ * WheelKeys — steering wheel buttons.
  *
- * AccessibilityService com filtro de teclas: recebe o que a central entrega aos serviços de
- * acessibilidade (mídia, volume, setas, enter, voltar). Não interfere em outros apps e não
- * precisa de root; o usuário habilita o serviço uma vez.
+ * AccessibilityService with a key filter: it receives what the head unit hands to accessibility
+ * services (media, volume, arrows, enter, back). It does not interfere with other apps and does
+ * not need root; the user enables the service once.
  *
- * A skin lê Lab.wheel() e decide a ação (trocar motor, trocar painel, volume).
+ * The skin reads Lab.wheel() and decides the action (switch engine, switch panel, volume).
  */
 public class WheelKeys extends AccessibilityService {
 
@@ -29,7 +29,7 @@ public class WheelKeys extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        /* só as teclas interessam */
+        /* only the keys matter */
     }
 
     @Override
@@ -39,14 +39,14 @@ public class WheelKeys extends AccessibilityService {
             lastAt = System.currentTimeMillis();
             count++;
         }
-        return false;                     /* não consome: o app de origem continua recebendo */
+        return false;                     /* does not consume: the originating app keeps receiving */
     }
 
     @Override
     public void onInterrupt() {
     }
 
-    /** última tecla: {key, age, count} */
+    /** last key: {key, age, count} */
     public static String snapshot() {
         return "{\"key\":" + lastKey + ",\"age\":" + (lastKey < 0 ? -1 : System.currentTimeMillis() - lastAt)
                 + ",\"count\":" + count + "}";
