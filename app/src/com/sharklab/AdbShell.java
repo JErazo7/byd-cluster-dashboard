@@ -225,7 +225,10 @@ public final class AdbShell {
         } catch (Throwable t) {
             return;
         }
-        execOnce("cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
+        /* mata qualquer instância anterior: sem isso, um script antigo fica vivo e dispara
+           comandos que ninguém quer */
+        execOnce("pkill -f " + WD_NAME + " 2>/dev/null; sleep 1"
+                + "; cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
                 + "; chmod 755 /data/local/tmp/" + WD_NAME
                 + "; P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null)"
                 /* lock órfão de um vigia morto à força: remove antes de lançar */
