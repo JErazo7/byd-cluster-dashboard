@@ -141,6 +141,13 @@ interruptores invertidos* y se indexa por directorio del APK, así que **hay que
 después de cada instalación** (Settings → Apps → Auto-start Management; fila en OFF = habilitado).
 Por eso el vigía relanza la app en vez de confiar en `BOOT_COMPLETED`.
 
+## Guía de implementación para agentes
+
+`docs/IMPLEMENTACION-TABLERO-AGENTE.md` reúne, en un solo documento, cómo reproducir este
+tablero desde cero en una BYD Shark (y qué medir para portarlo a otro BYD con DiLink 3.0):
+plataforma, restricciones, secuencia de comandos, encendido/apagado, vigía, contrato de la skin,
+diagnóstico y checklist de aceptación en el auto.
+
 ## Cómo toma el panel
 
 El clúster no es un display Android común: es otra instancia (`fission`) y el panel solo
