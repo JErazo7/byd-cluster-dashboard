@@ -1,4 +1,4 @@
-# binários e chaves de assinatura (nunca versionar)
+# binaries and signing keys (never commit)
 *.apk
 *.idsig
 *.keystore
@@ -8,3 +8,6 @@ build/
 demos/
 *.wav
 .DS_Store
+
+# third-party licensed material kept out of the public tree
+private/
