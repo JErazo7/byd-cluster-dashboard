@@ -198,8 +198,8 @@ public class MainActivity extends Activity {
                 } catch (Throwable ignored) {
                 }
                 /* rearma o vigia a cada ~60 s: é ele que devolve a app depois do apagamento */
-                if (++tick[0] % 30 == 0) AdbShell.watchdog(MainActivity.this);
-                ui.postDelayed(this, 2000);
+                if (++tick[0] % 60 == 0) AdbShell.watchdog(MainActivity.this);
+                ui.postDelayed(this, 1000);
             }
         });
 
@@ -493,7 +493,7 @@ public class MainActivity extends Activity {
             public void run() {
                 if (ClusterOverlay.running()) return;
                 ensureOverlay();
-                if (!ClusterOverlay.running() && ++tries[0] < 15) ui.postDelayed(this, 2000);
+                if (!ClusterOverlay.running() && ++tries[0] < 15) ui.postDelayed(this, 1000);
             }
         };
         ui.postDelayed(retry, 1500);

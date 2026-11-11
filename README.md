@@ -113,7 +113,9 @@ Su evento oficial es `AbsBYDAutoPowerListener.onPowerCtlStatusChanged(int, int)`
 | `1` y panel libre | `overlayShow()` → tema aplicado en ≤2 s, **también en P** |
 | `0` y panel tomado | `PanelRelease.release()` → el panel vuelve a BYD en ≤2 s (solo la alerta) |
 
-La app lo consulta cada 2 s (`MainActivity`, el bucle que también rearma el vigía).
+La app lo consulta cada **1 s** (`MainActivity`, el bucle que también rearma el vigía) y el vigía
+mira cada **2 s**: el ciclo completo apagar → puerta → encender se resuelve en 2–5 s medidos en
+el carro (el resto es lo que tarda el WebView en pintar).
 
 **Vigía en adbd** (`/data/local/tmp/shark_wd.sh`): lo único que hace es relanzar la app
 (`am start`) si no hay proceso y la pantalla está `Awake`, cada 5 s. Es el mismo truco que usa

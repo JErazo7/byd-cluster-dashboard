@@ -210,7 +210,7 @@ public final class AdbShell {
                     + "      am start -n com.xdja.clusterdemo/com.sharklab.MainActivity >/dev/null 2>&1\n"
                     + "    fi\n"
                     + "  fi\n"
-                    + "  sleep 5\n"
+                    + "  sleep 2\n"
                     + "done\n"
                     + "rm -f /data/local/tmp/shark_wd.pid\n"
                     + "rmdir /data/local/tmp/shark_wd.lock 2>/dev/null\n");
