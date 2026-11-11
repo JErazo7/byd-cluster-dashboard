@@ -28,6 +28,7 @@ public class ClusterSkinActivity extends Activity {
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
 
+        ClusterOverlay.enableDevtools();
         web = new WebView(this);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -81,14 +82,29 @@ public class ClusterSkinActivity extends Activity {
 
         /** leituras que mudam quando o carro apaga (para achar o sinal de "desligado") */
         public String powerProbe() {
-            double[] b = byd.snapshot();
+            double[] b = snap();
             return "estate=" + (int) b[28] + " bcm=" + (int) b[29] + " day=" + (int) b[30]
                     + " spd=" + (int) b[0] + " gear=" + (int) b[1] + " off=" + (int) b[32] + " auto=" + (int) b[33] + " pwr=" + (int) b[34] + " mcu=" + (int) b[35] + " pc=" + (int) b[36];
         }
 
+        /* Um `snapshot()` custa ~12 ms (37 leituras nos módulos da BYD) e há dois consumidores
+           no painel: o empurrador de 400 ms (ClusterOverlay) e o lab-feed da própria página.
+           Com 120 ms de cache os dois compartilham a mesma leitura e a thread do renderer deixa
+           de ficar presa no binder a cada quadro. */
+        private static double[] cached;
+        private static long cachedAt;
+
+        private double[] snap() {
+            long now = System.currentTimeMillis();
+            if (cached != null && now - cachedAt < 120) return cached;
+            cached = byd.snapshot();
+            cachedAt = now;
+            return cached;
+        }
+
         @android.webkit.JavascriptInterface
         public String state() {
-            double[] b = byd.snapshot();
+            double[] b = snap();
             boolean car = b[0] > -998;
             simSpeed += up ? 1.6f : -1.6f;
             if (simSpeed > 120) { simSpeed = 120; up = false; }

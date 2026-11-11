@@ -218,3 +218,25 @@ Não entram no APK da SharkLab; para instalar no carro use `tools/import-evsound
 Ao ligar o carro o painel volta ao layout original da BYD. A skin da SharkLab só assume o
 painel quando o app é aberto; ao desligar/dormir a central ela solta o painel de novo
 (`cmd 18`) e fecha a tela. `autostart` fica desligado por padrão.
+
+## Medir a fluidez do painel
+
+O painel é uma janela virtual: o Chromium congela o `requestAnimationFrame` da página, então a
+skin não consegue medir o próprio ritmo. As duas leituras que servem:
+
+```bash
+./tools/panel-fps.sh                  # fps e engasgos da camada do painel (SurfaceFlinger)
+```
+
+Para olhar dentro do WebView (custos de script/estilo, perfil de CPU, forçar um estado), o
+devtools fica ligado no painel:
+
+```bash
+adb forward tcp:9222 localabstract:webview_devtools_remote_$(adb shell pidof com.xdja.clusterdemo)
+curl -s http://127.0.0.1:9222/json     # a página "BYD" é o painel
+```
+
+Medido no carro (parado, skin `byd`): `Lab.state()` custa ~12 ms por leitura (37 chamadas ao
+binder da BYD) e a thread principal do renderer fica em ~16% ociosa com o app empurrando o
+estado a 2,5 Hz. Quem alimenta a página é **só** o empurrador do `ClusterOverlay`: o
+`lab/lab-feed.js` desliga sozinho quando a página recebe `window.__pushedByApp`.

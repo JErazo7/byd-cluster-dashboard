@@ -11,7 +11,7 @@
   if (window.__labFeed || !window.Lab) return;
   window.__labFeed = true;
 
-  var B = window.Lab, cars = {}, t = 0, media = null, nav = null, pos = null, lastTs = 0;
+  var B = window.Lab, cars = {}, t = 0, media = null, nav = null, pos = null, lastTs = 0, gate = 0;
   try { JSON.parse(B.cars()).forEach(function (c) { cars[c.id] = c; }); } catch (e) {}
 
   /* unidades do painel (a central da BYD manda 1 = métrico, 2 = imperial) */
@@ -27,6 +27,16 @@
 
   function tick() {
     var nowTs = Date.now();
+    /* O app empurra o MESMO contrato a 2,5 Hz por evaluateJavascript (ClusterOverlay). Duas
+       fontes chamando draw() só gastam o binder da BYD (~12 ms por leitura de estado) e deixam
+       a thread do renderer ocupada: quando o app avisa que está no comando, o feed para — as
+       unidades acima já ficaram definidas. */
+    if (window.__pushedByApp) return;
+    /* ~10 Hz. Cada `B.state()` custa ~12 ms (37 leituras nos módulos da BYD) e o rAF do painel
+       roda a 60 Hz: sem este portão a thread do renderer fica 100% ocupada lendo o carro, os
+       temporizadores da página atrasam para ~45 ms e a animação perde todo o ritmo. */
+    if (nowTs - gate < 95) return requestAnimationFrame(tick);
+    gate = nowTs;
     var dt = lastTs ? (nowTs - lastTs) / 1000 : 0.05;
     lastTs = nowTs;
     var s;
@@ -78,7 +88,7 @@
     };
     /* música, posição e navegação mudam devagar: lidas uma vez por segundo e
        reanexadas em TODO quadro (sem isso a manobra some no quadro seguinte) */
-    if (t % 20 === 0) {
+    if (t % 10 === 0) {          /* ~1 s a 10 Hz */
       try {
         var m = JSON.parse(B.nowPlaying());
         media = (m && m.title) ? m : null;

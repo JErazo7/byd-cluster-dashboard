@@ -74,6 +74,7 @@ public class MainActivity extends Activity {
 
         HiddenApi.allowAll();
         Log.i(TAG, "hiddenApi=" + HiddenApi.result());
+        ClusterOverlay.enableDevtools();
         byd = new BydBridge(this);
 
         /* diagnóstico no logcat: o que esta unidade responde (adb logcat -s SharkLab) */

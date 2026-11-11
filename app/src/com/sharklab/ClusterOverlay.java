@@ -49,6 +49,20 @@ public final class ClusterOverlay {
         return web != null;
     }
 
+    /**
+     * Liga o devtools do WebView. Sem ele não há como medir nem depurar a skin dentro do painel:
+     * o `requestAnimationFrame` da página fica congelado nesse display virtual e o Chrome não
+     * enxerga um processo `webview_devtools_remote`. Com a flag, `adb forward tcp:9222
+     * localabstract:webview_devtools_remote_<pid>` abre a aba `chrome://inspect` do painel.
+     * Precisa rodar ANTES do primeiro WebView do processo.
+     */
+    public static void enableDevtools() {
+        try {
+            WebView.setWebContentsDebuggingEnabled(true);
+        } catch (Throwable ignored) {
+        }
+    }
+
     public static String error() {
         return error;
     }
@@ -270,7 +284,9 @@ public final class ClusterOverlay {
                     AdbShell.trace(lastCtx, "vivo " + ticks + " estado=" + br.powerProbe());
                 }
                 try {
-                    String js = "window.BrasaDriveUpdate&&window.BrasaDriveUpdate(" + br.state() + ")";
+                    /* `__pushedByApp` desliga o lab-feed da página: com ele ligado, página e app
+                       leem o carro (37 chamadas ao binder por leitura) e desenham o mesmo quadro */
+                    String js = "window.__pushedByApp=1;window.BrasaDriveUpdate&&window.BrasaDriveUpdate(" + br.state() + ")";
                     web.evaluateJavascript(js, null);
                 } catch (Throwable ignored) {
                 }
