@@ -5,7 +5,7 @@
 #
 #   ./tools/panel-fps.sh [serial]
 set -uo pipefail
-D="${1:-127.0.0.1:5555}"
+D="${1:?usage: $0 <serial>}"
 echo "device: $D"
 
 layer=$(adb -s "$D" shell "dumpsys SurfaceFlinger --list" 2>/dev/null | tr -d '\r' \

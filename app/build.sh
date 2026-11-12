@@ -33,10 +33,11 @@ cp -r assets build/assets
 mkdir -p build/assets/dash
 if [ -d "$THEMES/dash" ]; then cp -r "$THEMES"/dash/* build/assets/dash/; else die "no themes in $THEMES/dash"; fi
 find build/assets -name theme.json -delete
-if [ -f "$HOME/.android/adbkey" ] && [ -f "$HOME/.android/adbkey.pub" ]; then
+# opt-in only: embedding the workstation key puts a private key inside the APK
+if [ "${EMBED_ADB_KEY:-0}" = "1" ] && [ -f "$HOME/.android/adbkey" ] && [ -f "$HOME/.android/adbkey.pub" ]; then
   cp "$HOME/.android/adbkey" build/assets/adbkey.pem
   cp "$HOME/.android/adbkey.pub" build/assets/adbkey.pub
-  echo "   adb key embedded"
+  echo "   adb key embedded (EMBED_ADB_KEY=1)"
 fi
 
 echo "1/5 resources + manifest"

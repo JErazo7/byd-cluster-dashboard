@@ -3,7 +3,7 @@
 #   ./tools/install-keepalive.sh [serial]
 set -euo pipefail
 cd "$(dirname "$0")/.."
-D="${1:-127.0.0.1:5555}"
+D="${1:?usage: $0 <serial>}"
 
 adb -s "$D" push tools/keepalive.sh /data/local/tmp/sharklab.sh >/dev/null
 adb -s "$D" shell 'chmod 755 /data/local/tmp/sharklab.sh; pkill -f sharklab.sh 2>/dev/null; setsid nohup /system/bin/sh /data/local/tmp/sharklab.sh >/dev/null 2>&1 &' >/dev/null

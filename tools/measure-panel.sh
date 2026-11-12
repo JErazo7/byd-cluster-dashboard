@@ -2,7 +2,7 @@
 # Measures whether the reference app projects the panel onto its own display or whether the cluster is a head unit mirror.
 #   ./tools/measure-panel.sh [serial]
 set -uo pipefail
-D="${1:-127.0.0.1:5555}"
+D="${1:?usage: $0 <serial>}"
 OUT=/tmp/panel
 mkdir -p "$OUT"
 

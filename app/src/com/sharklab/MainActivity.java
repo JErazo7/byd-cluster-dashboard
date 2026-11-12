@@ -272,7 +272,7 @@ public class MainActivity extends Activity {
                         Object binder = Class.forName("android.os.ServiceManager")
                                 .getMethod("getService", String.class).invoke(null, "magicwindow");
                         Object svc = stub.getMethod("asInterface", android.os.IBinder.class).invoke(null, binder);
-                        String[] pkgs = {"com.xdja.clusterdemo", "com.mdemetrio.evsoundbyd"};
+                        String[] pkgs = {"com.xdja.clusterdemo"};
                         boolean first = true;
                         for (String pk : pkgs) {
                             if (!first) sb.append(',');

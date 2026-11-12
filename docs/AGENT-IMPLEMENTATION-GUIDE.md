@@ -559,7 +559,7 @@ Dolphin…) must confirm them with the sweep above.
 7. Remote power-on (BYD app): same result, no dialogs and no interface on the head unit.
 8. `am kill <pkg>` with the car on: the watchdog relaunches the app and the panel recovers.
 9. Leave it 3 minutes untouched: the panel stays full screen (60 s reaffirmation).
-10. `./tools/panel-fps.sh`: no sustained jank; fps close to vsync.
+10. `./tools/panel-fps.sh <IP>:5555`: no sustained jank; fps close to vsync.
 11. Check `panel.log`: no `panel display not found` and no `SecurityException`.
 12. Restart the head unit: the "applied" state does not come back on its own if the toggle is off.
 

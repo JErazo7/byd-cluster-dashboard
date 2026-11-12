@@ -10,7 +10,7 @@ The reference implementation in this repo is called **SharkLab**. It has only be
 
 | Folder | What it is | Status |
 |---|---|---|
-| `app/` | SharkLab: Android app that paints the skin (36 KB APK, no Gradle) | **builds and signs** |
+| `app/` | SharkLab: Android app that paints the skin (~2.6 MB APK with the theme, no Gradle) | **builds and signs** |
 | `themes/` | `byd` theme (the only one the app shows) | working |
 | `tools/` | Diagnostics and helper scripts: panel FPS, preview server, deploy, keepalive | working |
 
@@ -111,6 +111,10 @@ SDK=/opt/android-sdk ./app/build.sh      # lands in app/out/sharklab-cluster.apk
 
 No Gradle: `aapt2` + `javac` + `d8` + `apksigner`. Requirements: JDK 17, Android SDK
 (platform + build-tools), `keytool`.
+
+The APK does **not** embed an ADB key by default. If you want the app to connect to the head
+unit's adbd without the one-time authorisation prompt, build with `EMBED_ADB_KEY=1`; that copies
+your `~/.android/adbkey` into the APK, so never distribute a build made that way.
 
 The APK is built with the package **`com.xdja.clusterdemo`**: it is the only name that
 `/system/etc/container_comm_cfg.json` authorises to talk to the `AutoContainer` service. Under
@@ -256,7 +260,7 @@ The panel is a virtual window: Chromium freezes the page's `requestAnimationFram
 cannot measure its own pace. The two readings that work:
 
 ```bash
-./tools/panel-fps.sh                  # fps and jank of the panel layer (SurfaceFlinger)
+./tools/panel-fps.sh <IP>:5555       # fps and jank of the panel layer (SurfaceFlinger)
 ```
 
 To look inside the WebView (script/style costs, CPU profile, force a state), devtools is left on

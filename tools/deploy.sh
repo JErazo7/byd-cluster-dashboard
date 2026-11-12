@@ -3,7 +3,7 @@
 #   ./tools/deploy.sh [serial]
 set -uo pipefail
 cd "$(dirname "$0")/.."
-D="${1:-127.0.0.1:5555}"
+D="${1:?usage: $0 <serial>}"
 APK=app/out/sharklab-cluster.apk
 APK_REL=out/sharklab-cluster.apk
 PKG=com.xdja.clusterdemo
