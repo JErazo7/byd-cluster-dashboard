@@ -35,11 +35,8 @@ does not have to start from zero. Never claim support for a model that has not b
 
 ## For AI agents
 
-If you are an agent implementing a custom dashboard on a BYD with DiLink 3.0, read
-[`docs/AGENT-IMPLEMENTATION-GUIDE.md`](docs/AGENT-IMPLEMENTATION-GUIDE.md) before touching code.
-It is the self-contained implementation document: platform contract, command sequence, power
-on/off handling, watchdog, skin contract, diagnostics, ADB reference and acceptance checklist.
-This README is the project overview; the guide is the build manual.
+See [`AGENTS.md`](AGENTS.md): the agent entry point, the tested scope and the hard rules, with
+the link to the implementation guide.
 
 **Skin grid:** `byd` draws at **1920×720** with a `viewBox` — the exact cluster frame — and
 `width/height="100%"`, so it scales on its own. Side rings with radius ~200 and stroke 14,
@@ -80,7 +77,8 @@ skin only draws it when the file exists — see `themes/dash/byd/assets/README.m
 | The app takes the panel by itself: it sends `AutoContainer` cmd 16 when the window opens and when it comes back to the foreground | ✅ |
 | The app shows only the installed themes (today: `byd`) in a grid | ✅ |
 | Single screen: theme grid + `APLICAR`/`DESACTIVAR` + auto-start toggle | ✅ |
-| Reading real BYD data (CAN/DiLink) | ⏳ pending |
+| Real vehicle data through the DiLink APIs (`android.hardware.bydauto.*`): speed, gear, power, SOC, range, fuel, odometer, temperatures, tyre pressures, driving modes | ✅ |
+| Derived values the DiLink APIs do not expose on this unit (battery temperature, trip computer) | ⏳ pending, shown as `-999` |
 | Cameras, ADAS, map, Android Auto / CarPlay | ⏳ pending (AA/CarPlay need a Google/Apple licence) |
 
 ## Building the app
