@@ -11,3 +11,6 @@ demos/
 
 # third-party licensed material kept out of the public tree
 private/
+
+# optional user-supplied theme assets
+/themes/dash/byd/assets/truck.png
