@@ -82,6 +82,27 @@ skin draws a placement hint with the file name, format and size until the file e
 | Derived values the DiLink APIs do not expose on this unit (battery temperature, trip computer) | ⏳ pending, shown as `-999` |
 | Cameras, ADAS, map, Android Auto / CarPlay | ⏳ pending (AA/CarPlay need a Google/Apple licence) |
 
+## Driving modes at a glance
+
+The theme changes its scene, palette and ring colours with the driving mode. Captured from a
+clean clone: the dashed card in the centre is the slot for your own vehicle photo
+(`themes/dash/byd/assets/README.md`), so the screenshots show the layout, not the photo.
+
+| NORMAL — night city, cyan accents | SPORT — ember sky, amber rings |
+|---|---|
+| [![Normal mode](docs/modes/normal.jpg)](docs/modes/normal.jpg) | [![Sport mode](docs/modes/sport.jpg)](docs/modes/sport.jpg) |
+
+| MOUNTAIN — green range, mint accents | SNOW — aurora, ice-blue accents |
+|---|---|
+| [![Mountain mode](docs/modes/mountain.jpg)](docs/modes/mountain.jpg) | [![Snow mode](docs/modes/snow.jpg)](docs/modes/snow.jpg) |
+
+| SAND — desert dunes, warm accents | MUD — jungle road, deep green |
+|---|---|
+| [![Sand mode](docs/modes/sand.jpg)](docs/modes/sand.jpg) | [![Mud mode](docs/modes/mud.jpg)](docs/modes/mud.jpg) |
+
+Click any frame to open it at full size. The mode comes from the car (`surfmode` for terrain and
+the ECO/SPORT telltale for driving mode), not from a setting in the app.
+
 ## Building the app
 
 ```bash
