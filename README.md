@@ -66,7 +66,8 @@ range, mountain mode), `bg-mud.jpg` (jungle road, mud mode), `bg-snow.jpg` (snow
 aurora, snow mode), `bg-sand.jpg` (desert with dunes, sand mode) and `tyre-stage.png` /
 `tyre-car.png` (top-down car art for the pressure card; the skin draws `tyre-stage.png`).
 `truck.png` (cut-out pickup) is **not included**: it is optional and user-supplied, and the
-skin only draws it when the file exists — see `themes/dash/byd/assets/README.md`.
+skin draws a placement hint with the file name, format and size until the file exists — see
+`themes/dash/byd/assets/README.md`.
 
 ## Actual feature status
 
