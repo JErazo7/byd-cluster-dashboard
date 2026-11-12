@@ -1,14 +1,37 @@
-# SharkLab
+# BYD cluster dashboard
 
-Own cluster panel for the BYD Shark, with **its own code**: HTML/SVG skins you edit as text and
-an Android app that paints them on the head unit and on the cluster behind the steering wheel,
-**without depending on the reference cluster app**.
+Own cluster panel for BYD vehicles that use the DiLink 3.0 cluster system (the `AutoContainer`
+binder plus the `fission` virtual display), with **its own code**: HTML/SVG skins you edit as
+text and an Android app that paints them on the head unit and on the cluster behind the
+steering wheel, **without depending on the reference cluster app**.
+
+The reference implementation in this repo is called **SharkLab**. It has only been tested on a
+**BYD Shark** so far; see [Compatibility](#compatibility).
 
 | Folder | What it is | Status |
 |---|---|---|
 | `app/` | SharkLab: Android app that paints the skin (36 KB APK, no Gradle) | **builds and signs** |
 | `themes/` | `byd` theme (the only one the app shows) | working |
 | `tools/` | Diagnostics and helper scripts: panel FPS, preview server, deploy, keepalive | working |
+
+## Compatibility
+
+| Scope | Status |
+|---|---|
+| BYD Shark (`BYD_AUTO`, DiLink 3.0, Android 10, 1920×720 panel) | **tested on the car** |
+| Other BYD models sharing the same DiLink 3.0 cluster system | expected to work; not verified yet |
+| BYD models with a different cluster service or display | needs a port |
+
+The design only relies on the platform contract: the `AutoContainer` binder, a virtual display
+for the panel and the BYD vehicle APIs. A different model may expose another display name,
+other panel command codes or a different power signal; the
+[agent guide](docs/AGENT-IMPLEMENTATION-GUIDE.md#11-porting-to-another-byd-with-dilink-30)
+lists the probes to run before adapting the code.
+
+**Contributions are welcome.** If you add support for another BYD, open an issue or PR with the
+values you measured on the car (display name, panel commands, power signal) so the next person
+does not have to start from zero. Never claim support for a model that has not been tested.
+
 
 ## For AI agents
 

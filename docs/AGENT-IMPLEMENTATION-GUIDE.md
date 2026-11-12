@@ -1,9 +1,15 @@
 # Own dashboard on a BYD with DiLink 3.0 — implementation guide for agents
 
-Working document so that an AI agent (or a person) can reproduce, from scratch, the custom
-dashboard of this repo on a BYD Shark. Everything marked as **measured** was verified on this
-unit: `BYD_AUTO`, DiLink 3.0, Android 10, 1920×720 panel. What is marked as **inference** is what
-is expected on other DiLink 3.0 units and has to be confirmed on the car.
+Working document so that an AI agent (or a person) can reproduce, from scratch, a custom cluster
+dashboard on a BYD with DiLink 3.0. Everything marked as **measured** was verified on one unit:
+a BYD Shark (`BYD_AUTO`, DiLink 3.0, Android 10, 1920×720 panel). Everything marked as
+**inference** is what is expected on other DiLink 3.0 units and has to be confirmed on the car
+before claiming support.
+
+Other BYD models are expected to work when they share the same cluster system (the
+`AutoContainer` binder and the `fission` virtual display). Porting means re-measuring the panel
+display name, the command codes and the power signal; §11 lists the probes. Contributions that
+add support for another model are welcome, with the measured values attached.
 
 Executable reference: `app/` (SharkLab). Raw platform contract: `docs/BYD-CONTAINER.md` and
 `docs/bug-panel-display.md`. This document is the recommended path; those two are the evidence.
