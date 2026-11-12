@@ -336,7 +336,17 @@
 
   var TRUCK_W = 312, TRUCK_H = Math.round(TRUCK_W * 203 / 400);
   var truckGlow = el('ellipse', { cx: 640, cy: 318, rx: 152, ry: 8, fill: '#2f9df5', opacity: 0.16 });
-  el('image', { href: 'assets/truck.png', x: 640 - TRUCK_W / 2, y: 318 - TRUCK_H, width: TRUCK_W, height: TRUCK_H });
+  /* truck.png is an optional, user-supplied asset: draw the pickup only when the file exists */
+  (function () {
+    var truckLayer = layer, probe = new Image();
+    probe.onload = function () {
+      el('image', {
+        href: 'assets/truck.png',
+        x: 640 - TRUCK_W / 2, y: 318 - TRUCK_H, width: TRUCK_W, height: TRUCK_H
+      }, truckLayer);
+    };
+    probe.src = 'assets/truck.png';
+  })();
 
   /* decorative screen pagination, as in the design */
 

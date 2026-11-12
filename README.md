@@ -10,6 +10,14 @@ an Android app that paints them on the head unit and on the cluster behind the s
 | `themes/` | `byd` theme (the only one the app shows) | working |
 | `tools/` | Diagnostics and helper scripts: panel FPS, preview server, deploy, keepalive | working |
 
+## For AI agents
+
+If you are an agent implementing a custom dashboard on a BYD with DiLink 3.0, read
+[`docs/AGENT-IMPLEMENTATION-GUIDE.md`](docs/AGENT-IMPLEMENTATION-GUIDE.md) before touching code.
+It is the self-contained implementation document: platform contract, command sequence, power
+on/off handling, watchdog, skin contract, diagnostics, ADB reference and acceptance checklist.
+This README is the project overview; the guide is the build manual.
+
 **Skin grid:** `byd` draws at **1920×720** with a `viewBox` — the exact cluster frame — and
 `width/height="100%"`, so it scales on its own. Side rings with radius ~200 and stroke 14,
 centres at x 300/1620 and y 400; dial number 96 (hero 120 in the centre); bottom band cards at
@@ -35,9 +43,10 @@ scaled, centre at y 196.
 `byd` is the only theme with photos, all of them in `themes/dash/byd/assets/`: `bg.jpg`
 (landscape), `bg-sport.jpg` (road on embers, SPORT mode), `bg-mountain.jpg` (green mountain
 range, mountain mode), `bg-mud.jpg` (jungle road, mud mode), `bg-snow.jpg` (snowy range with
-aurora, snow mode), `bg-sand.jpg` (desert with dunes, sand mode), `truck.png` (cut-out
-pickup with alpha) and `tyre-stage.png` / `tyre-car.png` (top-down car art for the pressure
-card; the skin draws `tyre-stage.png`).
+aurora, snow mode), `bg-sand.jpg` (desert with dunes, sand mode) and `tyre-stage.png` /
+`tyre-car.png` (top-down car art for the pressure card; the skin draws `tyre-stage.png`).
+`truck.png` (cut-out pickup) is **not included**: it is optional and user-supplied, and the
+skin only draws it when the file exists — see `themes/dash/byd/assets/README.md`.
 
 ## Actual feature status
 
@@ -141,13 +150,6 @@ the app loop.
 indexed by APK directory, so **it has to be checked after every installation** (Settings → Apps →
 Auto-start Management; row OFF = enabled). That is why the watchdog relaunches the app instead
 of trusting `BOOT_COMPLETED`.
-
-## Implementation guide for agents
-
-`docs/AGENT-IMPLEMENTATION-GUIDE.md` gathers, in a single document, how to reproduce this
-dashboard from scratch on a BYD Shark (and what to measure to port it to another BYD with
-DiLink 3.0): platform, restrictions, command sequence, power on/off, watchdog, skin contract,
-diagnostics and acceptance checklist on the car.
 
 ## How it takes the panel
 
