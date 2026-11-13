@@ -160,3 +160,44 @@ Experimento cuando vuelva a aparecer `display=0`:
 
 Si sube: esa es la pieza que faltaba y se implementa en `PanelBoot`. Si no sube: el gate es estado
 del vehículo (llave/sesión) y no una llamada desde la app.
+
+
+## Diagnóstico en un minuto (si vuelve a fallar)
+
+```bash
+IP=100.73.229.44:5555
+adb connect $IP
+
+# 1) log del app (siempre disponible; el archivo se puede quedar mudo)
+adb -s $IP logcat -d -s SharkLab | tail -20
+adb -s $IP logcat -c            # antes de reproducir, para no leer historia vieja
+
+# 2) ¿existe el display del panel?
+adb -s $IP shell 'dumpsys display | grep -c fission'
+
+# 3) ¿hay vigía armado?
+adb -s $IP shell 'P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null); [ -d /proc/$P ] && echo VIVO || echo MORTO'
+adb -s $IP shell 'tail -5 /data/local/tmp/shark.log'
+
+# 4) ¿hay ventana nuestra en el panel?
+adb -s $IP shell "dumpsys window windows | grep -c 'EvSound painel'"
+```
+
+Lectura de los resultados:
+
+| Síntoma | Significado | Dónde mirar |
+|---|---|---|
+| `fission` = 0 | el container no registró el display: nada puede dibujar (ni EVSound) | `PanelCallback` + `cmd 46`; si tampoco, estado del vehículo (llave/sesión) |
+| `fission` = 5, sin ventana, app viva | falló `ClusterOverlay.show` | `painel.log`: `display do painel nao encontrado`, `overlay do painel falhou` |
+| `fission` = 5, sin ventana, app muerta | nadie despertó la app | `shark.log`: ¿hay `relaunching`? ¿`am rc=0`? ¿vigía MORTO? |
+| vigía MORTO | se desarmó o nunca subió | `shark.log` + logcat `adb: connected` |
+| logcat sin `adb: connected` | el app no llega al adbd | clave ADB (compilar con `EMBED_ADB_KEY=1`) |
+
+Notas operativas:
+
+- Compilar siempre con `EMBED_ADB_KEY=1 ./app/build.sh`, o adbd pedirá autorización en cada
+  instalación.
+- El archivo `files/painel.log` puede quedarse mudo mientras `logcat -s SharkLab` sigue
+  funcionando: usar logcat primero.
+- El vigía debe ser **uno**: si `shark.log` muestra varias tandas de `armed` muy seguidas, algo lo
+  está rearmando en bucle.
