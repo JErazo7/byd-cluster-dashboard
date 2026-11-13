@@ -125,3 +125,38 @@ energía** (apagado profundo, no soft restart).
 - Apagado + puerta: sólo la alerta.
 - Encendido normal y remoto **con el container sano**: aplica solo, una vez.
 - El vigía ya no arranca la activity principal, respeta el diálogo de carga y limita intentos.
+
+
+## Diferencia pendiente con EVSound: el paquete RCC
+
+Comparando su helper (`EvsPanelPack`, dex que deja en `/data/local/tmp`) con lo nuestro, las
+piezas son las mismas salvo una:
+
+| Pieza | EVSound | SharkLab |
+|---|---|---|
+| Proyección (`46` → `16` → `45`) | sí | sí |
+| Daemon que relanza la app | `evs_keep` + `evs_heal` | `shark_wd` (con candado y límite de 15 s) |
+| Despertar sin abrir UI | activity con flag (`wake_only`) | `WakeActivity` (`Theme.NoDisplay`) |
+| Cliente del container | binder crudo, `TRANSACTION_registerCallback = 4` | **igual** (`PanelCallback`, medido: `reply=0`, sobrevive) |
+| **Paquete de tema del clúster** | **`select <rcc>` / `apply <rcc>` / `restore-default`** sobre `Di3F_…Translate_<nombre>.rcc` | **no** |
+
+Cadenas leídas de su dex que delatan ese paso:
+
+```
+REGISTER status=  SELECT_CALLBACK_RECEIVED=  RESPONSE cmd=
+select <rcc> | select-default | apply <rcc> | restore <rcc> | restore-default
+Di3F_DynastyOceanTranslate_V0001_Translate_[A-Za-z0-9]{1,48}\.rcc
+```
+
+Qué falta medir: si **aplicar un RCC** es lo que hace que el container prepare la superficie del
+panel (es decir, si `display=0` se resuelve con eso y no solo con el callback).
+
+Experimento cuando vuelva a aparecer `display=0`:
+
+1. `PanelCallback.register()` (ya lo hace la app sola).
+2. Enviar por binder crudo el `apply` del RCC correspondiente (hay que descubrir el nombre exacto
+   que espera el container: el patrón está arriba).
+3. Medir `dumpsys display | grep -c fission` antes y después.
+
+Si sube: esa es la pieza que faltaba y se implementa en `PanelBoot`. Si no sube: el gate es estado
+del vehículo (llave/sesión) y no una llamada desde la app.
