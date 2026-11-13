@@ -226,19 +226,22 @@ public final class AdbShell {
         } catch (Throwable t) {
             return;
         }
-        /* kills any previous instance: without this, an old script stays alive and fires
-           commands nobody wants */
-        execOnce("pkill -f " + WD_NAME + " 2>/dev/null; sleep 1"
-                + "; cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
+        /* no pkill: it also killed the watchdog that had just been born when the app armed
+           twice in a row. Single instance comes from the mkdir lock plus orphan-lock cleanup
+           below (an orphan is only removed when the pid it points at is gone). */
+        execOnce("cp " + WD_SRC + " /data/local/tmp/" + WD_NAME
                 + "; chmod 755 /data/local/tmp/" + WD_NAME
-                + "; P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null)"
-                /* orphan lock from a force-killed watchdog: remove it before launching */
-                + "; if [ -n \"$P\" ] && [ ! -d /proc/$P ]; then rm -rf /data/local/tmp/shark_wd.lock; fi"
-                + "; if [ -z \"$P\" ] || [ ! -d /proc/$P ]; then "
-                + "setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi"
-                /* the session closes right after the command: without this sleep adbd takes
-                   the child with it */
-                + "; sleep 1");
+                + "; P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null); "
+                + "case \"$P\" in ''|*[!0-9]*) P=0;; esac; "
+                + "if [ \"$P\" != 0 ] && [ ! -d /proc/$P ]; then "
+                + "rm -rf /data/local/tmp/shark_wd.lock; rm -f /data/local/tmp/shark_wd.pid; P=0; fi; "
+                + "if [ \"$P\" = 0 ]; then setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi; "
+                /* the session closes right after the command: keep it alive so adbd does not take
+                   the child, and confirm it actually came up */
+                + "sleep 3; P2=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null); "
+                + "case \"$P2\" in ''|*[!0-9]*) P2=0;; esac; "
+                + "if [ \"$P2\" = 0 ] || [ ! -d /proc/$P2 ]; then "
+                + "setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi; sleep 2");
     }
 
     /** heartbeat stamp: the watchdog releases the panel when it stops advancing */
