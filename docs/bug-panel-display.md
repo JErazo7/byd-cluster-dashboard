@@ -95,3 +95,33 @@ adb shell grep -E 'service:|boot:|wake:' \
 - On with the app alive: `pc == 1` → `overlayShow()`.
 - Order: window → `16` → `45`; never `46` before creating the window.
 - The watchdog must not open the head unit interface (it steals the "load now?" dialog).
+
+
+## Recaída 2026-11-13 (arranque remoto)
+
+Estado: `dumpsys display | grep -c fission` = **0**, app viva aplicando, panel físico en negro con
+los widgets de BYD.
+
+Probado en ese estado, sin resultado:
+
+| Prueba | Resultado |
+|---|---|
+| Arrancar nuestra app y aplicar | `display=0`, sin ventana |
+| Habilitar y lanzar EVSound (`pm enable` + `monkey`) | `display=0` (EVSound tampoco consigue) |
+| `cmd 46` → `16` → `45` por shell | `display=0` |
+| Abrir la puerta del conductor | `display=0` |
+| Reiniciar la central (soft) | `display=0` |
+| Mover la camioneta (sesión de marcha) | `display=0` |
+
+`logcat` del container en ese estado: sólo `checkSendPermissionAndAllowType … callingUid = 2000`,
+sin error ni negativa — acepta el comando y no hace nada.
+
+Conclusión: el container quedó **sin proyección** y no se recupera desde la app ni desde el shell;
+sus comandos son aceptados y descartados. Lo único pendiente de probar es un **ciclo completo de
+energía** (apagado profundo, no soft restart).
+
+## Lo que sí está resuelto (11/11, verificado)
+
+- Apagado + puerta: sólo la alerta.
+- Encendido normal y remoto **con el container sano**: aplica solo, una vez.
+- El vigía ya no arranca la activity principal, respeta el diálogo de carga y limita intentos.
