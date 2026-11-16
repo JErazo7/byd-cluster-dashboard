@@ -212,11 +212,13 @@ Notas operativas:
   `/data/local/tmp/shark_auto` sale enseguida) y `PanelService` no aplica por `pc == 1`.
 - Tras apagar, la app muere y no vuelve sola si el vigía no está armado: el tema aplicado a mano
   no sobrevive al ciclo de energía.
-- **Soltar el panel con el auto encendido deja el panel en negro** (medido 16/11 09:11): el
-  container se queda con el dueño de la proyección pero sin ventana, y `16`/`18`/`0` no traen de
-  vuelta el dibujo nativo de BYD; solo vuelve con un ciclo de energía. O sea: el botón SOLTAR solo
-  tiene sentido al apagar, y por eso el servicio reaplica si el interruptor "aplicar al encender"
-  está prendido.
+- El botón `DESACTIVAR` (= devolver el panel) está **pendiente de probar con el build final**. Con
+  un build intermedio (16/11 09:11, el que respetaba el `release` durante el ciclo) el panel
+  quedaba **negro**: el container se queda con el dueño de la proyección sin ventana y `16`/`18`/`0`
+  no traen de vuelta el dibujo de BYD; solo volvía con ciclo de energía. En ese mismo build el
+  servicio reaplicaba a los ~2 s si "aplicar al encender" estaba prendido. Qué hace exactamente el
+  build final (si el tema se queda fuera y qué dibuja el panel) **no está medido**: probarlo con el
+  auto encendido y anotar aquí qué muestra el panel (BYD normal / negro).
 
 
 ## Consumo mientras la skin está puesta (medido 2026-11-16)
@@ -238,6 +240,21 @@ neumáticos se cachea 5 s; el latido de la traza pasó de 2 s a 10 s; y el push 
 cuando el payload no cambió.
 
 ## Proyección perdida: el fallo que solo EVSound recuperaba — resuelto 2026-11-16
+
+### Estado al 2026-11-16
+
+| Punto | Estado | Evidencia |
+|---|---|---|
+| Ciclo real de apagado/encendido con EVSound deshabilitado: la skin sube sola | **verificado en el auto** | confirmado por el usuario; `boot: projection=true overlay=true` / `16/45 sent` en `panel.log` |
+| Display destruido (container muerto): la app lo recupera sola | **verificado** | traza 08:44 + skin en el display nuevo |
+| Display recreado por `31`: la ventana se rehace en el display nuevo | **verificado** | traza 08:40 + `screencap -d 5` |
+| App muerta: el vigía la despierta y aplica | **verificado** | `relaunching` / `am rc=0` en `shark.log`, traza 09:00 |
+| La app **lee** la respuesta de los comandos (`Result: Parcel(00000000`) | **verificado** | `panel.log`: `execOnce Result: Parcel(…)` |
+| `A_WRTE` corregido (antes: comandos ejecutados sin poder verificar nada) | **verificado** | idem |
+| Consumo: 4,9 % de un núcleo con la skin puesta | **verificado** | `/proc/<pid>/stat`, ventanas de 20-30 s |
+| Sin daemons fantasma (solo app + un vigía) | **verificado** | `ps -A` |
+| Estado `fission` = 0 al primer encendido tras un reposo largo | **pendiente** | no se pudo provocar en remoto (ver tabla más abajo); aparece solo después de un ciclo de energía |
+| Botón `DESACTIVAR` con el auto encendido | **pendiente** | ver la nota operativa al final |
 
 **Síntoma.** Después de un tiempo (no hace falta arranque remoto), el panel se queda en BYD y no
 vuelve:

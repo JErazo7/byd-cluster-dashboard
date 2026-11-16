@@ -401,6 +401,11 @@ that is not enough. `PanelProjection.ensure()` implements it and `PanelService` 
   **and** it lives on the display that is up now. A window left on a destroyed display still
   answers `running()`.
 
+Status on the car (2026-11-16): power-cycle apply, recovery after the container dies, wake from
+adbd and the command replies are all verified; the first ignition after a long rest and the
+`DESACTIVAR` button are still open. Table with evidence: `docs/bug-panel-display.md`,
+"Estado al 2026-11-16".
+
 ### 6.5 Shut-down seen from the inside
 
 Besides the `pc` loop, `PanelService` registers `SCREEN_OFF`, `ACTION_SHUTDOWN` and
