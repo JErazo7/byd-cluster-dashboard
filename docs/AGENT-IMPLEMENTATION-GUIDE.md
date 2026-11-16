@@ -278,12 +278,22 @@ Commands verified on this unit (`type = 1000`):
 If the display does **not** exist (`panelDisplay == null`):
 
 ```text
+16 → sleep 1 s → 35           # the reference app's own request (retried until Parcel(00000000)
+wait for the display up to 6 s; repeat 5 rounds
+31 → wait 8 s                 # panel mode: the container destroys and recreates the display
+30 → wait 8 s                 # last resort, also recreates it
 46 → sleep 1.2–1.8 s → create window → 16 → sleep 1.5 s → 45
 ```
 
 `46` **never** with the window alive: it recreates the display and leaves the window orphaned;
 the panel goes back to the native layout. The reference implementation no longer uses it on the
 normal take, only as a rescue and on release.
+
+**Lost projection (the recurring failure):** the container can end up with
+`fission_bg_xdjaVirtualSurface` absent while it is otherwise healthy; `16`/`45` are then accepted
+and dropped, because there is no display to project onto. Nothing the app did used to bring it
+back, and releasing on `onDisplayRemoved` made it permanent. Section 10 has the measurements and
+`PanelProjection.ensure()` is the implementation.
 
 **Reaffirmation:** a loop every 60 s resends `16` and `45` (never `46`). It survives another
 process sending `18`. Measured: 3 minutes full screen without intervention.
@@ -343,7 +353,9 @@ steals the "load the car now?" dialog that BYD shows for ~10 s when shutting dow
 
 ```sh
 #!/system/bin/sh
-AUTO=/sdcard/Android/data/<pkg>/files/autostart
+# NOT /sdcard: with the card unmounted the script saw no flag and exited (measured 14/11, the
+# watchdog was gone from 18:41 with the app dead and nothing to wake it)
+AUTO=/data/local/tmp/<pkg>_auto
 mkdir /data/local/tmp/wd.lock 2>/dev/null || exit 0
 echo $$ > /data/local/tmp/wd.pid
 while [ -f "$AUTO" ]; do
@@ -369,11 +381,27 @@ Details that cost a session:
 - `mkdir` lock + `pid` so you do not duplicate watchdogs; if the pid does not exist, delete the
   orphan lock.
 - 15 s throttle on the relaunch; without it the theme flickers while the app comes up.
-- the `autostart` file exists **only** if the user enabled "start automatically": it is the
-  watchdog switch. Without that file, the app does not come back on power-on.
+- the flag exists **only** if the user enabled "start automatically": it is the watchdog switch.
+  Without it the app does not come back on power-on. Keep it in `/data/local/tmp` (the shell can
+  write there); the app arms it over adb and honours the old external-storage file on upgrade.
 - it is armed on every `APLICAR` and re-armed every 60 s from the app loop.
 
-### 6.4 Shut-down seen from the inside
+### 6.4 A lost projection is recovered by the app, not by a restart
+
+The container can drop `fission_bg_xdjaVirtualSurface` while staying healthy: `16`/`45` are then
+answered and ignored, and nothing (power cycle, door, shell) brings the display back. Measured
+recovery path, copied from the reference app: `16` → 1 s → `35`, each retried until the reply
+contains `Result: Parcel(00000000` and the display polled for 6 s; `31` recreates the display when
+that is not enough. `PanelProjection.ensure()` implements it and `PanelService` re-applies after
+3 s without a display while `pc == 1`. Two consequences for the code:
+
+- never release the panel from `DisplayManager.onDisplayRemoved` (that cleared `applied` and made
+  the loss permanent); drop the window and let the service re-project;
+- `ClusterOverlay.attached(ctx)` is the real "the skin is on the panel" check: the window exists
+  **and** it lives on the display that is up now. A window left on a destroyed display still
+  answers `running()`.
+
+### 6.5 Shut-down seen from the inside
 
 Besides the `pc` loop, `PanelService` registers `SCREEN_OFF`, `ACTION_SHUTDOWN` and
 `QUICKBOOT_POWEROFF` (the manifest receiver does not receive implicit broadcasts on Android 8+),
@@ -507,6 +535,15 @@ Do not repeat these routes; they are measured on this unit.
 | File heartbeat with a 12 s window | it worked but is slower and less reliable than `pc` |
 | `am start-foreground-service` on a stopped package | `Not found; no service started`; use `am start` of the activity |
 | Running alongside the reference cluster app | both send 16/18 to the same container and the skin disappears; uninstall it or stop it |
+| Waiting for the display to come back after it disappears | it never does: no power cycle, door open or shell `46/16/45` brought it back (recaída 2026-11-13) |
+| Releasing the panel from `onDisplayRemoved` | made the loss permanent: it cleared `applied`/`enabled`, so nothing ever asked for the projection again |
+
+**What does work when the display is gone** (measured 2026-11-16, container healthy,
+`fission` = 0): launching the reference app brought it back; its startup request is `16` then
+`35`, each retried until the container answers `Result: Parcel(00000000`. Sending `31` or `30`
+also recreates the virtual display (new display id, new `modeId`) when the container decides the
+mode is wrong. `PanelProjection.ensure()` runs that sequence and `PanelService` re-applies after
+3 s without a display, so the skin comes back on its own.
 
 ---
 

@@ -161,6 +161,10 @@ Experimento cuando vuelva a aparecer `display=0`:
 Si sube: esa es la pieza que faltaba y se implementa en `PanelBoot`. Si no sube: el gate es estado
 del vehículo (llave/sesión) y no una llamada desde la app.
 
+**Medido el 16/11: el RCC no era la pieza que faltaba.** No hizo falta aplicar ni seleccionar
+ningún `Di3F_…rcc`: el display vuelve con la petición de proyección (`16` → `35`, y `31` como
+recreación forzada). Ver la sección "Proyección perdida" al final.
+
 
 ## Diagnóstico en un minuto (si vuelve a fallar)
 
@@ -175,8 +179,9 @@ adb -s $IP logcat -c            # antes de reproducir, para no leer historia vie
 # 2) ¿existe el display del panel?
 adb -s $IP shell 'dumpsys display | grep -c fission'
 
-# 3) ¿hay vigía armado?
-adb -s $IP shell 'P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null); [ -d /proc/$P ] && echo VIVO || echo MORTO'
+# 3) ¿hay vigía armado?  (con P vacío, /proc/ existe: hay que descartar el vacío)
+adb -s $IP shell 'P=$(cat /data/local/tmp/shark_wd.pid 2>/dev/null); case "$P" in ""|*[!0-9]*) echo MORTO;; *) [ -d /proc/$P ] && echo VIVO || echo MORTO;; esac'
+adb -s $IP shell 'ls /data/local/tmp/shark_auto'   # sin este flag el vigía sale y no relanza
 adb -s $IP shell 'tail -5 /data/local/tmp/shark.log'
 
 # 4) ¿hay ventana nuestra en el panel?
@@ -187,7 +192,7 @@ Lectura de los resultados:
 
 | Síntoma | Significado | Dónde mirar |
 |---|---|---|
-| `fission` = 0 | el container no registró el display: nada puede dibujar (ni EVSound) | `PanelCallback` + `cmd 46`; si tampoco, estado del vehículo (llave/sesión) |
+| `fission` = 0 | el container perdió la proyección | `panel.log`: `projection: 16 -> …` / `31` / `30`. La app la pide sola; si no aparece en 60 s, el ADB no está llegando |
 | `fission` = 5, sin ventana, app viva | falló `ClusterOverlay.show` | `painel.log`: `display do painel nao encontrado`, `overlay do painel falhou` |
 | `fission` = 5, sin ventana, app muerta | nadie despertó la app | `shark.log`: ¿hay `relaunching`? ¿`am rc=0`? ¿vigía MORTO? |
 | vigía MORTO | se desarmó o nunca subió | `shark.log` + logcat `adb: connected` |
@@ -201,3 +206,66 @@ Notas operativas:
   funcionando: usar logcat primero.
 - El vigía debe ser **uno**: si `shark.log` muestra varias tandas de `armed` muy seguidas, algo lo
   está rearmando en bucle.
+
+
+## Proyección perdida: el fallo que solo EVSound recuperaba — resuelto 2026-11-16
+
+**Síntoma.** Después de un tiempo (no hace falta arranque remoto), el panel se queda en BYD y no
+vuelve:
+
+| Medición | Valor |
+|---|---|
+| `dumpsys display \| grep -c fission` | **0** — el container no tiene el display del panel |
+| `pidof com.xdja.clusterdemo` | vacío (nadie despertó la app) o vivo aplicando sin efecto |
+| container (`com.xdja.containerservice`, `fission_service`) | vivo y sano |
+| `service call AutoContainer … 16 / 45` | responde `Parcel(…)` y **no hace nada**: no hay display sobre el que proyectar |
+
+Nada lo recuperaba: ni reiniciar la central, ni la puerta, ni mover la camioneta, ni el ciclo
+`46 → 16 → 45` por shell. Solo lanzar EVSound lo devolvía.
+
+**Cómo se decodificó EVSound** (dex de `com.mdemetrio.evsoundbyd` 3.28, `jadx`):
+
+| Pieza | Su código |
+|---|---|
+| Pedir la proyección | `service call AutoContainer 2 i32 1000 i32 16 s16 null` → 1 s → `35`, cada uno **verificado**: reintenta hasta 5 veces cada 2 s hasta que la respuesta empieza con `Result: Parcel(00000000` |
+| Ciclo "forzar" | `30` → `31` → `16` → `35`, mismos reintentos |
+| Devolver el panel | `46` → 1.2 s → `18` → 1 s → `0` |
+| Espera | al pedir la proyección sondea el display hasta 6 s (30 × 200 ms) antes de crear la ventana |
+| Vigía | script en adbd que relanza su `WakeActivity`; mismo patrón que el nuestro |
+
+**Medido después, con el container sano:** `30` y `31` destruyen el display virtual y crean uno
+nuevo (`xdja_AutoDisplayService: updateDisplay: createVirtualDisplay`, ids 1 → 2 → 3 …). `31`
+(la petición de modo/resolución) es el que siempre lo recrea; `30` no siempre. Con el display
+recreado, la ventana de nuestra app muere con el display viejo y hay que volver a crearla.
+
+**Qué cambió en SharkLab**
+
+| Archivo | Cambio |
+|---|---|
+| `PanelProjection.java` (nuevo) | `ensure()`: si no hay display, `16` → `35` con reintentos verificados y sondeo de 6 s, 5 rondas; después `31`, después `30`. Bloqueante, se llama fuera del hilo principal |
+| `PanelBoot.apply` | pide la proyección **antes** de crear la ventana |
+| `PanelService` | si el coche está encendido (`pc == 1`) y no hay display o la ventana está en un display muerto durante 3 sondeos, vuelve a aplicar |
+| `ClusterOverlay` | `attached(ctx)`: la ventana existe **y** está en el display actual. `onDisplayRemoved` ya no devuelve el panel (era lo que hacía la pérdida permanente): suelta la ventana y deja que el servicio la recupere |
+| `AdbShell` | `run()` síncrono sobre la sesión viva, y **`A_WRTE` corregido** (estaba en `0x57525445`; en el cable es `0x45545257`): hasta hoy la app ejecutaba los comandos pero nunca leía la respuesta, así que no podía verificar nada |
+| `AdbShell` | el flag del vigía pasó de `/sdcard/…/autostart` a `/data/local/tmp/shark_auto`: si la tarjeta no estaba montada, el script no veía el flag y moría |
+| `MainActivity` | el botón APLICAR usa la misma secuencia en vez de un `46` suelto; los estados que lee la skin usan `attached()` |
+
+**Verificado en la carrocería (16/11, 08:19 y 08:40):** con la skin aplicada, se recreó el
+display (`31`, id 3 → 4 → 5). Traza de la app:
+
+```text
+glass: panel display removed, window dropped
+service: car on, panel lost 1 … 3
+service: car on -> applying
+boot: projection=true overlay=true
+boot: 16/45 sent
+```
+
+Y la skin volvió sola en el display nuevo (`screencap -d 5`).
+
+**Pendiente de medir en el coche:** el camino con el display *ausente* (`fission` = 0) no se pudo
+reproducir a voluntad; el encadenado `16/35 → 31 → 30` está probado comando a comando con sus
+respuestas reales (`projection: 16 -> Result: Parcel(00000000 …`), y la creación del display por
+petición está medida (EVSound, 08:01: `fission` 0 → 5). Si aparece el estado, la traza dirá en
+`panel.log` qué comando devolvió qué.
+
