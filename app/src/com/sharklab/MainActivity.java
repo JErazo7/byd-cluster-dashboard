@@ -183,8 +183,10 @@ public class MainActivity extends Activity {
             public void run() {
                 try {
                     SharedPreferences pa = getSharedPreferences("lab", MODE_PRIVATE);
-                    double[] b = byd.snapshot();
-                    int pc = b[36] > -998 ? (int) b[36] : -1;
+                    /* the service polls the car; this loop is only a fallback with the screen open
+                       and reads the one value it needs */
+                    double p = byd.powerCtl();
+                    int pc = p > -998 ? (int) p : -1;
                     if (pc == 1) {
                         if (pa.getBoolean("bootApply", false)
                                 && !ClusterOverlay.attached(MainActivity.this)) {

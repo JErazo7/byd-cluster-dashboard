@@ -34,6 +34,7 @@ public final class ClusterOverlay {
     /* the panel is a virtual window: Chromium freezes the skin's requestAnimationFrame, so
        what feeds the drawing is this pusher, from outside the page */
     private static volatile boolean pushing;
+    private static String lastPayload;
     private static volatile Context lastCtx;
     private static int ticks;
     private static DisplayManager jetDm;
@@ -314,15 +315,22 @@ public final class ClusterOverlay {
                 } catch (Throwable ignored) {
                 }
                 ticks++;
-                /* heartbeat: shows whether the process survives the car shutting off */
-                if (ticks % 5 == 0) {
+                /* heartbeat: shows whether the process survives the car shutting off (every 10 s:
+                   each trace is two file writes, and this loop runs forever) */
+                if (ticks % 25 == 0) {
                     AdbShell.trace(lastCtx, "alive " + ticks + " state=" + br.powerProbe());
                 }
                 try {
                     /* `__pushedByApp` turns the page's lab-feed off: with it on, page and app
                        both read the car (37 binder calls per read) and draw the same frame */
-                    String js = "window.__pushedByApp=1;window.BrasaDriveUpdate&&window.BrasaDriveUpdate(" + br.state() + ")";
-                    web.evaluateJavascript(js, null);
+                    String payload = br.state();
+                    /* the panel repaints on every call: while the car is parked the state does
+                       not change, so only push when it does (and once every 2 s for the clock) */
+                    String js = "window.__pushedByApp=1;window.BrasaDriveUpdate&&window.BrasaDriveUpdate(" + payload + ")";
+                    if (!payload.equals(lastPayload) || ticks % 5 == 0) {
+                        lastPayload = payload;
+                        web.evaluateJavascript(js, null);
+                    }
                 } catch (Throwable ignored) {
                 }
                 h.postDelayed(this, 400);

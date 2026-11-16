@@ -219,6 +219,24 @@ Notas operativas:
   está prendido.
 
 
+## Consumo mientras la skin está puesta (medido 2026-11-16)
+
+| Estado | CPU (de un núcleo) |
+|---|---|
+| App en segundo plano, skin en el panel | **4,9 %** |
+| App con su propia pantalla abierta en la central (preview a 10 Hz) | ~15-17 % |
+| Vigía en adbd | 0,2 % |
+| EVSound / daemons ajenos | ninguno (deshabilitado) |
+
+Procesos que quedan vivos con todo funcionando: **dos** — `com.xdja.clusterdemo` y un solo
+`sh /data/local/tmp/shark_wd.sh`. No hay daemons fantasma; el vigía es un script de 5 líneas que
+hace `pidof` cada 2 s.
+
+Recortes aplicados ese día: `PanelService` y el bucle de la actividad leen
+`power.getPowerCtlStatus(3)` (una llamada binder) en vez del snapshot completo (37); la presión de
+neumáticos se cachea 5 s; el latido de la traza pasó de 2 s a 10 s; y el push a la skin se saltea
+cuando el payload no cambió.
+
 ## Proyección perdida: el fallo que solo EVSound recuperaba — resuelto 2026-11-16
 
 **Síntoma.** Después de un tiempo (no hace falta arranque remoto), el panel se queda en BYD y no

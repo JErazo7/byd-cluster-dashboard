@@ -72,8 +72,10 @@ public class PanelService extends Service {
             public void run() {
                 try {
                     if (bridge[0] == null) bridge[0] = new BydBridge(getApplicationContext());
-                    double[] b = bridge[0].snapshot();
-                    int pc = b[36] > -998 ? (int) b[36] : -1;
+                    /* one binder call instead of the whole snapshot (37 calls) once a second:
+                       this loop runs forever while the car is on */
+                    double p = bridge[0].powerCtl();
+                    int pc = p > -998 ? (int) p : -1;
                     SharedPreferences lab = getSharedPreferences("lab", MODE_PRIVATE);
                     /* want = the user's intent, either "apply on power-on" or the APPLY button.
                        release() clears `applied` when the car turns off, so this is not sticky.

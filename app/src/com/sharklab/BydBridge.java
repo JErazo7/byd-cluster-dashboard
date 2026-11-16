@@ -394,7 +394,8 @@ public final class BydBridge {
     }
 
     /** 1 = car on; -999 when the read fails */
-    private double powerCtl() {
+    /** single binder call: 1 = car on, 0 = off (measured); cheap enough to poll every second */
+    public double powerCtl() {
         return numInt(P + "power.BYDAutoPowerDevice", "getPowerCtlStatus", 3);
     }
 

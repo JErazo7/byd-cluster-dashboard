@@ -211,11 +211,19 @@ public class ClusterSkinActivity extends Activity {
         }
 
         /** raw pressures of the four tyres; null when the car does not answer */
+        /* four binder calls per frame is waste: tyre pressure moves in minutes */
+        private String tyreCache;
+        private long tyreAt;
+
         private String tyres() {
+            long now = System.currentTimeMillis();
+            if (tyreCache != null && now - tyreAt < 5000) return tyreCache;
             double fl = byd.tyre(1), fr = byd.tyre(2), rl = byd.tyre(3), rr = byd.tyre(4);
             if (fl <= -998 && fr <= -998 && rl <= -998 && rr <= -998) return "null";
             /* the car returns kPa (265); the card shows bar */
-            return "{\"fl\":" + bar(fl) + ",\"fr\":" + bar(fr) + ",\"rl\":" + bar(rl) + ",\"rr\":" + bar(rr) + "}";
+            tyreAt = now;
+            tyreCache = "{\"fl\":" + bar(fl) + ",\"fr\":" + bar(fr) + ",\"rl\":" + bar(rl) + ",\"rr\":" + bar(rr) + "}";
+            return tyreCache;
         }
 
         private String bar(double kpa) {
