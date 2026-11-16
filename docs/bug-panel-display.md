@@ -263,9 +263,31 @@ boot: 16/45 sent
 
 Y la skin volvió sola en el display nuevo (`screencap -d 5`).
 
-**Pendiente de medir en el coche:** el camino con el display *ausente* (`fission` = 0) no se pudo
-reproducir a voluntad; el encadenado `16/35 → 31 → 30` está probado comando a comando con sus
-respuestas reales (`projection: 16 -> Result: Parcel(00000000 …`), y la creación del display por
-petición está medida (EVSound, 08:01: `fission` 0 → 5). Si aparece el estado, la traza dirá en
-`panel.log` qué comando devolvió qué.
+**Recuperación probada matando el container** (16/11, 08:44): `am crash com.xdja.containerservice`
+mata el proceso (pid 1794 → 1963), el display virtual se va con él y la app lo recupera sola:
+
+```text
+08:44:23 glass: panel display removed, window dropped
+08:44:24 service: car on, panel lost 1 … 3
+08:44:26 service: car on -> applying
+08:44:27 boot: projection=true overlay=true
+08:44:30 boot: 16/45 sent
+```
+
+Skin de vuelta en el display 6 (nuevo) sin tocar nada. Es el mismo camino que corre cuando el
+display falta al arrancar.
+
+**Por qué el estado `fission` = 0 no se puede provocar en remoto** (probado el 16/11):
+
+| Intento | Resultado |
+|---|---|
+| `am force-stop com.xdja.containerservice` | ignorado (app de sistema, el pid no cambia) |
+| `am crash com.xdja.containerservice` | el proceso muere y **se lleva el display**, pero al arrancar lo recrea solo (`8 → 9`) y conserva el estado de proyección |
+| `46 → 18 → 0` con la app deshabilitada y sin ventanas | el display **no** se destruye |
+| `31` / `30` con el display ya presente | a veces lo recrean (id nuevo), a veces nada |
+
+Conclusión: el estado del 16/11 08:00 solo aparece tras un ciclo de energía real, que es lo que
+borra el estado de proyección del container. Para cerrarlo del todo hace falta esperarlo o
+apagar/encender la central estando en el auto; la traza dirá en `panel.log` qué devolvió cada
+comando (`projection: 16 -> Result: Parcel(…)`, `35`, `31`, `30`).
 
