@@ -776,6 +776,15 @@ public class MainActivity extends Activity {
     if (hBoot) {
         BootReceiver.applyChoice(getApplicationContext());
     }
+    if (it != null && it.hasExtra("autostart")) {
+        /* the "apply on power-on" switch, settable from adb: the on-car check needs it without
+           walking the car's UI */
+        boolean on = it.getBooleanExtra("autostart", false);
+        getSharedPreferences("lab", MODE_PRIVATE).edit()
+                .putBoolean("bootApply", on).putBoolean("autostart", on).apply();
+        AdbShell.setAuto(this, on);
+        AdbShell.trace(this, "autostart=" + on);
+    }
     if (it != null && it.hasExtra("bydset")) {
         String spec0 = it.getStringExtra("bydset");
         final String spec = it.hasExtra("bydarg") ? spec0 + "|" + it.getIntExtra("bydarg", 0) : spec0;
@@ -829,6 +838,7 @@ public class MainActivity extends Activity {
             it.removeExtra("apply");
             it.removeExtra("release");
             it.removeExtra("bootapply");
+            it.removeExtra("autostart");
             it.removeExtra("dumpstate");
             it.removeExtra("dumplog");
             it.removeExtra("bydtrace");
@@ -1032,7 +1042,7 @@ public class MainActivity extends Activity {
         public void bootApplySet(boolean on) {
             getSharedPreferences("lab", MODE_PRIVATE).edit()
                     .putBoolean("bootApply", on).putBoolean("autostart", on).apply();
-            AdbShell.setAuto(on);
+            AdbShell.setAuto(MainActivity.this, on);
             AdbShell.trace(MainActivity.this, "bootApply=" + on);
         }
 
@@ -1084,7 +1094,7 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
             final String sk = p.getString("skin", "byd");
-            AdbShell.setAuto(p.getBoolean("bootApply", false));
+            AdbShell.setAuto(MainActivity.this, p.getBoolean("bootApply", false));
             AdbShell.watchdog(MainActivity.this);
             ClusterOverlay.hide();
             new Thread(new Runnable() {

@@ -299,9 +299,10 @@ public final class AdbShell {
     }
 
     /** arms or disarms the watchdog's relaunch loop (the "apply on power-on" switch) */
-    public static void setAuto(boolean on) {
-        Context c = appCtx;
+    public static void setAuto(Context ctx, boolean on) {
+        Context c = ctx != null ? ctx.getApplicationContext() : appCtx;
         if (c == null) return;
+        appCtx = c;
         try {
             java.io.File f = new java.io.File(c.getExternalFilesDir(null), "autostart");
             if (on) f.createNewFile();

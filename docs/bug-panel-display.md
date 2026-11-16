@@ -206,6 +206,12 @@ Notas operativas:
   funcionando: usar logcat primero.
 - El vigía debe ser **uno**: si `shark.log` muestra varias tandas de `armed` muy seguidas, algo lo
   está rearmando en bucle.
+- El interruptor "aplicar al encender" se puede poner desde adb sin tocar la UI del auto:
+  `am start -n com.xdja.clusterdemo/com.sharklab.MainActivity --ez autostart true`. Con el
+  interruptor apagado **no hay que esperar skin al encender**: el vigía no se arma (sin
+  `/data/local/tmp/shark_auto` sale enseguida) y `PanelService` no aplica por `pc == 1`.
+- Tras apagar, la app muere y no vuelve sola si el vigía no está armado: el tema aplicado a mano
+  no sobrevive al ciclo de energía.
 
 
 ## Proyección perdida: el fallo que solo EVSound recuperaba — resuelto 2026-11-16

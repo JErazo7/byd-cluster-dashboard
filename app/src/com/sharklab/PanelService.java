@@ -79,6 +79,9 @@ public class PanelService extends Service {
                        release() clears `applied` when the car turns off, so this is not sticky. */
                     boolean want = lab.getBoolean("bootApply", false) || lab.getBoolean("applied", false);
                     boolean lostPanel = !ClusterOverlay.attached(getApplicationContext());
+                    /* anything that says the skin was up: without this the release ran on every
+                       poll once the window was gone (three container commands per second) */
+                    boolean wasUp = lostPanel ? PanelRelease.session : true;
                     if (pc == 1 && want && lostPanel) {
                         lost++;
                         AdbShell.trace(getApplicationContext(), "service: car on, panel lost " + lost);
@@ -87,7 +90,7 @@ public class PanelService extends Service {
                             AdbShell.trace(getApplicationContext(), "service: car on -> applying");
                             PanelBoot.apply(getApplicationContext());
                         }
-                    } else if (pc == 0 && (ClusterOverlay.running() || PanelRelease.session || lostPanel)) {
+                    } else if (pc == 0 && wasUp) {
                         lost = 0;
                         AdbShell.trace(getApplicationContext(), "service: car off -> releasing");
                         PanelRelease.release(getApplicationContext());
