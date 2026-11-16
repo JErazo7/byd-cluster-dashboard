@@ -42,6 +42,12 @@ public final class PanelBoot {
             AdbShell.trace(appCtx, "boot: head unit off, nothing applied");
             return;
         }
+        /* the first line of every apply: did the container have the panel display at this moment?
+           That is what the "power-on after a long rest" case needs to answer from the trace, with
+           no adb around. */
+        android.view.Display panel = ClusterOverlay.panelDisplay(appCtx);
+        AdbShell.trace(appCtx, "boot: display=" + (panel == null ? "none" : "id " + panel.getDisplayId())
+                + " interactive=" + (pm == null ? "?" : pm.isInteractive()));
         PanelRelease.session = true;
         AdbShell.start(ctx);
         AdbShell.resume();

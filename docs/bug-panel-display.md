@@ -212,6 +212,9 @@ Notas operativas:
   `/data/local/tmp/shark_auto` sale enseguida) y `PanelService` no aplica por `pc == 1`.
 - Tras apagar, la app muere y no vuelve sola si el vigía no está armado: el tema aplicado a mano
   no sobrevive al ciclo de energía.
+- Cada aplicación deja en `panel.log` la primera línea `boot: display=<id|none> interactive=<true|false>`:
+  es lo que responde, sin estar conectado, si el display existía en ese encendido. Para el caso
+  pendiente (primer encendido tras reposo largo) alcanza con leer esa línea.
 - El botón `DESACTIVAR` (= devolver el panel) está **pendiente de probar con el build final**. Con
   un build intermedio (16/11 09:11, el que respetaba el `release` durante el ciclo) el panel
   quedaba **negro**: el container se queda con el dueño de la proyección sin ventana y `16`/`18`/`0`
