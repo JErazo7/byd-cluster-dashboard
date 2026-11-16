@@ -27,7 +27,9 @@ public final class PanelBoot {
 
     public static void apply(Context ctx) {
         long now = System.currentTimeMillis();
-        if (now - lastApply < 12000 || ClusterOverlay.running()) return;
+        /* attached(): running() alone kept the guard on when the container had recreated the
+           display underneath a window that belonged to the old one */
+        if (now - lastApply < 12000 || ClusterOverlay.attached(ctx)) return;
         lastApply = now;
         SharedPreferences p = ctx.getSharedPreferences("lab", Context.MODE_PRIVATE);
         String skin = p.getString("skin", "byd");
@@ -49,20 +51,34 @@ public final class PanelBoot {
         final Context app = ctx.getApplicationContext();
         final String url = urlFor(ctx, skin);
         final boolean cast = p.getBoolean("cluster_cast", true);
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+        final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
+        ui.postDelayed(new Runnable() {
             public void run() {
-                boolean ok = overlay && ClusterOverlay.show(app, url);
-                Log.i(TAG, "boot: overlay=" + ok + " " + ClusterOverlay.error());
-                AdbShell.trace(app, "boot: overlay=" + ok);
-                if (!ok) return;
-                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+                /* the display is created by the container on demand: without this step a lost
+                   projection (display = 0) never comes back, the container only answers 16/45
+                   and drops them because there is nothing to project onto. Blocking (ADB), so
+                   it runs off the main thread. */
+                new Thread(new Runnable() {
                     public void run() {
-                        AdbShell.execOnce(
-                                "service call AutoContainer 2 i32 1000 i32 16 s16 null; sleep 1.5; "
-                                        + "service call AutoContainer 2 i32 1000 i32 45 s16 null");
-                        AdbShell.trace(app, "boot: 16/45 sent");
+                        final boolean proj = cast && PanelProjection.ensure(app);
+                        ui.post(new Runnable() {
+                            public void run() {
+                                boolean ok = overlay && ClusterOverlay.show(app, url);
+                                Log.i(TAG, "boot: projection=" + proj + " overlay=" + ok + " " + ClusterOverlay.error());
+                                AdbShell.trace(app, "boot: projection=" + proj + " overlay=" + ok);
+                                if (!ok) return;
+                                ui.postDelayed(new Runnable() {
+                                    public void run() {
+                                        AdbShell.execOnce(
+                                                "service call AutoContainer 2 i32 1000 i32 16 s16 null; sleep 1.5; "
+                                                        + "service call AutoContainer 2 i32 1000 i32 45 s16 null");
+                                        AdbShell.trace(app, "boot: 16/45 sent");
+                                    }
+                                }, 2200);
+                            }
+                        });
                     }
-                }, 2200);
+                }, "panel-projection").start();
             }
         }, 1500);
         p.edit().putBoolean("enabled", true).apply();

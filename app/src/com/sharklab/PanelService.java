@@ -7,6 +7,7 @@ import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.os.IBinder;
@@ -63,18 +64,35 @@ public class PanelService extends Service {
         final android.os.Handler h = new android.os.Handler(getMainLooper());
         final BydBridge[] bridge = new BydBridge[1];
         h.post(new Runnable() {
+            /* the projection is not rebuilt in one second when the container has to create the
+               display: only reapply after it was missing for a few polls, so a shutdown does not
+               summon the panel back on top of the open-door alert */
+            int lost = 0;
+
             public void run() {
                 try {
                     if (bridge[0] == null) bridge[0] = new BydBridge(getApplicationContext());
                     double[] b = bridge[0].snapshot();
                     int pc = b[36] > -998 ? (int) b[36] : -1;
-                    boolean bootApply = getSharedPreferences("lab", MODE_PRIVATE).getBoolean("bootApply", false);
-                    if (pc == 1 && bootApply && !ClusterOverlay.running()) {
-                        AdbShell.trace(getApplicationContext(), "service: car on -> applying");
-                        PanelBoot.apply(getApplicationContext());
-                    } else if (pc == 0 && ClusterOverlay.running()) {
+                    SharedPreferences lab = getSharedPreferences("lab", MODE_PRIVATE);
+                    /* want = the user's intent, either "apply on power-on" or the APPLY button.
+                       release() clears `applied` when the car turns off, so this is not sticky. */
+                    boolean want = lab.getBoolean("bootApply", false) || lab.getBoolean("applied", false);
+                    boolean lostPanel = !ClusterOverlay.attached(getApplicationContext());
+                    if (pc == 1 && want && lostPanel) {
+                        lost++;
+                        AdbShell.trace(getApplicationContext(), "service: car on, panel lost " + lost);
+                        if (lost >= 3) {
+                            lost = 0;
+                            AdbShell.trace(getApplicationContext(), "service: car on -> applying");
+                            PanelBoot.apply(getApplicationContext());
+                        }
+                    } else if (pc == 0 && (ClusterOverlay.running() || PanelRelease.session || lostPanel)) {
+                        lost = 0;
                         AdbShell.trace(getApplicationContext(), "service: car off -> releasing");
                         PanelRelease.release(getApplicationContext());
+                    } else {
+                        lost = 0;
                     }
                 } catch (Throwable ignored) {
                 }

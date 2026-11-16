@@ -80,12 +80,21 @@ public final class AdbShell {
 
     private static final String TAG = "SharkLab";
     private static final int A_CNXN = 0x4e584e43, A_AUTH = 0x48545541, A_OPEN = 0x4e45504f,
-            A_OKAY = 0x59414b4f, A_CLSE = 0x45534c43, A_WRTE = 0x57525445;
+            /* A_WRTE shipped as 0x57525445: the comparison never matched, so every command ran
+               but its output was thrown away ('WRTE' on the wire is 0x45545257) and a failed
+               command was indistinguishable from a successful one */
+            A_OKAY = 0x59414b4f, A_CLSE = 0x45534c43, A_WRTE = 0x45545257;
 
     private static boolean started;
     private static volatile boolean paused;
     private static volatile boolean wake;
     private static byte[] embeddedKeyLine;
+    /* the loop's session, reused by run(): one ADB connection per process, as the reference app */
+    private static volatile Sess live;
+    /* shell channel ids are per session and must not repeat */
+    private static final java.util.concurrent.atomic.AtomicInteger ids =
+            new java.util.concurrent.atomic.AtomicInteger(1);
+    private static final Object IO = new Object();
 
     private AdbShell() {
     }
@@ -107,11 +116,11 @@ public final class AdbShell {
         new Thread(new Runnable() {
             public void run() {
                 Sess sess = null;
-                int id = 1;
                 while (true) {
                     try {
                         if (sess == null) {
                             sess = connect(ctx);
+                            live = sess;
                             android.util.Log.i(TAG, "adb: connected " + (sess != null));
                         }
                         /* respects the app's switch: off by the user, no cmd 16 */
@@ -123,13 +132,16 @@ public final class AdbShell {
                                those widgets. Measured in the car. */
                             /* the shutdown watchdog comes up here, in the loop's long session: via execOnce the
                                session closes and kills the child */
-                            String out = exec(sess,
+                            String out;
+                            synchronized (IO) {
+                                out = exec(sess,
                                     "cp " + WD_SRC + " /data/local/tmp/" + WD_NAME + " 2>/dev/null; "
                                             + "chmod 755 /data/local/tmp/" + WD_NAME + " 2>/dev/null; "
                                             + "[ -f /data/local/tmp/shark_wd.pid ] || "
                                             + "(setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 &); "
                                             + "service call AutoContainer 2 i32 1000 i32 16 s16 null; sleep 1.5; "
-                                            + "service call AutoContainer 2 i32 1000 i32 45 s16 null", id++);
+                                            + "service call AutoContainer 2 i32 1000 i32 45 s16 null", ids.getAndIncrement());
+                            }
                             Log.i(TAG, "adb: 16/45 -> " + (out == null ? "null" : out.trim()));
                         }
                         android.util.Log.i(TAG, "adb: tick paused=" + paused + " enabled=" + on);
@@ -137,6 +149,7 @@ public final class AdbShell {
                         wake = false;
                     } catch (Throwable t) {
                         Log.w(TAG, "adb: reconnecting: " + t);
+                        live = null;
                         try { if (sess != null) sess.s.close(); } catch (Throwable ignored) { }
                         sess = null;
                         try { Thread.sleep(10000); } catch (InterruptedException ignored) { }
@@ -160,7 +173,7 @@ public final class AdbShell {
                 try {
                     Sess s = connect(c);
                     if (s == null) { trace(c, "execOnce without session"); return; }
-                    String out = exec(s, cmd, 900);
+                    String out = exec(s, cmd, ids.getAndIncrement());
                     trace(c, "execOnce " + (out == null ? "null" : out.trim()));
                     try { s.s.close(); } catch (Throwable ignored) { }
                 } catch (Throwable t) {
@@ -169,6 +182,38 @@ public final class AdbShell {
                 }
             }
         }, "adb-once").start();
+    }
+
+    /**
+     * Runs one shell line and returns its output, or null when the head unit's ADB is not
+     * reachable. Reuses the loop's session (one connection per process) so the container sees a
+     * single client; opens a short-lived one when the loop has not connected yet.
+     */
+    public static String run(Context ctx, String cmd) {
+        if (ctx != null) appCtx = ctx.getApplicationContext();
+        Sess s = live;
+        if (s != null) {
+            try {
+                synchronized (IO) {
+                    return exec(s, cmd, ids.getAndIncrement());
+                }
+            } catch (Throwable t) {
+                android.util.Log.w(TAG, "adb: run on live session failed: " + t);
+                live = null;
+            }
+        }
+        Context c = appCtx;
+        if (c == null) return null;
+        Sess fresh = null;
+        try {
+            fresh = connect(c);
+            return exec(fresh, cmd, ids.getAndIncrement());
+        } catch (Throwable t) {
+            android.util.Log.w(TAG, "adb: run failed: " + t);
+            return null;
+        } finally {
+            if (fresh != null) try { fresh.s.close(); } catch (Throwable ignored) { }
+        }
     }
 
     /**
@@ -183,8 +228,13 @@ public final class AdbShell {
     private static final String WD_BEAT = "/sdcard/Android/data/com.xdja.clusterdemo/files/beat";
     /* timestamp of the watchdog's last release: separates "ignition" from "open-door alert" */
     static final String WD_OFF_TS = "/sdcard/Android/data/com.xdja.clusterdemo/files/off.ts";
-    /* exists while "start automatically" is on: the watchdog then revives the app */
-    static final String WD_AUTO = "/sdcard/Android/data/com.xdja.clusterdemo/files/autostart";
+    /* exists while "start automatically" is on: the watchdog then revives the app.
+       It lives in /data/local/tmp, not on external storage: with the card unmounted the script
+       saw no flag and exited, and the panel was left without anyone to wake the app. */
+    static final String WD_AUTO = "/data/local/tmp/shark_auto";
+    /* the previous flag location, still honoured so an armed car keeps working after upgrade */
+    static final String WD_AUTO_LEGACY =
+            "/sdcard/Android/data/com.xdja.clusterdemo/files/autostart";
 
     /**
      * Watchdog (like the reference app's): a script in adbd that lives outside our process.
@@ -193,6 +243,9 @@ public final class AdbShell {
      */
     public static void watchdog(Context ctx) {
         if (ctx == null) return;
+        /* execOnce() reads appCtx: before the loop has started it was null and every command
+           threw inside keys() (the watchdog was never armed on a cold start) */
+        appCtx = ctx.getApplicationContext();
         try {
             java.io.File f = new java.io.File(ctx.getExternalFilesDir(null), WD_NAME);
             java.io.FileWriter w = new java.io.FileWriter(f, false);
@@ -200,6 +253,7 @@ public final class AdbShell {
                apply or release is the app, reading getPowerCtlStatus(3) (1 = on, 0 = off). */
             w.write("#!/system/bin/sh\n"
                     + "AUTO=" + WD_AUTO + "\n"
+                    + "[ -f " + WD_AUTO_LEGACY + " ] && touch $AUTO\n"
                     + "mkdir /data/local/tmp/shark_wd.lock 2>/dev/null || exit 0\n"
                     + "echo $$ > /data/local/tmp/shark_wd.pid\n"
                     + "echo \"$(date) armed\" >> /data/local/tmp/shark.log\n"
@@ -242,6 +296,19 @@ public final class AdbShell {
                 + "case \"$P2\" in ''|*[!0-9]*) P2=0;; esac; "
                 + "if [ \"$P2\" = 0 ] || [ ! -d /proc/$P2 ]; then "
                 + "setsid sh /data/local/tmp/" + WD_NAME + " >/dev/null 2>&1 & fi; sleep 2");
+    }
+
+    /** arms or disarms the watchdog's relaunch loop (the "apply on power-on" switch) */
+    public static void setAuto(boolean on) {
+        Context c = appCtx;
+        if (c == null) return;
+        try {
+            java.io.File f = new java.io.File(c.getExternalFilesDir(null), "autostart");
+            if (on) f.createNewFile();
+            else f.delete();
+        } catch (Throwable ignored) {
+        }
+        execOnce((on ? "touch " : "rm -f ") + WD_AUTO);
     }
 
     /** heartbeat stamp: the watchdog releases the panel when it stops advancing */

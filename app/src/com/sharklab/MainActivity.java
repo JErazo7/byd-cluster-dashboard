@@ -186,12 +186,12 @@ public class MainActivity extends Activity {
                     double[] b = byd.snapshot();
                     int pc = b[36] > -998 ? (int) b[36] : -1;
                     if (pc == 1) {
-                        if (pa.getBoolean("bootApply", false) && !ClusterOverlay.running()) {
+                        if (pa.getBoolean("bootApply", false) && !ClusterOverlay.attached(MainActivity.this)) {
                             AdbShell.trace(MainActivity.this, "auto: car on -> apply");
                             bridge.overlayShow();
                         }
                     } else if (pc == 0) {
-                        if (ClusterOverlay.running()) {
+                        if (ClusterOverlay.running() || PanelRelease.session) {
                             AdbShell.trace(MainActivity.this, "auto: car off -> release");
                             bridge.panelRelease();
                         }
@@ -482,9 +482,9 @@ public class MainActivity extends Activity {
         final int[] tries = {0};
         final Runnable retry = new Runnable() {
             public void run() {
-                if (ClusterOverlay.running()) return;
+                if (ClusterOverlay.attached(MainActivity.this)) return;
                 ensureOverlay();
-                if (!ClusterOverlay.running() && ++tries[0] < 15) ui.postDelayed(this, 1000);
+                if (!ClusterOverlay.attached(MainActivity.this) && ++tries[0] < 15) ui.postDelayed(this, 1000);
             }
         };
         ui.postDelayed(retry, 1500);
@@ -496,7 +496,26 @@ public class MainActivity extends Activity {
         /* only recreates if the user (or boot) asked to apply: otherwise the loop resurrected
            the skin after the car was turned off */
         if (!PanelRelease.session || !p.getBoolean("applied", false) || !p.getBoolean("overlay", true)
-                || ClusterOverlay.running()) return;
+                || ClusterOverlay.attached(this)) return;
+        if (!PanelProjection.present(this)) {
+            /* the container lost the display: nothing to draw on until it is asked for one.
+               Blocking (ADB + retries), so it does not run on the UI thread. */
+            new Thread(new Runnable() {
+                public void run() {
+                    PanelProjection.ensure(getApplicationContext());
+                    ui.post(new Runnable() {
+                        public void run() { showOverlay(); }
+                    });
+                }
+            }, "panel-projection").start();
+            return;
+        }
+        showOverlay();
+    }
+
+    private void showOverlay() {
+        SharedPreferences p = getSharedPreferences("lab", MODE_PRIVATE);
+        if (!ClusterOverlay.attached(this) && !PanelProjection.present(this)) return;
         boolean ok = ClusterOverlay.show(this, urlFor(p.getString("skin", "byd"), true, false));
         Log.i(TAG, "panel: overlay recreated=" + ok + " " + ClusterOverlay.error());
         if (ok) ui.postDelayed(new Runnable() {
@@ -1013,10 +1032,7 @@ public class MainActivity extends Activity {
         public void bootApplySet(boolean on) {
             getSharedPreferences("lab", MODE_PRIVATE).edit()
                     .putBoolean("bootApply", on).putBoolean("autostart", on).apply();
-            try {
-                java.io.File f = new java.io.File(getExternalFilesDir(null), "autostart");
-                if (on) f.createNewFile(); else f.delete();
-            } catch (Throwable ignored) { }
+            AdbShell.setAuto(on);
             AdbShell.trace(MainActivity.this, "bootApply=" + on);
         }
 
@@ -1068,14 +1084,7 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
             final String sk = p.getString("skin", "byd");
-            try {
-                java.io.File af = new java.io.File(getExternalFilesDir(null), "autostart");
-                if (p.getBoolean("bootApply", false)) {
-                    if (!af.isFile()) af.createNewFile();
-                } else {
-                    af.delete();
-                }
-            } catch (Throwable ignored) { }
+            AdbShell.setAuto(p.getBoolean("bootApply", false));
             AdbShell.watchdog(MainActivity.this);
             ClusterOverlay.hide();
             new Thread(new Runnable() {
@@ -1097,9 +1106,10 @@ public class MainActivity extends Activity {
                     try { latch.await(6, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) { }
                     try { Thread.sleep(1600); } catch (InterruptedException ignored) { }
                     if (!res[0]) {
-                        AdbShell.execOnce("service call AutoContainer 2 i32 1000 i32 46 s16 null");
-                        AdbShell.trace(MainActivity.this, "no window: 46 sent");
-                        try { Thread.sleep(1800); } catch (InterruptedException ignored) { }
+                        /* no window = the container has no display to project onto: ask for the
+                           projection the same way the reference app does (16/35, 30 as last resort) */
+                        boolean proj = PanelProjection.ensure(MainActivity.this);
+                        AdbShell.trace(MainActivity.this, "no window: projection=" + proj);
                         ui.post(new Runnable() {
                             public void run() {
                                 res[0] = ClusterOverlay.show(MainActivity.this, urlFor(sk, true, false));
@@ -1137,14 +1147,14 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public boolean overlayOn() {
-            return ClusterOverlay.running();
+            return ClusterOverlay.attached(getApplicationContext());
         }
 
         /** the panel is taken by the skin (user intent + window alive) */
         @JavascriptInterface
         public boolean panelApplied() {
             return getSharedPreferences("lab", MODE_PRIVATE).getBoolean("applied", false)
-                    && ClusterOverlay.running();
+                    && ClusterOverlay.attached(getApplicationContext());
         }
 
         /** turns the theme on the panel on/off (persistent) */

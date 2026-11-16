@@ -44,12 +44,25 @@ public final class ClusterOverlay {
     private static WindowManager wm;
     private static WindowManager.LayoutParams lastLp;
     private static String error = "";
+    /* display id the current window was added to: if the container recreates the display, the
+       old window belongs to a dead display and has to be put up again */
+    private static volatile int shownDisplayId = -1;
 
     private ClusterOverlay() {
     }
 
     public static boolean running() {
         return web != null;
+    }
+
+    /**
+     * The skin is really on the panel: the window exists AND it is on the display that is there
+     * now. After the container destroys and recreates the virtual display both differ.
+     */
+    public static boolean attached(Context ctx) {
+        if (web == null) return false;
+        Display now = panelDisplay(ctx);
+        return now != null && now.getDisplayId() == shownDisplayId;
     }
 
     /**
@@ -175,6 +188,7 @@ public final class ClusterOverlay {
                 web.loadUrl(u);
             }
             startPush(ctx);
+            shownDisplayId = target.getDisplayId();
             watchPanelPower(ctx, target.getDisplayId());
             Log.i(TAG, "panel overlay created on display " + target.getDisplayId()
                     + " expected panel layerStack");
@@ -232,7 +246,14 @@ public final class ClusterOverlay {
 
                 @Override
                 public void onDisplayRemoved(int id) {
-                    if (id == displayId) PanelRelease.release(ctx);
+                    /* the container lost the virtual display (it rebuilds it on demand, see
+                       PanelProjection). The window died with it: drop it here and let
+                       PanelService ask for the projection again while the car is on. Releasing
+                       the panel here was what made a lost display unrecoverable. */
+                    if (id == displayId) {
+                        AdbShell.trace(ctx, "glass: panel display removed, window dropped");
+                        hide();
+                    }
                 }
 
                 @Override
@@ -315,5 +336,6 @@ public final class ClusterOverlay {
         }
         web = null;
         wm = null;
+        shownDisplayId = -1;
     }
 }
