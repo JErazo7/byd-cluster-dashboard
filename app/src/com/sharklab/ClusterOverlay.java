@@ -79,6 +79,17 @@ public final class ClusterOverlay {
         }
     }
 
+    /** first stack frame outside this class: tells who asked for the window */
+    private static String caller() {
+        for (StackTraceElement e : new Throwable().getStackTrace()) {
+            if (!ClusterOverlay.class.getName().equals(e.getClassName())) {
+                String n = e.getClassName();
+                return n.substring(n.lastIndexOf('.') + 1) + "." + e.getMethodName() + ":" + e.getLineNumber();
+            }
+        }
+        return "?";
+    }
+
     public static String error() {
         return error;
     }
@@ -96,7 +107,7 @@ public final class ClusterOverlay {
     }
 
     public static synchronized boolean show(Context ctx, String url) {
-        AdbShell.trace(ctx, "overlay.show\n" + android.util.Log.getStackTraceString(new Throwable()).split("\n")[1]);
+        AdbShell.trace(ctx, "overlay.show from " + caller());
         hide();
         error = "";
         try {
@@ -325,7 +336,9 @@ public final class ClusterOverlay {
         lastLp = null;
         try {
             if (web != null && wm != null) wm.removeView(web);
-        } catch (Throwable ignored) {
+            AdbShell.trace(lastCtx, "overlay.hide web=" + (web != null) + " wm=" + (wm != null));
+        } catch (Throwable t) {
+            AdbShell.trace(lastCtx, "overlay.hide failed " + t);
         }
         try {
             if (web != null) {

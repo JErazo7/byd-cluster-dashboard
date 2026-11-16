@@ -212,6 +212,11 @@ Notas operativas:
   `/data/local/tmp/shark_auto` sale enseguida) y `PanelService` no aplica por `pc == 1`.
 - Tras apagar, la app muere y no vuelve sola si el vigía no está armado: el tema aplicado a mano
   no sobrevive al ciclo de energía.
+- **Soltar el panel con el auto encendido deja el panel en negro** (medido 16/11 09:11): el
+  container se queda con el dueño de la proyección pero sin ventana, y `16`/`18`/`0` no traen de
+  vuelta el dibujo nativo de BYD; solo vuelve con un ciclo de energía. O sea: el botón SOLTAR solo
+  tiene sentido al apagar, y por eso el servicio reaplica si el interruptor "aplicar al encender"
+  está prendido.
 
 
 ## Proyección perdida: el fallo que solo EVSound recuperaba — resuelto 2026-11-16

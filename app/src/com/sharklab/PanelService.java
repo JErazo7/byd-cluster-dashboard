@@ -76,7 +76,10 @@ public class PanelService extends Service {
                     int pc = b[36] > -998 ? (int) b[36] : -1;
                     SharedPreferences lab = getSharedPreferences("lab", MODE_PRIVATE);
                     /* want = the user's intent, either "apply on power-on" or the APPLY button.
-                       release() clears `applied` when the car turns off, so this is not sticky. */
+                       release() clears `applied` when the car turns off, so this is not sticky.
+                       An explicit RELEASE is NOT honoured while the car is on: the container keeps
+                       the projection owner alive with no window and the panel stays black
+                       (measured 16/11, 09:11) — releasing only makes sense at power-off. */
                     boolean want = lab.getBoolean("bootApply", false) || lab.getBoolean("applied", false);
                     boolean lostPanel = !ClusterOverlay.attached(getApplicationContext());
                     /* anything that says the skin was up: without this the release ran on every

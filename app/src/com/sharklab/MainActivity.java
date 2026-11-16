@@ -186,14 +186,15 @@ public class MainActivity extends Activity {
                     double[] b = byd.snapshot();
                     int pc = b[36] > -998 ? (int) b[36] : -1;
                     if (pc == 1) {
-                        if (pa.getBoolean("bootApply", false) && !ClusterOverlay.attached(MainActivity.this)) {
+                        if (pa.getBoolean("bootApply", false)
+                                && !ClusterOverlay.attached(MainActivity.this)) {
                             AdbShell.trace(MainActivity.this, "auto: car on -> apply");
                             bridge.overlayShow();
                         }
                     } else if (pc == 0) {
                         if (ClusterOverlay.running() || PanelRelease.session) {
                             AdbShell.trace(MainActivity.this, "auto: car off -> release");
-                            bridge.panelRelease();
+                            PanelRelease.release(MainActivity.this);
                         }
                     }
                 } catch (Throwable ignored) {
@@ -1149,10 +1150,7 @@ public class MainActivity extends Activity {
         /** the release button: closes the skin and hands the panel back to the BYD original layout */
         @JavascriptInterface
         public void panelRelease() {
-            getSharedPreferences("lab", MODE_PRIVATE).edit()
-                    .putBoolean("enabled", false).putBoolean("applied", false).apply();
-            ClusterOverlay.hide();
-            PanelRelease.release();
+            PanelRelease.userRelease(MainActivity.this);
         }
 
         @JavascriptInterface

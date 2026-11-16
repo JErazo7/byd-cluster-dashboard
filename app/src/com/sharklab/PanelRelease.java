@@ -10,6 +10,10 @@ public final class PanelRelease {
     private PanelRelease() {
     }
 
+    private static android.content.Context appCtxOrNull() {
+        return null;
+    }
+
     /**
      * Valid only inside the process: the skin is on the panel because the user (or the startup)
      * asked for it NOW. If the process dies — the car shuts off and PanelService is revived — the
@@ -28,8 +32,15 @@ public final class PanelRelease {
         release();
     }
 
+    /** the RELEASE button: same as the automatic release, with a trace of who asked */
+    public static void userRelease(android.content.Context ctx) {
+        AdbShell.trace(ctx, "release: user asked");
+        release(ctx);
+    }
+
     public static void release() {
         session = false;
+        AdbShell.trace(appCtxOrNull(), "release: giving the panel back");
         /* the skin window has to go out BEFORE giving the panel back: with the car off BYD
            lights the display for the open-door alert and our window stayed on top of it */
         ClusterOverlay.hide();
