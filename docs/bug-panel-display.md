@@ -292,6 +292,9 @@ boot: 16/45 sent
 
 Y la skin volvió sola en el display nuevo (`screencap -d 5`).
 
+**Confirmado en el auto (16/11, apagado y encendido reales): la skin sube sola**, sin abrir la
+app y con EVSound deshabilitado. Ese era el caso que antes solo resolvía EVSound.
+
 **Recuperación probada matando el container** (16/11, 08:44): `am crash com.xdja.containerservice`
 mata el proceso (pid 1794 → 1963), el display virtual se va con él y la app lo recupera sola:
 
