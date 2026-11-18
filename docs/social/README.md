@@ -9,8 +9,9 @@ Ready-to-paste posts for the public launch. Assets in this folder:
 Other assets: `docs/demo-modes.gif` (README and post attachments), `docs/modes/*.jpg` (still
 frames). The demo video is not committed; attach it natively to each network.
 
-Every number here comes from the README. Do not add one that is not there: the project's whole
-claim is that the values were measured on the car.
+Every claim here is backed by the README. Tested on one car: a BYD Shark. Other BYD models
+sharing DiLink 3.0 are the target, not a measured fact — the copy says 'any BYD on DiLink 3.0'
+because the platform contract is the same, and only the probes differ.
 
 ## X / Twitter (English thread)
 
@@ -108,27 +109,25 @@ your display name, the panel codes it answers and your power signal.
 https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```
 
-## LinkedIn (Spanish)
+## LinkedIn
 
 Short on purpose: nobody reads a long post. Links cost reach, so the repo goes in the first
 comment.
 
 ```
-Conecté mi BYD Shark a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa
-del tablero del cluster.
+I reverse engineered the cluster dashboard of my BYD Shark: the car on Tailscale, the agents on a
+VM.
 
-Ese panel no es una pantalla más de Android: para dibujarlo hay que pedirle la proyección a un
-servicio del sistema (AutoContainer), con códigos que no están documentados en ningún lado.
+That panel is not another Android screen. To draw on it you have to ask a system service
+(AutoContainer) for projection, with codes nobody documents.
 
-Hoy el tablero es mío: un solo SVG que edito como texto, con seis escenas que elige el carro y
-datos reales del vehículo. 2.6 MB de APK.
+Today the whole dashboard is one SVG I edit as text: six scenes that the car picks, real vehicle
+data, a 2.6 MB APK.
 
-Y el código está abierto: cambias el tema a tu gusto, o haces lo que quieras con el panel de
-instrumentos.
+And the code is open. Change the theme to your taste, or do whatever you want with the instrument
+panel. It is meant to work on any BYD that runs DiLink 3.0.
 
-Solo en un Shark (DiLink 3.0). Si tu BYD usa el mismo sistema, portarlo es medir tres valores.
-
-Repo y APK en el primer comentario.
+Repo and APK in the first comment.
 
 #BYD #Shark #OpenSource
 ```
@@ -136,15 +135,18 @@ Repo y APK en el primer comentario.
 First comment:
 
 ```
-Código, guía y mediciones: https://github.com/JErazo7/byd-cluster-dashboard
+Code, guide and the signed APK: https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```
 
-## X (Spanish, single post — alternative to the thread)
+## X (single post)
 
 ```
-Conecté mi BYD Shark a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa del tablero del cluster.
+Your BYD's cluster panel is not Android: it only exists while a system service projects onto it,
+with codes nobody documents.
 
-Hoy el tablero entero es un SVG: cambias el tema a tu gusto, o haces lo que quieras con él.
+I mapped them on my Shark, from a VM, car on Tailscale.
+
+Now the dashboard is one SVG you can rewrite. Any BYD on DiLink 3.0.
 
 https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```
