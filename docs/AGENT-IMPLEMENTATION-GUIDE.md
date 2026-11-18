@@ -342,8 +342,15 @@ alive, `ACTION_SCREEN_OFF` and `ACTION_SHUTDOWN` **do not arrive** on shut-down,
 `am start-foreground-service` on a stopped package is refused (`Not found; no service started`)
 even when the service is exported. Therefore:
 
+- **the head unit refuses background starts/binds/broadcasts (including `BOOT_COMPLETED`) to
+  installed apps by default** (`ssc_skip`, uid → 1 in `content://appops/settings`). The package
+  must be switched **off** in the system app `com.byd.appstartmanagement` ("Desactivar el
+  Autoinicio"): with it on, `bindServiceLocked`/`BOOT_COMPLETED` are logged as
+  `ssc_skip … ignored !!!` and nothing starts the app after a reboot. Measured 18/11, see
+  `docs/bug-panel-display.md`;
 - a script in adbd (`/data/local/tmp/…`) watches every 2 s and relaunches an **invisible
-  activity** (`WakeActivity`) when there is no process;
+  activity** (`WakeActivity`) when there is no process. It is a uid-2000 child of adbd, so a real
+  reboot kills it: the boot path must not depend on it alone;
 - `WakeActivity` starts `PanelService` and calls `finish()` without a first frame.
 
 Do not launch the main activity from the watchdog: it opens the interface on the head unit and

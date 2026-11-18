@@ -244,6 +244,40 @@ cuando el payload no cambió.
 
 ## Proyección perdida: el fallo que solo EVSound recuperaba — resuelto 2026-11-16
 
+### Autoinicio: la central bloquea paquetes instalados (`ssc_skip`)
+
+Hallazgo del 18/11, con el coche recién encendido y el tema sin aplicar:
+
+```
+BroadcastQueue: ssc_skip reciever for uid 10091 name = com.xdja.clusterdemo,
+                broadcast=android.intent.action.BOOT_COMPLETED ... ignored !!!
+BroadcastQueue: ssc_skip reciever for uid 10091 name = com.xdja.clusterdemo ignored !!!
+```
+
+El framework de la central (BYD, `ssc_skip` en `ActivityManagerService`/`ActiveServices`) ignora
+**binds, arranques de servicio y broadcasts** (incluido `BOOT_COMPLETED`) de cualquier uid ≥ 10000
+salvo que esté en su lista blanca. Al instalar, `AppOpsDataCachedService` mete el uid en
+`content://appops/settings` con valor **1** (bloqueado):
+`updateAppOpsChangedLocked` → `mapAppOpsData.put(uid, 1)` en `PACKAGE_ADDED`/`PACKAGE_REPLACED`.
+
+La lista se cambia en la app del sistema **`com.byd.appstartmanagement`** (pantalla *"Desactivar el
+Autoinicio"*): cada fila hace `setAppOpsData(uid, checked ? 0 : 1)`. **El interruptor de SharkLab
+tiene que estar APAGADO** (gris) para que la central lo deje arrancar solo.
+
+Medido sin reiniciar, con el interruptor apagado:
+
+```
+ActivityManager: bindServiceLocked  1000 process android  want to bind 10091
+ActivityManager: Start proc 8170:com.xdja.clusterdemo/u0a91 for service {...NavWatch}
+```
+
+Antes de eso, las mismas líneas eran `ssc_skip ... ignored !!!`.
+
+Consecuencia para el vigía: es un proceso de uid 2000 bajo adbd. **Un reinicio real de la central
+lo mata** (y adbd vuelve sin él). Por eso el encendido no puede depender solo del vigía: depende de
+que `BOOT_COMPLETED` llegue, y eso exige el interruptor apagado. Abrir `com.byd.appstartmanagement`
+desde adb: `am start -n com.byd.appstartmanagement/.frame.AppStartManagement`.
+
 ### Estado al 2026-11-16
 
 | Punto | Estado | Evidencia |
@@ -256,7 +290,8 @@ cuando el payload no cambió.
 | `A_WRTE` corregido (antes: comandos ejecutados sin poder verificar nada) | **verificado** | idem |
 | Consumo: 4,9 % de un núcleo con la skin puesta | **verificado** | `/proc/<pid>/stat`, ventanas de 20-30 s |
 | Sin daemons fantasma (solo app + un vigía) | **verificado** | `ps -A` |
-| Estado `fission` = 0 al primer encendido tras un reposo largo | **pendiente** | no se pudo provocar en remoto (ver tabla más abajo); aparece solo después de un ciclo de energía |
+| `fission` = 0 al arrancar: la app crea el display con `16`/`35` | **verificado** | 18/11 14:44: `projection: panel display missing` → `projection: display back after 16/35` → skin arriba |
+| Arranque automático tras un **reinicio** real de la central | **pendiente de un ciclo** | el 18/11 no arrancó: `ssc_skip ... BOOT_COMPLETED ... ignored` y el vigía murió con el reinicio; ya se apagó el interruptor de autoinicio en la central (ver arriba) |
 | Botón `DESACTIVAR` con el auto encendido | **pendiente** | ver la nota operativa al final |
 
 **Síntoma.** Después de un tiempo (no hace falta arranque remoto), el panel se queda en BYD y no
