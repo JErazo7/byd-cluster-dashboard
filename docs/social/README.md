@@ -117,11 +117,11 @@ comment.
 Conecté mi BYD Shark a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa
 del tablero del cluster.
 
-Ese panel no es una pantalla más de Android: es un display virtual que solo existe mientras un
-binder del sistema (AutoContainer) está en modo proyección.
+Ese panel no es una pantalla más de Android: para dibujarlo hay que pedirle la proyección a un
+servicio del sistema (AutoContainer), con códigos que no están documentados en ningún lado.
 
-Hoy el tablero es mío: un SVG de 1920×720 que edito como texto, con seis escenas que elige el
-carro y datos reales del vehículo. 2.6 MB de APK.
+Hoy el tablero es mío: un solo SVG que edito como texto, con seis escenas que elige el carro y
+datos reales del vehículo. 2.6 MB de APK.
 
 Y el código está abierto: cambias el tema a tu gusto, o haces lo que quieras con el panel de
 instrumentos.
@@ -144,7 +144,7 @@ Código, guía y mediciones: https://github.com/JErazo7/byd-cluster-dashboard
 ```
 Conecté mi BYD Shark a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa del tablero del cluster.
 
-Hoy es un SVG de 1920×720 que edito como texto: cambias el tema a tu gusto, o haces lo que quieras con el panel.
+Hoy el tablero entero es un SVG: cambias el tema a tu gusto, o haces lo que quieras con él.
 
 https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```

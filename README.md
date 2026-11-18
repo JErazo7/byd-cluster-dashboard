@@ -50,10 +50,12 @@ does not have to start from zero. Never claim support for a model that has not b
 See [`AGENTS.md`](AGENTS.md): the agent entry point, the tested scope and the hard rules, with
 the link to the implementation guide.
 
-**Skin grid:** `byd` draws at **1920×720** with a `viewBox` — the exact cluster frame — and
-`width/height="100%"`, so it scales on its own. Side rings with radius ~200 and stroke 14,
-centres at x 300/1620 and y 400; dial number 96 (hero 120 in the centre); bottom band cards at
-y 560–700; BYD light band at x 700–1220, y 0–60.
+**Skin grid:** `byd` draws with `viewBox="0 0 1280 480"` and `width/height="100%"`, so the
+browser stretches it to the panel's 1920×720. Edit in 1280×480 coordinates, never in screen
+pixels. The two rings sit at y 198 with radius 172 and stroke 17, centred on x 190 and x 1090;
+the speed number is 106 px at (640, 134) with `km/h` at y 160. The three cards run from y 326 to
+470 on a band that starts at 380: battery 14..460, pressures 470..810, modes 820..1266. The
+vehicle cut-out is 312 px wide, centred on x 640, with its base at y 318.
 
 The pressure card uses `assets/tyre-stage.png` — art with alpha (1510×897, cropped by the alpha
 box) that already carries the top-down car, the four glowing rings on the wheels and the side
