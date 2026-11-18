@@ -42,11 +42,20 @@ public final class PanelBoot {
             AdbShell.trace(appCtx, "boot: head unit off, nothing applied");
             return;
         }
+        /* pc, not the screen: the head unit turns the panel on for the open-door alert with the
+           car off, and a skin on top of it is the regression in "do not touch". Only a definitive
+           0 skips; an unreadable value (early boot) applies and the service corrects it. */
+        double pc = new BydBridge(appCtx).powerCtl();
+        if (pc > -998 && pc != 1) {
+            AdbShell.trace(appCtx, "boot: car off (pc=" + (int) pc + "), the service keeps watching");
+            return;
+        }
         /* the first line of every apply: did the container have the panel display at this moment?
            That is what the "power-on after a long rest" case needs to answer from the trace, with
            no adb around. */
         android.view.Display panel = ClusterOverlay.panelDisplay(appCtx);
         AdbShell.trace(appCtx, "boot: display=" + (panel == null ? "none" : "id " + panel.getDisplayId())
+                + " pc=" + (pc > -998 ? String.valueOf((int) pc) : "?")
                 + " interactive=" + (pm == null ? "?" : pm.isInteractive()));
         PanelRelease.session = true;
         AdbShell.start(ctx);

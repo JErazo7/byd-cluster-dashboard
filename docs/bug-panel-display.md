@@ -382,6 +382,7 @@ recreado, la ventana de nuestra app muere con el display viejo y hay que volver 
 | `AdbShell` | el flag del vigía pasó de `/sdcard/…/autostart` a `/data/local/tmp/shark_auto`: si la tarjeta no estaba montada, el script no veía el flag y moría |
 | `MainActivity` | el botón APLICAR usa la misma secuencia en vez de un `46` suelto; los estados que lee la skin usan `attached()` |
 | `AutoStart.java` (nuevo) | cualquier arranque del proceso (bind del listener, `SCREEN_ON`, `WakeActivity`) arranca `PanelService` y aplica: el encendido no depende del vigía ni de `BOOT_COMPLETED` |
+| `PanelBoot.apply` | antes de aplicar exige `power.getPowerCtlStatus(3) == 1` (solo un 0 definitivo lo salta). `isInteractive()` no alcanzaba: con el auto apagado la central enciende el panel para la alerta de puerta y la skin caería encima — la regresión de "Do not touch". Ahora protege a **todos** los llamadores, incluido `AutoStart.kick` |
 
 **Verificado en la carrocería (16/11, 08:19 y 08:40):** con la skin aplicada, se recreó el
 display (`31`, id 3 → 4 → 5). Traza de la app:
