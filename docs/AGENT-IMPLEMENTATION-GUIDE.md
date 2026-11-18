@@ -11,8 +11,8 @@ Other BYD models are expected to work when they share the same cluster system (t
 display name, the command codes and the power signal; §11 lists the probes. Contributions that
 add support for another model are welcome, with the measured values attached.
 
-Executable reference: `app/` (SharkLab). Raw platform contract: `docs/BYD-CONTAINER.md` and
-`docs/bug-panel-display.md`. This document is the recommended path; those two are the evidence.
+Executable reference: `app/` (SharkLab). Raw platform contract: `docs/BYD-CONTAINER.md`. This
+document is the recommended path; that one is the evidence.
 
 ---
 
@@ -346,8 +346,7 @@ even when the service is exported. Therefore:
   installed apps by default** (`ssc_skip`, uid → 1 in `content://appops/settings`). The package
   must be switched **off** in the system app `com.byd.appstartmanagement` ("Desactivar el
   Autoinicio"): with it on, `bindServiceLocked`/`BOOT_COMPLETED` are logged as
-  `ssc_skip … ignored !!!` and nothing starts the app after a reboot. Measured 18/11, see
-  `docs/bug-panel-display.md`;
+  `ssc_skip … ignored !!!` and nothing starts the app after a reboot. Measured on the car;
 - a script in adbd (`/data/local/tmp/…`) watches every 2 s and relaunches an **invisible
   activity** (`WakeActivity`) when there is no process. It is a uid-2000 child of adbd, so a real
   reboot kills it: the boot path must not depend on it alone;
@@ -410,8 +409,7 @@ that is not enough. `PanelProjection.ensure()` implements it and `PanelService` 
 
 Status on the car (2026-11-16): power-cycle apply, recovery after the container dies, wake from
 adbd and the command replies are all verified; the first ignition after a long rest and the
-`DESACTIVAR` button are still open. Table with evidence: `docs/bug-panel-display.md`,
-"Estado al 2026-11-16".
+`DESACTIVAR` button are still open.
 
 ### 6.5 Shut-down seen from the inside
 

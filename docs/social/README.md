@@ -9,8 +9,8 @@ Ready-to-paste posts for the public launch. Assets in this folder:
 Other assets: `docs/demo-modes.gif` (README and post attachments), `docs/modes/*.jpg` (still
 frames). The demo video is not committed; attach it natively to each network.
 
-Every number here comes from `docs/bug-panel-display.md` or the README. Do not add one that
-is not there: the project's whole claim is that the values were measured on the car.
+Every number here comes from the README. Do not add one that is not there: the project's whole
+claim is that the values were measured on the car.
 
 ## X / Twitter (English thread)
 

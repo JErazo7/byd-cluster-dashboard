@@ -8,8 +8,7 @@ Entry point for any agent working in this repository.
 implementation document: platform contract, panel command sequence, power on/off handling,
 watchdog, skin contract, diagnostics, ADB reference and the acceptance checklist.
 
-Platform evidence, raw measurements: [`docs/BYD-CONTAINER.md`](docs/BYD-CONTAINER.md) and
-[`docs/bug-panel-display.md`](docs/bug-panel-display.md).
+Platform evidence, raw measurements: [`docs/BYD-CONTAINER.md`](docs/BYD-CONTAINER.md).
 
 ## Scope and status
 

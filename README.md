@@ -234,9 +234,9 @@ AutoContainer is in projection mode**. That mode is requested over binder, type 
 | `45` | full screen | the native widgets disappear; only the skin is left |
 
 `46` is **not** part of that sequence: it rebuilds the panel surface, leaves the window orphaned
-and the panel goes back to the native layout (the display counter stays at `5`, see
-`docs/bug-panel-display.md`). It is only used when releasing (`46` → `18` → `0`) and as a rescue
-when the window cannot be created because the display does not exist.
+and the panel goes back to the native layout (the display counter stays at `5`). It is only used
+when releasing (`46` → `18` → `0`) and as a rescue when the window cannot be created because the
+display does not exist.
 
 The 60 s loop reaffirms `16` + `45` (never `46`), so the panel holds even if another app sends
 `18`. Verified: 3 minutes full screen without sending commands by hand.
