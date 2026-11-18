@@ -504,6 +504,12 @@ adb shell appops set com.xdja.clusterdemo SYSTEM_ALERT_WINDOW allow
 
 ---
 
+**After every install, re-check the system's app-start block list.** Installing marks the uid as
+blocked again (`PACKAGE_REPLACED` → `content://appops/settings` uid = 1), so the "Desactivar el
+Autoinicio" switch in `com.byd.appstartmanagement` goes back to ON and nothing starts the app after
+a reboot. Toggle it off, then verify with `am force-stop` + `logcat | grep -E
+"ssc_skip.*<pkg>|Start proc.*<pkg>"` before switching the car off.
+
 ## 9. Diagnostics: symptom → cause
 
 ```bash

@@ -273,6 +273,24 @@ ActivityManager: Start proc 8170:com.xdja.clusterdemo/u0a91 for service {...NavW
 
 Antes de eso, las mismas líneas eran `ssc_skip ... ignored !!!`.
 
+**Trampa: cada instalación reactiva el bloqueo.** `AppOpsDataCachedService` recibe
+`PACKAGE_ADDED`/`PACKAGE_REPLACED` y vuelve a escribir `uid → 1`
+(`mapAppOpsData.put(uid, 1)` en `updateAppOpsChangedLocked`). Medido el 18/11 14:50: después de
+`adb install -r`, el interruptor de SharkLab volvió a ON solo. O sea:
+
+> **Después de cada `adb install -r` hay que volver a abrir `com.byd.appstartmanagement` y apagar
+> el interruptor de SharkLab** (o comprobarlo) *antes* de apagar el coche. Si no, el próximo
+> encendido vuelve a no aplicar el tema y parece que el arreglo no sirve.
+
+Comprobación en 15 s, sin reiniciar nada:
+
+```bash
+adb shell am force-stop com.xdja.clusterdemo
+adb shell logcat -d | grep -E "ssc_skip.*clusterdemo|Start proc.*clusterdemo" | tail -3
+# Start proc ... clusterdemo  -> autoinicio permitido
+# ssc_skip ... ignored !!!    -> bloqueado: apagar el interruptor
+```
+
 Consecuencia para el vigía: es un proceso de uid 2000 bajo adbd. **Un reinicio real de la central
 lo mata** (y adbd vuelve sin él). Por eso el encendido no puede depender solo del vigía: depende de
 que `BOOT_COMPLETED` llegue, y eso exige el interruptor apagado. Abrir `com.byd.appstartmanagement`
