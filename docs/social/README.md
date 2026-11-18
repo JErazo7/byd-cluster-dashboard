@@ -17,10 +17,10 @@ claim is that the values were measured on the car.
 **1/**
 
 ```
-BYD's cluster panel is closed. I didn't reverse engineer it by hand: I measured on the car
-and drove an AI agent through the traces, the command codes and the code.
+BYD's cluster panel is closed. I put my Shark on a Tailscale network and reverse engineered
+it from a VM, with AI agents reading the traces and the command codes.
 
-It now runs my own SVG skin. 2.6 MB APK, no Gradle, MIT.
+It now runs my own SVG skin, and the skin is yours to rewrite. 2.6 MB APK, no Gradle, MIT.
 
 🧵
 ```
@@ -114,22 +114,21 @@ Short on purpose: nobody reads a long post. Links cost reach, so the repo goes i
 comment.
 
 ```
-Conecté mi carro a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa del
-tablero del cluster.
+Conecté mi BYD Shark a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa
+del tablero del cluster.
 
-Que quede claro: la IA no lo hizo sola. Fueron muchas iteraciones — un proceso que moría al
-apagar el carro, códigos que no respondían, el panel en negro. Cada medición quedó escrita
-para no repetirla.
+Ese panel no es una pantalla más de Android: es un display virtual que solo existe mientras un
+binder del sistema (AutoContainer) está en modo proyección.
 
-Hoy el tablero es mío: un SVG de 1920×720 que edito como texto, seis escenas que elige el
+Hoy el tablero es mío: un SVG de 1920×720 que edito como texto, con seis escenas que elige el
 carro y datos reales del vehículo. 2.6 MB de APK.
 
-Si esto se pudo, casi cualquier cosa del carro se puede. No porque la IA lo resuelva, sino
-porque ahora hay un camino medido y abierto.
-
-Repo, guía y APK en el primer comentario.
+Y el código está abierto: cambias el tema a tu gusto, o haces lo que quieras con el panel de
+instrumentos.
 
 Solo en un Shark (DiLink 3.0). Si tu BYD usa el mismo sistema, portarlo es medir tres valores.
+
+Repo y APK en el primer comentario.
 
 #BYD #Shark #OpenSource
 ```
@@ -143,12 +142,9 @@ Código, guía y mediciones: https://github.com/JErazo7/byd-cluster-dashboard
 ## X (Spanish, single post — alternative to the thread)
 
 ```
-Conecté mi carro a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa del
-tablero del cluster.
+Conecté mi BYD Shark a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa del tablero del cluster.
 
-La IA no lo hizo sola: muchas iteraciones.
-
-Hoy es un SVG que edito como texto.
+Hoy es un SVG de 1920×720 que edito como texto: cambias el tema a tu gusto, o haces lo que quieras con el panel.
 
 https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```
