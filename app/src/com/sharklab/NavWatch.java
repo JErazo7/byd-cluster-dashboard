@@ -22,6 +22,16 @@ public class NavWatch extends NotificationListenerService {
     private static volatile String text = "";
     private static volatile long at = 0;
 
+    /**
+     * The system binds this listener at boot and after every package change: it is the most
+     * reliable "our process is up" signal when the head unit blocks BOOT_COMPLETED.
+     */
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        AutoStart.kick(this);
+    }
+
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         if (sbn == null) return;

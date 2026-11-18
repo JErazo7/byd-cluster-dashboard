@@ -273,10 +273,40 @@ ActivityManager: Start proc 8170:com.xdja.clusterdemo/u0a91 for service {...NavW
 
 Antes de eso, las mismas líneas eran `ssc_skip ... ignored !!!`.
 
-**Trampa: cada instalación reactiva el bloqueo.** `AppOpsDataCachedService` recibe
+**Causa directa del 18/11, en orden.** La central se **reinició de verdad** (uptime 1.7 h, eventos
+de boot a las 12:53-12:54) y eso se llevó el vigía: `shark.log` termina en
+`am rc=224` / `Broken pipe` (12:53:16, sistema apagándose) y el `.pid` quedó apuntando a un proceso
+que ya no existe (asesinado, no salió por su cuenta: si hubiera salido habría borrado el pid). Un
+ciclo de energía que **no** reinicia el sistema (como el del 16/11, que sí funcionó) deja el vigía
+vivo. El `ssc_skip` es el motivo de que no hubiera *otro* camino.
+
+**EVSound también está bloqueado** (medido 18/11 14:54, con EVSound recién habilitado):
+
+```
+ssc_skip: bindServiceLocked  1000  want to bind 10089 package com.mdemetrio.evsoundbyd ignored !!!
+```
+
+O sea: su receiver de `BOOT_COMPLETED` tampoco se entrega. Que EVSound "siempre funcionó" es por
+otra razón: el usuario lo abría (un arranque en primer plano sí está permitido), o su vigía seguía
+vivo porque el sistema no se había reiniciado.
+
+**Red de seguridad que no depende del interruptor:** `AutoStart.kick()` se llama cuando el proceso
+aparece por cualquier vía (bind del listener de notificaciones, `SCREEN_ON`, `WakeActivity`) y
+arranca `PanelService` + aplica. Verificado por force-stop: el sistema reengancha el listener y la
+skin vuelve sola, sin comandos:
+
+```
+autostart: process up (Application)
+boot: display=id 1 interactive=true
+boot: 16/45 sent
+```
+
+**Trampa: cada instalación reactiva el bloqueo (y es una carrera).** `AppOpsDataCachedService` recibe
 `PACKAGE_ADDED`/`PACKAGE_REPLACED` y vuelve a escribir `uid → 1`
 (`mapAppOpsData.put(uid, 1)` en `updateAppOpsChangedLocked`). Medido el 18/11 14:50: después de
-`adb install -r`, el interruptor de SharkLab volvió a ON solo. O sea:
+`adb install -r`, el interruptor de SharkLab volvió a ON solo; en una instalación posterior quedó
+en OFF (el par `PACKAGE_REMOVED`/`PACKAGE_ADDED` deja el valor final a merced del orden). Por eso
+**no confiar en el interruptor**: mirar el logcat. O sea:
 
 > **Después de cada `adb install -r` hay que volver a abrir `com.byd.appstartmanagement` y apagar
 > el interruptor de SharkLab** (o comprobarlo) *antes* de apagar el coche. Si no, el próximo
@@ -351,6 +381,7 @@ recreado, la ventana de nuestra app muere con el display viejo y hay que volver 
 | `AdbShell` | `run()` síncrono sobre la sesión viva, y **`A_WRTE` corregido** (estaba en `0x57525445`; en el cable es `0x45545257`): hasta hoy la app ejecutaba los comandos pero nunca leía la respuesta, así que no podía verificar nada |
 | `AdbShell` | el flag del vigía pasó de `/sdcard/…/autostart` a `/data/local/tmp/shark_auto`: si la tarjeta no estaba montada, el script no veía el flag y moría |
 | `MainActivity` | el botón APLICAR usa la misma secuencia en vez de un `46` suelto; los estados que lee la skin usan `attached()` |
+| `AutoStart.java` (nuevo) | cualquier arranque del proceso (bind del listener, `SCREEN_ON`, `WakeActivity`) arranca `PanelService` y aplica: el encendido no depende del vigía ni de `BOOT_COMPLETED` |
 
 **Verificado en la carrocería (16/11, 08:19 y 08:40):** con la skin aplicada, se recreó el
 display (`31`, id 3 → 4 → 5). Traza de la app:
