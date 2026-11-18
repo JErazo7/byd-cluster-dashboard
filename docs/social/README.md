@@ -110,36 +110,28 @@ https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 
 ## LinkedIn (Spanish)
 
-Links in the body cost reach: keep the repo out of the post, put it in the first comment.
+Short on purpose: nobody reads a long post. Links cost reach, so the repo goes in the first
+comment.
 
 ```
-Le pedí a una IA que hiciera ingeniería inversa del tablero de mi BYD. Funcionó, y está abierto.
+Conecté mi carro a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa del
+tablero del cluster.
 
-El objetivo no era dibujar un tablero bonito. Era entender quién manda en el panel que está
-detrás del volante. Ese panel no es una pantalla más de Android: es un display virtual aparte,
-y solo existe mientras un binder del sistema (AutoContainer) está en modo proyección. Los
-códigos que lo abren y lo cierran no están documentados en ningún lado.
+Que quede claro: la IA no lo hizo sola. Fueron muchas iteraciones — un proceso que moría al
+apagar el carro, códigos que no respondían, el panel en negro. Cada medición quedó escrita
+para no repetirla.
 
-Así trabajamos: yo medía en el carro (logcat, dumpsys, capturas del panel) y la IA leía las
-trazas, proponía el siguiente comando, escribía el script y documentaba el resultado. Cada
-hipótesis falsa quedó escrita también, para no volver a probarla.
+Hoy el tablero es mío: un SVG de 1920×720 que edito como texto, seis escenas que elige el
+carro y datos reales del vehículo. 2.6 MB de APK.
 
-La parte que ninguna IA adivina fue el apagado: BYD mata el proceso cuando apagas el carro. Eso
-se descubre midiendo, no razonando.
+Si esto se pudo, casi cualquier cosa del carro se puede. No porque la IA lo resuelva, sino
+porque ahora hay un camino medido y abierto.
 
-El resultado es un repo donde el tablero es un SVG de 1920×720 que editas como texto: fondo,
-tipografía, anillos, marchas. Y la guía de implementación está escrita para que un agente la
-ejecute en otro carro, no solo para que la lea un humano.
+Repo, guía y APK en el primer comentario.
 
-Si tu BYD tiene el mismo sistema de cluster (DiLink 3.0), ya no empiezas de cero: están los
-códigos medidos, las pruebas para portarlo y un APK firmado para mirar antes de compilar.
+Solo en un Shark (DiLink 3.0). Si tu BYD usa el mismo sistema, portarlo es medir tres valores.
 
-Solo lo probé en un Shark. El resto es tu medición: si portas el tuyo, abre un issue con el
-nombre de tu display, los códigos que responda y la señal de encendido.
-
-Código, guía y mediciones en el primer comentario.
-
-#BYD #Shark #OpenSource #Android #DiLink
+#BYD #Shark #OpenSource
 ```
 
 First comment:
@@ -151,14 +143,12 @@ Código, guía y mediciones: https://github.com/JErazo7/byd-cluster-dashboard
 ## X (Spanish, single post — alternative to the thread)
 
 ```
-Le pedí a una IA que hiciera ingeniería inversa del tablero de mi BYD Shark.
+Conecté mi carro a Tailscale y, desde una VM con agentes de IA, hice ingeniería inversa del
+tablero del cluster.
 
-Ese panel no es una pantalla de Android: es un display virtual que solo existe mientras un
-binder (AutoContainer) está en proyección. Los códigos no están documentados.
+La IA no lo hizo sola: muchas iteraciones.
 
-Ahora el tablero es un SVG de 1920×720 que editas como texto, y la guía está escrita para que
-un agente la ejecute en otro carro.
+Hoy es un SVG que edito como texto.
 
-Si tu BYD es DiLink 3.0, no empiezas de cero:
 https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```
