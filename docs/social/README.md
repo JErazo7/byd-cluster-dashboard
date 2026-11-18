@@ -17,12 +17,10 @@ claim is that the values were measured on the car.
 **1/**
 
 ```
-BYD's cluster panel is not an Android display.
+BYD's cluster panel is closed. I didn't reverse engineer it by hand: I measured on the car
+and drove an AI agent through the traces, the command codes and the code.
 
-It's a separate virtual display (`fission`), and the panel only shows it while the
-`AutoContainer` binder is in projection mode.
-
-I replaced it with my own SVG skin. 2.6 MB APK, no Gradle, MIT.
+It now runs my own SVG skin. 2.6 MB APK, no Gradle, MIT.
 
 🧵
 ```
@@ -115,33 +113,31 @@ https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 Links in the body cost reach: keep the repo out of the post, put it in the first comment.
 
 ```
-El panel del cluster de mi BYD Shark ya no es el de BYD.
+Le pedí a una IA que hiciera ingeniería inversa del tablero de mi BYD. Funcionó, y está abierto.
 
-Arranca con un detalle que casi nadie sabe: ese panel no es una pantalla más de Android. Es
-otro display, y solo se muestra mientras el binder `AutoContainer` está en modo proyección.
-Cuando lo entendí, el tablero dejó de ser un APK cerrado y pasó a ser un SVG de 1920×720 que
-edito como texto.
+El objetivo no era dibujar un tablero bonito. Era entender quién manda en el panel que está
+detrás del volante. Ese panel no es una pantalla más de Android: es un display virtual aparte,
+y solo existe mientras un binder del sistema (AutoContainer) está en modo proyección. Los
+códigos que lo abren y lo cierran no están documentados en ningún lado.
 
-Qué quedó funcionando en el carro:
+Así trabajamos: yo medía en el carro (logcat, dumpsys, capturas del panel) y la IA leía las
+trazas, proponía el siguiente comando, escribía el script y documentaba el resultado. Cada
+hipótesis falsa quedó escrita también, para no volver a probarla.
 
-· Seis escenas que no se eligen en un menú: las manda el carro. La rueda de terreno cambia
-  montaña, nieve, arena y lodo; el testigo ECO/SPORT cambia la paleta.
-· Datos reales por las APIs `bydauto` del equipo: velocidad, marcha, potencia con signo (para
-  regeneración), batería, autonomía, odómetro, presiones y modos.
-· Se aplica y se suelta solo: al encender vuelve a tomar el panel sin abrir nada; al apagar lo
-  devuelve para que salga la alerta de puerta abierta.
-· APK de 2.6 MB sin Gradle. MIT.
+La parte que ninguna IA adivina fue el apagado: BYD mata el proceso cuando apagas el carro. Eso
+se descubre midiendo, no razonando.
 
-La parte difícil no fue dibujar. Fue el apagado: BYD mata el proceso cuando apagas el carro,
-así que hay un vigía que lo levanta y el servicio recupera el panel solo. Ese camino está
-documentado con las mediciones, incluyendo lo que probé y NO funciona, para que nadie repita
-el fin de semana que perdí.
+El resultado es un repo donde el tablero es un SVG de 1920×720 que editas como texto: fondo,
+tipografía, anillos, marchas. Y la guía de implementación está escrita para que un agente la
+ejecute en otro carro, no solo para que la lea un humano.
 
-Y una cosa más: no lo probé en otro modelo. Solo en un Shark. Si tienes otro BYD con
-DiLink 3.0, en el repo están las pruebas para portarlo. Abre un issue con el nombre de tu
-display, los códigos que responda y la señal de encendido, y lo adaptamos.
+Si tu BYD tiene el mismo sistema de cluster (DiLink 3.0), ya no empiezas de cero: están los
+códigos medidos, las pruebas para portarlo y un APK firmado para mirar antes de compilar.
 
-Repo en el primer comentario.
+Solo lo probé en un Shark. El resto es tu medición: si portas el tuyo, abre un issue con el
+nombre de tu display, los códigos que responda y la señal de encendido.
+
+Código, guía y mediciones en el primer comentario.
 
 #BYD #Shark #OpenSource #Android #DiLink
 ```
@@ -155,12 +151,14 @@ Código, guía y mediciones: https://github.com/JErazo7/byd-cluster-dashboard
 ## X (Spanish, single post — alternative to the thread)
 
 ```
-El tablero del cluster de mi BYD Shark ahora es código mío.
+Le pedí a una IA que hiciera ingeniería inversa del tablero de mi BYD Shark.
 
-SVG de 1920×720, datos reales del carro, 2.6 MB de APK, MIT.
+Ese panel no es una pantalla de Android: es un display virtual que solo existe mientras un
+binder (AutoContainer) está en proyección. Los códigos no están documentados.
 
-La parte difícil no fue dibujar: BYD mata el proceso al apagar el carro. Hay que levantarlo
-con un vigía y devolver el panel antes de que salga la alerta de puerta.
+Ahora el tablero es un SVG de 1920×720 que editas como texto, y la guía está escrita para que
+un agente la ejecute en otro carro.
 
-https://github.com/JErazo7/byd-cluster-dashboard
+Si tu BYD es DiLink 3.0, no empiezas de cero:
+https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```
