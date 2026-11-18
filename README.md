@@ -8,6 +8,11 @@ steering wheel, **without depending on the reference cluster app**.
 The reference implementation in this repo is called **SharkLab**. It has only been tested on a
 **BYD Shark** so far; see [Compatibility](#compatibility).
 
+![The six driving modes, drawn by the byd skin](docs/demo-modes.gif)
+
+_Captured on the car: the six scenes, one per driving mode. The centre card is the slot for your
+own vehicle photo._
+
 | Folder | What it is | Status |
 |---|---|---|
 | `app/` | SharkLab: Android app that paints the skin (~2.6 MB APK with the theme, no Gradle) | **builds and signs** |
@@ -210,20 +215,21 @@ AutoContainer is in projection mode**. That mode is requested over binder, type 
 | 17 | half |
 | 18 | back to the original BYD panel |
 | 45 | full screen: the container stops drawing its own widgets (P/NORMAL, battery, tyres, ODO) on top |
-| 46 | recreates the panel display |
+| 46 | rebuilds the panel surface (the display counter does not change: `5 → 5`) |
 | 0 | release |
 
 **Sequence measured on the car (2026-11-10), order matters:**
 
 | step | what it does | effect |
 |---|---|---|
-| skin window first | overlay window on display 2 | without it, `45` has nothing to show |
+| skin window first | overlay window on the panel's virtual display | without it, `45` has nothing to show |
 | `16` | projection | the skin appears with the native widgets on top |
 | `45` | full screen | the native widgets disappear; only the skin is left |
 
-`46` is **not** part of that sequence: it recreates the display, leaves the window orphaned and
-the panel goes back to the native layout. It is only used when releasing (`46` → `18` → `0`) and
-as a rescue when the window cannot be created because the display does not exist.
+`46` is **not** part of that sequence: it rebuilds the panel surface, leaves the window orphaned
+and the panel goes back to the native layout (the display counter stays at `5`, see
+`docs/bug-panel-display.md`). It is only used when releasing (`46` → `18` → `0`) and as a rescue
+when the window cannot be created because the display does not exist.
 
 The 60 s loop reaffirms `16` + `45` (never `46`), so the panel holds even if another app sends
 `18`. Verified: 3 minutes full screen without sending commands by hand.
