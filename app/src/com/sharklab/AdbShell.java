@@ -46,16 +46,20 @@ public final class AdbShell {
                 .format(new java.util.Date()) + " " + line + "\n";
         /* internal first: with the car off the external storage may unmount and the trace
            (exactly the one from the shutdown) was lost */
+        append(new java.io.File(c.getFilesDir(), "panel.log"), stamp);
+        append(new java.io.File(c.getExternalFilesDir(null), "panel.log"), stamp);
+    }
+
+    /** appends, keeping one previous generation: the trace runs for days (771 KB in one day) */
+    private static void append(java.io.File f, String text) {
         try {
-            java.io.File f = new java.io.File(c.getFilesDir(), "panel.log");
+            if (f.length() > 512 * 1024) {
+                java.io.File old = new java.io.File(f.getPath() + ".1");
+                old.delete();
+                f.renameTo(old);
+            }
             java.io.FileWriter w = new java.io.FileWriter(f, true);
-            w.write(stamp);
-            w.close();
-        } catch (Throwable ignored) { }
-        try {
-            java.io.File f = new java.io.File(c.getExternalFilesDir(null), "panel.log");
-            java.io.FileWriter w = new java.io.FileWriter(f, true);
-            w.write(stamp);
+            w.write(text);
             w.close();
         } catch (Throwable ignored) { }
     }
