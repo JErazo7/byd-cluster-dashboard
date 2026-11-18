@@ -140,13 +140,15 @@ Code, guide and the signed APK: https://github.com/JErazo7/byd-cluster-dashboard
 
 ## X (single post)
 
+The same story as LinkedIn, cut to 279 characters (280 is the limit; a link always counts as
+23). With X Premium, use the LinkedIn text as it is.
+
 ```
-Your BYD's cluster panel is not Android: it only exists while a system service projects onto it,
-with codes nobody documents.
+Reverse engineered my BYD Shark's cluster: from a VM, car on Tailscale.
 
-I mapped them on my Shark, from a VM, car on Tailscale.
+That panel is not Android: a system service projects onto it, with undocumented codes.
 
-Now the dashboard is one SVG you can rewrite. Any BYD on DiLink 3.0.
+Now one SVG, six scenes, real data. Change the theme or anything else. Any BYD on DiLink 3.0.
 
 https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```
