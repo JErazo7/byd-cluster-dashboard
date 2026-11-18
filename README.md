@@ -19,6 +19,13 @@ own vehicle photo._
 | `themes/` | `byd` theme (the only one the app shows) | working |
 | `tools/` | Diagnostics and helper scripts: panel FPS, preview server, deploy, keepalive | working |
 
+## Download
+
+A pre-built APK is attached to [the latest release](https://github.com/JErazo7/byd-cluster-dashboard/releases/latest):
+same code as this tree, signed with the project key, no ADB key embedded. It exists so you can
+look at the panel on the car before deciding to build anything — the point of the project is
+still that you edit the skin, or write your own.
+
 ## Compatibility
 
 | Scope | Status |

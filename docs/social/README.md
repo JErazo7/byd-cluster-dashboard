@@ -101,10 +101,13 @@ Things that do NOT work, so you do not lose a weekend:
 ```
 Now the honest part: I only ran this on a BYD Shark. One car, one unit.
 
+There is a signed APK on the releases page if you want to look at the panel before building
+anything, but that is not the point: the point is that you edit the skin, or write your own.
+
 If you have another BYD on DiLink 3.0, the porting probes are in the repo. Open an issue with
 your display name, the panel codes it answers and your power signal.
 
-https://github.com/JErazo7/byd-cluster-dashboard
+https://github.com/JErazo7/byd-cluster-dashboard/releases/latest
 ```
 
 ## LinkedIn (Spanish)
